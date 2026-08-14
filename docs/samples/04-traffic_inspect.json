@@ -1,0 +1,159 @@
+{
+  "tool": "traffic_inspect",
+  "input": {
+    "capture_id": "cap_4c000d9b26cb69fb",
+    "conversation_id": "conv:tcp:0"
+  },
+  "output": {
+    "conversation": {
+      "conversation_id": "conv:tcp:0",
+      "transport": "tcp",
+      "initiator": {
+        "ip": "192.168.1.4",
+        "port": 53124
+      },
+      "responder": {
+        "ip": "142.250.74.14",
+        "port": 443
+      },
+      "direction_basis": "handshake",
+      "start_ms": 0,
+      "duration_ms": 620,
+      "packets": {
+        "forward": 10,
+        "reverse": 7
+      },
+      "bytes": {
+        "forward": 1830,
+        "reverse": 4745
+      },
+      "metrics": {
+        "retransmission_count": 3,
+        "dns_query_count": 0,
+        "tls_handshake_count": 1,
+        "tcp_handshake_ms": 70,
+        "tls_handshake_ms": 145
+      },
+      "protocol_tags": [
+        "tcp",
+        "tls"
+      ]
+    },
+    "timeline": {
+      "returned": 5,
+      "total": 5,
+      "offset": 0,
+      "truncated": false,
+      "items": [
+        {
+          "epoch": 0.075,
+          "frameNumber": 4,
+          "type": "tls_client_hello",
+          "direction": "initiator_to_responder",
+          "attributes": {},
+          "event_id": "evt:000002",
+          "conversation_id": "conv:tcp:0",
+          "time_ms": 75,
+          "detection": "tshark_tls_dissector",
+          "evidence": {
+            "kind": "frame",
+            "frame_number": 4
+          }
+        },
+        {
+          "epoch": 0.22,
+          "frameNumber": 6,
+          "type": "tls_server_hello",
+          "direction": "responder_to_initiator",
+          "attributes": {},
+          "event_id": "evt:000005",
+          "conversation_id": "conv:tcp:0",
+          "time_ms": 220,
+          "detection": "tshark_tls_dissector",
+          "evidence": {
+            "kind": "frame",
+            "frame_number": 6
+          }
+        },
+        {
+          "epoch": 0.34,
+          "frameNumber": 8,
+          "type": "tcp_retransmission",
+          "direction": "initiator_to_responder",
+          "attributes": {
+            "variant": "plain"
+          },
+          "event_id": "evt:000007",
+          "conversation_id": "conv:tcp:0",
+          "time_ms": 340,
+          "detection": "tshark_tcp_analysis",
+          "evidence": {
+            "kind": "frame",
+            "frame_number": 8
+          }
+        },
+        {
+          "epoch": 0.45,
+          "frameNumber": 11,
+          "type": "tcp_retransmission",
+          "direction": "responder_to_initiator",
+          "attributes": {
+            "variant": "plain"
+          },
+          "event_id": "evt:000008",
+          "conversation_id": "conv:tcp:0",
+          "time_ms": 450,
+          "detection": "tshark_tcp_analysis",
+          "evidence": {
+            "kind": "frame",
+            "frame_number": 11
+          }
+        },
+        {
+          "epoch": 0.54,
+          "frameNumber": 14,
+          "type": "tcp_retransmission",
+          "direction": "initiator_to_responder",
+          "attributes": {
+            "variant": "plain"
+          },
+          "event_id": "evt:000009",
+          "conversation_id": "conv:tcp:0",
+          "time_ms": 540,
+          "detection": "tshark_tcp_analysis",
+          "evidence": {
+            "kind": "frame",
+            "frame_number": 14
+          }
+        }
+      ]
+    },
+    "aggregates": {
+      "retransmissions": {
+        "count": 3,
+        "evidence": {
+          "kind": "aggregate",
+          "frames": [
+            8,
+            11,
+            14
+          ],
+          "frame_count": 3,
+          "truncated": false
+        }
+      }
+    },
+    "audit": {
+      "capture_id": "cap_4c000d9b26cb69fb",
+      "query_hash": "",
+      "backend": "tshark",
+      "backend_version": "4.4.8",
+      "plugin_version": "0.1.0",
+      "backend_commands": [
+        "/opt/homebrew/bin/capinfos -T -t -u -c -d -a -e /Users/huangsizhe/Documents/network_analysis_plugin/fixtures/web-session.pcap",
+        "/opt/homebrew/bin/tshark -r /Users/huangsizhe/Documents/network_analysis_plugin/fixtures/web-session.pcap -n -q -z io,phs -z conv,tcp -z conv,udp",
+        "/opt/homebrew/bin/tshark -r /Users/huangsizhe/Documents/network_analysis_plugin/fixtures/web-session.pcap -n -T fields -E separator=\t -E occurrence=a -E aggregator=, -E quote=n -e frame.number -e frame.time_epoch -e frame.len -e ip.src -e ip.dst -e ipv6.src -e ipv6.dst -e tcp.stream -e udp.stream -e tcp.srcport -e tcp.dstport -e udp.srcport -e udp.dstport -e tcp.flags.syn -e tcp.flags.ack -e tcp.analysis.retransmission -e tcp.analysis.fast_retransmission -e tcp.analysis.spurious_retransmission -e dns.id -e dns.qry.name -e dns.qry.type -e dns.flags.response -e dns.flags.rcode -e tls.handshake.type"
+      ]
+    }
+  }
+}

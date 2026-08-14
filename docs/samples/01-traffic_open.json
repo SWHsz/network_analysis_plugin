@@ -1,0 +1,23 @@
+{
+  "tool": "traffic_open",
+  "input": {
+    "path": "/Users/huangsizhe/Documents/network_analysis_plugin/fixtures/web-session.pcap"
+  },
+  "output": {
+    "capture": {
+      "capture_id": "cap_4c000d9b26cb69fb",
+      "path": "/Users/huangsizhe/Documents/network_analysis_plugin/fixtures/web-session.pcap",
+      "format": "pcap",
+      "size_bytes": 8205,
+      "first_packet_epoch": 0,
+      "last_packet_epoch": 1.6,
+      "duration_ms": 1600,
+      "packet_count": 32,
+      "backend": {
+        "name": "tshark",
+        "version": "4.4.8"
+      },
+      "plugin_version": "0.1.0"
+    }
+  }
+}

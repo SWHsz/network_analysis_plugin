@@ -1,0 +1,3 @@
+- insert:
+  - id: traffic-analysis
+    name: dsh-traffic-analysis-plugin

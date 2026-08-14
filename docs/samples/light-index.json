@@ -1,0 +1,138 @@
+{
+  "plugin_version": "0.1.0",
+  "tshark_version": "4.4.8",
+  "built_at": "2026-08-14T14:33:37.287Z",
+  "capinfos": {
+    "format": "pcap",
+    "packet_count": 32,
+    "data_size_bytes": 0,
+    "duration_s": 1.6,
+    "start_epoch": 0,
+    "end_epoch": 1.6
+  },
+  "protocol_hierarchy": [
+    {
+      "name": "eth",
+      "depth": 0,
+      "frames": 32,
+      "bytes": 7669
+    },
+    {
+      "name": "ip",
+      "depth": 1,
+      "frames": 32,
+      "bytes": 7669
+    },
+    {
+      "name": "tcp",
+      "depth": 2,
+      "frames": 26,
+      "bytes": 7247
+    },
+    {
+      "name": "tls",
+      "depth": 3,
+      "frames": 2,
+      "bytes": 205
+    },
+    {
+      "name": "data",
+      "depth": 3,
+      "frames": 4,
+      "bytes": 3716
+    },
+    {
+      "name": "http",
+      "depth": 3,
+      "frames": 2,
+      "bytes": 226
+    },
+    {
+      "name": "udp",
+      "depth": 2,
+      "frames": 6,
+      "bytes": 422
+    },
+    {
+      "name": "dns",
+      "depth": 3,
+      "frames": 4,
+      "bytes": 327
+    },
+    {
+      "name": "nbdgm",
+      "depth": 3,
+      "frames": 1,
+      "bytes": 47
+    },
+    {
+      "name": "_ws.malformed",
+      "depth": 4,
+      "frames": 1,
+      "bytes": 47
+    },
+    {
+      "name": "data",
+      "depth": 3,
+      "frames": 1,
+      "bytes": 48
+    }
+  ],
+  "conversations": [
+    {
+      "transport": "udp",
+      "endpoint_a": "192.168.1.4:53126",
+      "endpoint_b": "8.8.8.8:53",
+      "frames_b_to_a": 2,
+      "bytes_b_to_a": 177,
+      "frames_a_to_b": 2,
+      "bytes_a_to_b": 150,
+      "relative_start_s": 0.05,
+      "duration_s": 0.21
+    },
+    {
+      "transport": "udp",
+      "endpoint_a": "192.168.1.4:138",
+      "endpoint_b": "192.168.1.1:138",
+      "frames_b_to_a": 0,
+      "bytes_b_to_a": 0,
+      "frames_a_to_b": 1,
+      "bytes_a_to_b": 47,
+      "relative_start_s": 1.5,
+      "duration_s": 0
+    },
+    {
+      "transport": "udp",
+      "endpoint_a": "192.168.1.4:40000",
+      "endpoint_b": "10.0.0.9:9999",
+      "frames_b_to_a": 0,
+      "bytes_b_to_a": 0,
+      "frames_a_to_b": 1,
+      "bytes_a_to_b": 48,
+      "relative_start_s": 1.6,
+      "duration_s": 0
+    },
+    {
+      "transport": "tcp",
+      "endpoint_a": "192.168.1.4:53124",
+      "endpoint_b": "142.250.74.14:443",
+      "frames_b_to_a": 7,
+      "bytes_b_to_a": 4745,
+      "frames_a_to_b": 10,
+      "bytes_a_to_b": 1830,
+      "relative_start_s": 0,
+      "duration_s": 0.62
+    },
+    {
+      "transport": "tcp",
+      "endpoint_a": "192.168.1.4:53125",
+      "endpoint_b": "93.184.216.34:80",
+      "frames_b_to_a": 3,
+      "bytes_b_to_a": 212,
+      "frames_a_to_b": 6,
+      "bytes_a_to_b": 460,
+      "relative_start_s": 1,
+      "duration_s": 0.42
+    }
+  ]
+}

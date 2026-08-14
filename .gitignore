@@ -1,0 +1,12 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.venv*/
+/tmp/
+
+# 本机私有数据：真实抓包 / 对话记录 / 大数据集（不入库）
+.DS_Store
+.zcode/
+/23.pcap
+/session.jsonl
+/flows-*.csv.gz

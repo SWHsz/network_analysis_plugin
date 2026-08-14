@@ -1,0 +1,48 @@
+{
+  "tool": "traffic_query(dns responses)",
+  "input": {
+    "capture_id": "cap_4c000d9b26cb69fb",
+    "query": {
+      "scope": "event",
+      "where": [
+        {
+          "field": "type",
+          "op": "eq",
+          "value": "dns_response"
+        }
+      ]
+    }
+  },
+  "output": {
+    "result": {
+      "returned": 2,
+      "total": 2,
+      "offset": 0,
+      "truncated": false,
+      "items": [
+        {
+          "event_id": "evt:000003",
+          "time_ms": 95,
+          "frame_number": 19
+        },
+        {
+          "event_id": "evt:000006",
+          "time_ms": 260,
+          "frame_number": 21
+        }
+      ]
+    },
+    "audit": {
+      "capture_id": "cap_4c000d9b26cb69fb",
+      "query_hash": "a5eabe104ae62bb6",
+      "backend": "tshark",
+      "backend_version": "4.4.8",
+      "plugin_version": "0.1.0",
+      "backend_commands": [
+        "/opt/homebrew/bin/capinfos -T -t -u -c -d -a -e /Users/huangsizhe/Documents/network_analysis_plugin/fixtures/web-session.pcap",
+        "/opt/homebrew/bin/tshark -r /Users/huangsizhe/Documents/network_analysis_plugin/fixtures/web-session.pcap -n -q -z io,phs -z conv,tcp -z conv,udp",
+        "/opt/homebrew/bin/tshark -r /Users/huangsizhe/Documents/network_analysis_plugin/fixtures/web-session.pcap -n -T fields -E separator=\t -E occurrence=a -E aggregator=, -E quote=n -e frame.number -e frame.time_epoch -e frame.len -e ip.src -e ip.dst -e ipv6.src -e ipv6.dst -e tcp.stream -e udp.stream -e tcp.srcport -e tcp.dstport -e udp.srcport -e udp.dstport -e tcp.flags.syn -e tcp.flags.ack -e tcp.analysis.retransmission -e tcp.analysis.fast_retransmission -e tcp.analysis.spurious_retransmission -e dns.id -e dns.qry.name -e dns.qry.type -e dns.flags.response -e dns.flags.rcode -e tls.handshake.type"
+      ]
+    }
+  }
+}

@@ -1,0 +1,350 @@
+{
+  "conversations": [
+    {
+      "conversation_id": "conv:tcp:0",
+      "transport": "tcp",
+      "initiator": {
+        "ip": "192.168.1.4",
+        "port": 53124
+      },
+      "responder": {
+        "ip": "142.250.74.14",
+        "port": 443
+      },
+      "direction_basis": "handshake",
+      "start_ms": 0,
+      "duration_ms": 620,
+      "packets": {
+        "forward": 10,
+        "reverse": 7
+      },
+      "bytes": {
+        "forward": 1830,
+        "reverse": 4745
+      },
+      "metrics": {
+        "retransmission_count": 3,
+        "dns_query_count": 0,
+        "tls_handshake_count": 1,
+        "tcp_handshake_ms": 70,
+        "tls_handshake_ms": 145
+      },
+      "protocol_tags": [
+        "tcp",
+        "tls"
+      ]
+    },
+    {
+      "conversation_id": "conv:tcp:1",
+      "transport": "tcp",
+      "initiator": {
+        "ip": "192.168.1.4",
+        "port": 53125
+      },
+      "responder": {
+        "ip": "93.184.216.34",
+        "port": 80
+      },
+      "direction_basis": "handshake",
+      "start_ms": 1000,
+      "duration_ms": 420,
+      "packets": {
+        "forward": 6,
+        "reverse": 3
+      },
+      "bytes": {
+        "forward": 460,
+        "reverse": 212
+      },
+      "metrics": {
+        "retransmission_count": 1,
+        "dns_query_count": 0,
+        "tls_handshake_count": 0,
+        "tcp_handshake_ms": 70,
+        "tls_handshake_ms": null
+      },
+      "protocol_tags": [
+        "tcp"
+      ]
+    },
+    {
+      "conversation_id": "conv:udp:0",
+      "transport": "udp",
+      "initiator": {
+        "ip": "192.168.1.4",
+        "port": 53126
+      },
+      "responder": {
+        "ip": "8.8.8.8",
+        "port": 53
+      },
+      "direction_basis": "first_packet",
+      "start_ms": 50,
+      "duration_ms": 210,
+      "packets": {
+        "forward": 2,
+        "reverse": 2
+      },
+      "bytes": {
+        "forward": 150,
+        "reverse": 177
+      },
+      "metrics": {
+        "retransmission_count": 0,
+        "dns_query_count": 2,
+        "tls_handshake_count": 0,
+        "tcp_handshake_ms": null,
+        "tls_handshake_ms": null
+      },
+      "protocol_tags": [
+        "udp",
+        "dns"
+      ]
+    },
+    {
+      "conversation_id": "conv:udp:1",
+      "transport": "udp",
+      "initiator": {
+        "ip": "192.168.1.4",
+        "port": 138
+      },
+      "responder": {
+        "ip": "192.168.1.1",
+        "port": 138
+      },
+      "direction_basis": "first_packet",
+      "start_ms": 1500,
+      "duration_ms": 0,
+      "packets": {
+        "forward": 1,
+        "reverse": 0
+      },
+      "bytes": {
+        "forward": 47,
+        "reverse": 0
+      },
+      "metrics": {
+        "retransmission_count": 0,
+        "dns_query_count": 0,
+        "tls_handshake_count": 0,
+        "tcp_handshake_ms": null,
+        "tls_handshake_ms": null
+      },
+      "protocol_tags": [
+        "udp"
+      ]
+    },
+    {
+      "conversation_id": "conv:udp:2",
+      "transport": "udp",
+      "initiator": {
+        "ip": "192.168.1.4",
+        "port": 40000
+      },
+      "responder": {
+        "ip": "10.0.0.9",
+        "port": 9999
+      },
+      "direction_basis": "first_packet",
+      "start_ms": 1600,
+      "duration_ms": 0,
+      "packets": {
+        "forward": 1,
+        "reverse": 0
+      },
+      "bytes": {
+        "forward": 48,
+        "reverse": 0
+      },
+      "metrics": {
+        "retransmission_count": 0,
+        "dns_query_count": 0,
+        "tls_handshake_count": 0,
+        "tcp_handshake_ms": null,
+        "tls_handshake_ms": null
+      },
+      "protocol_tags": [
+        "udp"
+      ]
+    }
+  ],
+  "events": [
+    {
+      "epoch": 0.05,
+      "frameNumber": 18,
+      "type": "dns_query",
+      "direction": "initiator_to_responder",
+      "attributes": {
+        "dns_id": 4660,
+        "qname": "youtube.com",
+        "qtype": "1"
+      },
+      "event_id": "evt:000001",
+      "conversation_id": "conv:udp:0",
+      "time_ms": 50,
+      "detection": "tshark_dns_dissector",
+      "evidence": {
+        "kind": "frame",
+        "frame_number": 18
+      }
+    },
+    {
+      "epoch": 0.075,
+      "frameNumber": 4,
+      "type": "tls_client_hello",
+      "direction": "initiator_to_responder",
+      "attributes": {},
+      "event_id": "evt:000002",
+      "conversation_id": "conv:tcp:0",
+      "time_ms": 75,
+      "detection": "tshark_tls_dissector",
+      "evidence": {
+        "kind": "frame",
+        "frame_number": 4
+      }
+    },
+    {
+      "epoch": 0.095,
+      "frameNumber": 19,
+      "type": "dns_response",
+      "direction": "responder_to_initiator",
+      "attributes": {
+        "dns_id": 4660,
+        "qname": "youtube.com",
+        "qtype": "1",
+        "rcode_num": 0
+      },
+      "event_id": "evt:000003",
+      "conversation_id": "conv:udp:0",
+      "time_ms": 95,
+      "detection": "tshark_dns_dissector",
+      "evidence": {
+        "kind": "frame",
+        "frame_number": 19
+      }
+    },
+    {
+      "epoch": 0.2,
+      "frameNumber": 20,
+      "type": "dns_query",
+      "direction": "initiator_to_responder",
+      "attributes": {
+        "dns_id": 4661,
+        "qname": "nonexistent.example",
+        "qtype": "1"
+      },
+      "event_id": "evt:000004",
+      "conversation_id": "conv:udp:0",
+      "time_ms": 200,
+      "detection": "tshark_dns_dissector",
+      "evidence": {
+        "kind": "frame",
+        "frame_number": 20
+      }
+    },
+    {
+      "epoch": 0.22,
+      "frameNumber": 6,
+      "type": "tls_server_hello",
+      "direction": "responder_to_initiator",
+      "attributes": {},
+      "event_id": "evt:000005",
+      "conversation_id": "conv:tcp:0",
+      "time_ms": 220,
+      "detection": "tshark_tls_dissector",
+      "evidence": {
+        "kind": "frame",
+        "frame_number": 6
+      }
+    },
+    {
+      "epoch": 0.26,
+      "frameNumber": 21,
+      "type": "dns_response",
+      "direction": "responder_to_initiator",
+      "attributes": {
+        "dns_id": 4661,
+        "qname": "nonexistent.example",
+        "qtype": "1",
+        "rcode_num": 3
+      },
+      "event_id": "evt:000006",
+      "conversation_id": "conv:udp:0",
+      "time_ms": 260,
+      "detection": "tshark_dns_dissector",
+      "evidence": {
+        "kind": "frame",
+        "frame_number": 21
+      }
+    },
+    {
+      "epoch": 0.34,
+      "frameNumber": 8,
+      "type": "tcp_retransmission",
+      "direction": "initiator_to_responder",
+      "attributes": {
+        "variant": "plain"
+      },
+      "event_id": "evt:000007",
+      "conversation_id": "conv:tcp:0",
+      "time_ms": 340,
+      "detection": "tshark_tcp_analysis",
+      "evidence": {
+        "kind": "frame",
+        "frame_number": 8
+      }
+    },
+    {
+      "epoch": 0.45,
+      "frameNumber": 11,
+      "type": "tcp_retransmission",
+      "direction": "responder_to_initiator",
+      "attributes": {
+        "variant": "plain"
+      },
+      "event_id": "evt:000008",
+      "conversation_id": "conv:tcp:0",
+      "time_ms": 450,
+      "detection": "tshark_tcp_analysis",
+      "evidence": {
+        "kind": "frame",
+        "frame_number": 11
+      }
+    },
+    {
+      "epoch": 0.54,
+      "frameNumber": 14,
+      "type": "tcp_retransmission",
+      "direction": "initiator_to_responder",
+      "attributes": {
+        "variant": "plain"
+      },
+      "event_id": "evt:000009",
+      "conversation_id": "conv:tcp:0",
+      "time_ms": 540,
+      "detection": "tshark_tcp_analysis",
+      "evidence": {
+        "kind": "frame",
+        "frame_number": 14
+      }
+    },
+    {
+      "epoch": 1.15,
+      "frameNumber": 26,
+      "type": "tcp_retransmission",
+      "direction": "initiator_to_responder",
+      "attributes": {
+        "variant": "plain"
+      },
+      "event_id": "evt:000010",
+      "conversation_id": "conv:tcp:1",
+      "time_ms": 1150,
+      "detection": "tshark_tcp_analysis",
+      "evidence": {
+        "kind": "frame",
+        "frame_number": 26
+      }
+    }
+  ],
+  "note": "events carry evidence.frame_number; attributes are tshark heuristic projections (see detection)"
+}

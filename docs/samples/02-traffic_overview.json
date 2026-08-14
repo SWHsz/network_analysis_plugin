@@ -1,0 +1,164 @@
+{
+  "tool": "traffic_overview",
+  "input": {
+    "capture_id": "cap_4c000d9b26cb69fb"
+  },
+  "output": {
+    "capture": {
+      "capture_id": "cap_4c000d9b26cb69fb",
+      "path": "/Users/huangsizhe/Documents/network_analysis_plugin/fixtures/web-session.pcap",
+      "format": "pcap",
+      "size_bytes": 8205,
+      "first_packet_epoch": 0,
+      "last_packet_epoch": 1.6,
+      "duration_ms": 1600,
+      "packet_count": 32,
+      "backend": {
+        "name": "tshark",
+        "version": "4.4.8"
+      },
+      "plugin_version": "0.1.0"
+    },
+    "protocol_distribution": [
+      {
+        "name": "eth",
+        "depth": 0,
+        "frames": 32,
+        "bytes": 7669
+      },
+      {
+        "name": "ip",
+        "depth": 1,
+        "frames": 32,
+        "bytes": 7669
+      },
+      {
+        "name": "tcp",
+        "depth": 2,
+        "frames": 26,
+        "bytes": 7247
+      },
+      {
+        "name": "tls",
+        "depth": 3,
+        "frames": 2,
+        "bytes": 205
+      },
+      {
+        "name": "data",
+        "depth": 3,
+        "frames": 4,
+        "bytes": 3716
+      },
+      {
+        "name": "http",
+        "depth": 3,
+        "frames": 2,
+        "bytes": 226
+      },
+      {
+        "name": "udp",
+        "depth": 2,
+        "frames": 6,
+        "bytes": 422
+      },
+      {
+        "name": "dns",
+        "depth": 3,
+        "frames": 4,
+        "bytes": 327
+      },
+      {
+        "name": "nbdgm",
+        "depth": 3,
+        "frames": 1,
+        "bytes": 47
+      },
+      {
+        "name": "_ws.malformed",
+        "depth": 4,
+        "frames": 1,
+        "bytes": 47
+      },
+      {
+        "name": "data",
+        "depth": 3,
+        "frames": 1,
+        "bytes": 48
+      }
+    ],
+    "conversation_counts": {
+      "tcp": 2,
+      "udp": 3
+    },
+    "top_conversations_by_bytes": [
+      {
+        "transport": "tcp",
+        "endpoint_a": "192.168.1.4:53124",
+        "endpoint_b": "142.250.74.14:443",
+        "frames_b_to_a": 7,
+        "bytes_b_to_a": 4745,
+        "frames_a_to_b": 10,
+        "bytes_a_to_b": 1830,
+        "relative_start_s": 0,
+        "duration_s": 0.62
+      },
+      {
+        "transport": "tcp",
+        "endpoint_a": "192.168.1.4:53125",
+        "endpoint_b": "93.184.216.34:80",
+        "frames_b_to_a": 3,
+        "bytes_b_to_a": 212,
+        "frames_a_to_b": 6,
+        "bytes_a_to_b": 460,
+        "relative_start_s": 1,
+        "duration_s": 0.42
+      },
+      {
+        "transport": "udp",
+        "endpoint_a": "192.168.1.4:53126",
+        "endpoint_b": "8.8.8.8:53",
+        "frames_b_to_a": 2,
+        "bytes_b_to_a": 177,
+        "frames_a_to_b": 2,
+        "bytes_a_to_b": 150,
+        "relative_start_s": 0.05,
+        "duration_s": 0.21
+      },
+      {
+        "transport": "udp",
+        "endpoint_a": "192.168.1.4:40000",
+        "endpoint_b": "10.0.0.9:9999",
+        "frames_b_to_a": 0,
+        "bytes_b_to_a": 0,
+        "frames_a_to_b": 1,
+        "bytes_a_to_b": 48,
+        "relative_start_s": 1.6,
+        "duration_s": 0
+      },
+      {
+        "transport": "udp",
+        "endpoint_a": "192.168.1.4:138",
+        "endpoint_b": "192.168.1.1:138",
+        "frames_b_to_a": 0,
+        "bytes_b_to_a": 0,
+        "frames_a_to_b": 1,
+        "bytes_a_to_b": 47,
+        "relative_start_s": 1.5,
+        "duration_s": 0
+      }
+    ],
+    "audit": {
+      "capture_id": "cap_4c000d9b26cb69fb",
+      "query_hash": "",
+      "backend": "tshark",
+      "backend_version": "4.4.8",
+      "plugin_version": "0.1.0",
+      "backend_commands": [
+        "/opt/homebrew/bin/capinfos -T -t -u -c -d -a -e /Users/huangsizhe/Documents/network_analysis_plugin/fixtures/web-session.pcap",
+        "/opt/homebrew/bin/tshark -r /Users/huangsizhe/Documents/network_analysis_plugin/fixtures/web-session.pcap -n -q -z io,phs -z conv,tcp -z conv,udp",
+        "/opt/homebrew/bin/tshark -r /Users/huangsizhe/Documents/network_analysis_plugin/fixtures/web-session.pcap -n -T fields -E separator=\t -E occurrence=a -E aggregator=, -E quote=n -e frame.number -e frame.time_epoch -e frame.len -e ip.src -e ip.dst -e ipv6.src -e ipv6.dst -e tcp.stream -e udp.stream -e tcp.srcport -e tcp.dstport -e udp.srcport -e udp.dstport -e tcp.flags.syn -e tcp.flags.ack -e tcp.analysis.retransmission -e tcp.analysis.fast_retransmission -e tcp.analysis.spurious_retransmission -e dns.id -e dns.qry.name -e dns.qry.type -e dns.flags.response -e dns.flags.rcode -e tls.handshake.type"
+      ]
+    }
+  }
+}
