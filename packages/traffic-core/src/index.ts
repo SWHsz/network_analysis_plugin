@@ -42,6 +42,7 @@ export {
 } from "./backend/provider.js";
 
 export { BackendTimeoutError, BackendSpawnError } from "./backend/spawn.js";
+export { rawQuery, RawQueryError, type RawQueryOptions, type RawQueryResult } from "./raw.js";
 export { shapeAggregateEvidence, renderEnvelope, renderRows, applyRenderBudget, DEFAULT_RENDER_MAX_CHARS, AGGREGATE_FRAME_CAP } from "./shaper.js";
 export { resolveCacheRoot } from "./cachedir.js";
 export { parseCapinfosTsv, parseZStats, type LightIndex } from "./indexer.js";

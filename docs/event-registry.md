@@ -1,10 +1,10 @@
-# Event Registry — v0.2
+# Event Registry — v0.3
 
 注册表是事件类型的**单一来源**：`packages/traffic-core/src/events/registry.ts`。
 抽取字段集合（`EXTRACTION_FIELDS`）、attributes 形状、detection 标注、查询白名单
 （`EVENT_ATTR_FIELDS`，由 `queryable` 声明生成）、文档均由它派生。
 
-## v0.2 的 5 族 11 种
+## v0.3 的 5 族 11 种（TLS 族 attributes 扩展）
 
 ### TCP 分析族（detection: tshark_tcp_analysis）
 
@@ -16,10 +16,12 @@
 | `tcp_zero_window` | `{}` | `tcp.analysis.zero_window` | 零窗口通告 |
 | `tcp_missing_segment` | `{gap_bytes, origin}` | `tcp.analysis.lost_segment` | 缺失段。gap_bytes 相对流内该方向已见最高连续序号；origin: `mid_stream`（中途缺口）/`capture_start`（抓包起点前已有数据）。**不标记不等于没丢包**（缺口两端都没被捕获时无从判定） |
 
-### DNS 族 / TLS 族（同 v0.1）
+### DNS 族 / TLS 族（v0.3 扩展 attributes）
 
-`dns_query` `{dns_id,qname,qtype}`、`dns_response` `{dns_id,qname,rcode_num}`、
-`tls_client_hello`、`tls_server_hello`。
+- `dns_query` `{dns_id,qname,qtype}`、`dns_response` `{dns_id,qname,rcode_num}`；
+- `tls_client_hello` `{version, sni, cipher_count}`（v0.3：sni 可推断目标站点；
+  完整套件列表过长不入 IR，需要时走 traffic_raw_query）；
+- `tls_server_hello` `{version, cipher}`（v0.3：cipher 如 0x1301）。
 
 ### HTTP 族（v0.2 新增，detection: tshark_http_dissector）
 

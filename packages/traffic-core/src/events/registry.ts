@@ -90,16 +90,31 @@ export const EVENT_REGISTRY: Record<EventType, EventSpec> = {
   tls_client_hello: {
     type: "tls_client_hello",
     detection: "tshark_tls_dissector",
-    description: "TLS ClientHello（握手发起）。",
-    attributes: {},
-    source: { tsharkFields: ["tls.handshake.type"] },
+    description:
+      "TLS ClientHello（握手发起）。attributes.version 为 client_version，" +
+      "cipher_count 为提供的套件数（完整列表过长不入 IR，需要时走 traffic_raw_query），" +
+      "sni 为服务器名指示（可推断目标站点）。",
+    attributes: { version: "string", sni: "string", cipher_count: "number" },
+    queryable: ["version", "sni"],
+    source: {
+      tsharkFields: [
+        "tls.handshake.type",
+        "tls.handshake.version",
+        // 4.x 字段名为下划线形式（非点分层的新命名）
+        "tls.handshake.extensions_server_name",
+        "tls.handshake.ciphersuite",
+      ],
+    },
   },
   tls_server_hello: {
     type: "tls_server_hello",
     detection: "tshark_tls_dissector",
-    description: "TLS ServerHello。",
-    attributes: {},
-    source: { tsharkFields: ["tls.handshake.type"] },
+    description: "TLS ServerHello。attributes.cipher 为协商选中的套件（如 0x1301）。",
+    attributes: { version: "string", cipher: "string" },
+    queryable: ["version", "cipher"],
+    source: {
+      tsharkFields: ["tls.handshake.type", "tls.handshake.version", "tls.handshake.ciphersuite"],
+    },
   },
   http_request: {
     type: "http_request",
@@ -144,6 +159,8 @@ export const BASE_FIELDS = [
   "tcp.seq_raw",
   "tcp.len",
   "tcp.analysis.ack_rtt",
+  // v0.3：TLS 应用字节（每帧多 record 以逗号聚合，需求和）
+  "tls.record.length",
 ] as const;
 
 /** 全部需要抽取的 tshark 字段（公共 + 注册表并集，按插入顺序去重） */

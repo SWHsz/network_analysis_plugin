@@ -1,4 +1,4 @@
-# Traffic Query DSL — v0.2
+# Traffic Query DSL — v0.3
 
 > 表达力 = **Filter + Projection + Ordering + Limit/Offset**。
 > 条件之间**只支持 AND**；字段白名单制；不支持 OR / 任意表达式 / join / 函数。
@@ -7,7 +7,7 @@
 
 ```jsonc
 {
-  "scope": "conversation",        // "conversation" | "event"
+  "scope": "conversation",        // "conversation" | "event" | "frame"
   "where": [                       // AND 语义
     { "field": "transport", "op": "eq", "value": "tcp" },
     { "field": "retransmission_count", "op": "gt", value: 0 }
@@ -52,7 +52,18 @@
 | `rtt_median_ms` `rtt_max_ms` | number | v0.2：ack_rtt 启发式样本，可为 null |
 | `throughput_bps` | number | v0.2：bytes_total*8/duration，可为 null |
 | `missing_segment_count` `http_txn_count` | number | v0.2 |
+| `payload_bytes_forward/reverse` | number | v0.3：Σtcp.len（不含头部） |
+| `tls_app_bytes` | number | v0.3：Σtls.record.length，非 TLS 为 0 |
 | `protocol_tags` | string[] | 用 `contains` 查 |
+
+### scope = frame（v0.3）
+
+来自缓存帧表（不扫 pcap）的白名单字段：`frame_number` `time_ms` `transport`
+`ip_src/ip_dst` `src_port/dst_port` `conversation_id`（派生 `conv:{t}:{stream}`）
+`tcp_seq_raw/tcp_ack_raw/tcp_len/tcp_flags/tcp_window` `ack_rtt_ms`
+`tls_record_bytes` `analysis`（命中的 tcp.analysis 标志，用 `contains` 查）。
+
+默认投影 7 列：frame_number, time_ms, ip_src, ip_dst, tcp_len, tcp_flags, analysis。
 
 ### scope = event
 
@@ -90,16 +101,21 @@
 `truncated:true` 时渲染附 `[TRUNCATED]` 提示。聚合 evidence 的 frame 列表
 上限 100（`AGGREGATE_FRAME_CAP`）。
 
-## 工具面（v0.2，6 个）
+## 工具面（v0.3，7 个）
 
 ```text
 traffic_open / traffic_overview        （Capture Identity / 轻索引概览）
 traffic_query(AST)                     （通用入口）
 traffic_inspect(conversation_id)       （单会话下钻 + 时间线）
 traffic_evidence(frames|event_ids)     （帧级原始记录复核，≤200 帧/次，固定字段集）
-traffic_timeseries(conv, metric, bin)  （bytes|packets|window|rtt 双向分箱，bin∈[10,5000]ms，
+traffic_timeseries(conv, metric, bin)  （bytes|packets|window|rtt|tls_bytes 双向分箱，bin∈[10,5000]ms，
                                         >500 箱自动加倍加宽并标 sampled）
+traffic_raw_query(fields, filter, lim) （有界逃生口：字段经 tshark -G fields 词表校验，
+                                        结构化 argv、行数≤500、单元格≤4k；错误字段即时报错并提示命名风格）
 ```
+
+**逃生口哲学**：预设（IR 注册表）覆盖高频，AST 覆盖组合，raw_query 覆盖长尾——
+模型不会被白名单锁死，但长尾路径同样有界、可审计、无注入面。
 
 数据来自按 capture 缓存的单遍抽取（`events.json`）与帧表（`frames.json`），
 查询不重扫 pcap。

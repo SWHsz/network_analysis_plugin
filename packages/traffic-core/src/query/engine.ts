@@ -4,22 +4,34 @@ import {
   DEFAULT_LIMIT,
   DEFAULT_SELECT,
   EVENT_FIELDS,
+  FRAME_FIELDS,
   validateQuery,
   type Condition,
   type FieldSpec,
+  type QueryRow,
   type TrafficQuery,
 } from "./ast.js";
+import type { FrameRecord } from "../frames.js";
 
 /** 执行查询：内存过滤（AND）→ 稳定排序 → 分页 → 投影，输出有界信封 */
 export function executeQuery(
   query: TrafficQuery,
   conversations: Conversation[],
   events: TrafficEvent[],
+  frames?: FrameRecord[],
 ): BoundedResult<Record<string, unknown>> {
   validateQuery(query);
-  const table = query.scope === "conversation" ? CONVERSATION_FIELDS : EVENT_FIELDS;
-  const source: Array<Conversation | TrafficEvent> =
-    query.scope === "conversation" ? conversations : events;
+  const table =
+    query.scope === "conversation"
+      ? CONVERSATION_FIELDS
+      : query.scope === "event"
+        ? EVENT_FIELDS
+        : FRAME_FIELDS;
+  if (query.scope === "frame" && !frames) {
+    throw new Error("frame scope requires the frames table");
+  }
+  const source: QueryRow[] =
+    query.scope === "conversation" ? conversations : query.scope === "event" ? events : frames!;
 
   const filtered = source.filter((obj) => (query.where ?? []).every((c) => match(obj, c, table)));
 
@@ -58,7 +70,7 @@ export function executeQuery(
 }
 
 function match(
-  obj: Conversation | TrafficEvent,
+  obj: QueryRow,
   cond: Condition,
   table: Record<string, FieldSpec>,
 ): boolean {

@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { createReadStream } from "node:fs";
 import { open as fsOpen } from "node:fs/promises";
 
-export const PLUGIN_VERSION = "0.2.0";
+export const PLUGIN_VERSION = "0.3.0";
 
 /**
  * 采样内容指纹：size + 头部 + 尾部 + 均匀分布的内部块。

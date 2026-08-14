@@ -39,7 +39,7 @@ const ctx = {
 plugin.apply(ctx, config);
 const names = registered.map((t) => t.name ?? t?.definition?.name).filter(Boolean);
 console.log("[apply] registered tools:", names.join(", "));
-if (names.length !== 6) throw new Error(`expected 6 tools, got ${names.length}: ${names}`);
+if (names.length !== 7) throw new Error(`expected 7 tools, got ${names.length}: ${names}`);
 
 // 3) 直接执行工具（defineTool 的返回对象结构探测 + 调用）
 const unwrap = (t) => (t.execute ? t : (t.definition ?? t.tool ?? t));
@@ -49,6 +49,7 @@ const query = unwrap(registered.find((t) => (t.name ?? t?.definition?.name) === 
 const inspect = unwrap(registered.find((t) => (t.name ?? t?.definition?.name) === "traffic_inspect"));
 const evidence = unwrap(registered.find((t) => (t.name ?? t?.definition?.name) === "traffic_evidence"));
 const timeseries = unwrap(registered.find((t) => (t.name ?? t?.definition?.name) === "traffic_timeseries"));
+const raw = unwrap(registered.find((t) => (t.name ?? t?.definition?.name) === "traffic_raw_query"));
 
 const render = (tool, args, value) => {
   const out = tool.output?.render ?? tool?.definition?.output?.render;
@@ -103,5 +104,10 @@ console.log("\n=== traffic_timeseries (bytes, conv:tcp:0) ===");
 const tsRes = await timeseries.execute({ capture_id: captureId, conversation_id: "conv:tcp:0", metric: "bytes", bin_ms: 100 });
 if (tsRes.error) throw new Error(`traffic_timeseries failed: ${tsRes.error}`);
 console.log(render(timeseries, {}, tsRes).slice(0, 400));
+
+console.log("\n=== traffic_raw_query (escape hatch) ===");
+const rawRes = await raw.execute({ capture_id: captureId, display_filter: "dns.flags.rcode==3", fields: ["dns.qry.name", "dns.flags.rcode"] });
+if (rawRes.error) throw new Error(`traffic_raw_query failed: ${rawRes.error}`);
+console.log(render(raw, {}, rawRes).slice(0, 300));
 
 console.log("\nOK — plugin loaded and executed against real DSH runtime libs.");

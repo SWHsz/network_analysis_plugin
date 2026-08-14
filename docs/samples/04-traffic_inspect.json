@@ -37,7 +37,10 @@
         "rtt_max_ms": 145,
         "throughput_bps": 84839,
         "missing_segment_count": 0,
-        "http_txn_count": 0
+        "http_txn_count": 0,
+        "payload_bytes_forward": 1290,
+        "payload_bytes_reverse": 4367,
+        "tls_app_bytes": 87
       },
       "protocol_tags": [
         "tcp",
@@ -55,7 +58,11 @@
           "frameNumber": 4,
           "type": "tls_client_hello",
           "direction": "initiator_to_responder",
-          "attributes": {},
+          "attributes": {
+            "version": "0x0303",
+            "sni": null,
+            "cipher_count": 1
+          },
           "event_id": "evt:000002",
           "conversation_id": "conv:tcp:0",
           "time_ms": 75,
@@ -87,7 +94,10 @@
           "frameNumber": 6,
           "type": "tls_server_hello",
           "direction": "responder_to_initiator",
-          "attributes": {},
+          "attributes": {
+            "version": "0x0303",
+            "cipher": "0x1301"
+          },
           "event_id": "evt:000006",
           "conversation_id": "conv:tcp:0",
           "time_ms": 220,
@@ -170,12 +180,12 @@
       "query_hash": "",
       "backend": "tshark",
       "backend_version": "4.4.8",
-      "plugin_version": "0.2.0",
+      "plugin_version": "0.3.0",
       "backend_commands": [
         "/opt/homebrew/bin/capinfos -T -t -u -c -d -a -e /Users/huangsizhe/Documents/network_analysis_plugin/fixtures/web-session.pcap",
         "/opt/homebrew/bin/tshark -r /Users/huangsizhe/Documents/network_analysis_plugin/fixtures/web-session.pcap -n -q -z io,phs -z conv,tcp -z conv,udp",
-        "/opt/homebrew/bin/tshark -r /Users/huangsizhe/Documents/network_analysis_plugin/fixtures/web-session.pcap -n -T fields -E separator=\t -E occurrence=a -E aggregator=, -E quote=n -e frame.number -e frame.time_epoch -e frame.len -e ip.src -e ip.dst -e ipv6.src -e ipv6.dst -e tcp.stream -e udp.stream -e tcp.srcport -e tcp.dstport -e udp.srcport -e udp.dstport -e tcp.flags.syn -e tcp.flags.ack -e tcp.seq_raw -e tcp.len -e tcp.analysis.ack_rtt -e tcp.analysis.retransmission -e tcp.analysis.fast_retransmission -e tcp.analysis.spurious_retransmission -e tcp.analysis.out_of_order -e tcp.analysis.duplicate_ack -e tcp.analysis.duplicate_ack_num -e tcp.analysis.zero_window -e tcp.analysis.lost_segment -e dns.id -e dns.qry.name -e dns.qry.type -e dns.flags.response -e dns.flags.rcode -e tls.handshake.type -e http.request.method -e http.host -e http.request.uri -e http.response.code -e http.content_type -e http.time",
-        "/opt/homebrew/bin/tshark -r /Users/huangsizhe/Documents/network_analysis_plugin/fixtures/web-session.pcap -n -T fields -E separator=\t -E occurrence=a -E aggregator=, -E quote=n -e frame.number -e frame.time_epoch -e frame.len -e ip.src -e ip.dst -e ipv6.src -e ipv6.dst -e tcp.stream -e udp.stream -e tcp.srcport -e tcp.dstport -e udp.srcport -e udp.dstport -e tcp.seq_raw -e tcp.ack_raw -e tcp.len -e tcp.flags.str -e tcp.window_size -e tcp.analysis.ack_rtt -e tcp.analysis.retransmission -e tcp.analysis.fast_retransmission -e tcp.analysis.spurious_retransmission -e tcp.analysis.out_of_order -e tcp.analysis.duplicate_ack -e tcp.analysis.zero_window -e tcp.analysis.lost_segment -e dns.id -e dns.qry.name -e dns.flags.response -e dns.flags.rcode -e tls.handshake.type -e http.request.method -e http.host -e http.request.uri -e http.response.code -e http.content_type -e http.time"
+        "/opt/homebrew/bin/tshark -r /Users/huangsizhe/Documents/network_analysis_plugin/fixtures/web-session.pcap -n -T fields -E separator=\t -E occurrence=a -E aggregator=, -E quote=n -e frame.number -e frame.time_epoch -e frame.len -e ip.src -e ip.dst -e ipv6.src -e ipv6.dst -e tcp.stream -e udp.stream -e tcp.srcport -e tcp.dstport -e udp.srcport -e udp.dstport -e tcp.flags.syn -e tcp.flags.ack -e tcp.seq_raw -e tcp.len -e tcp.analysis.ack_rtt -e tls.record.length -e tcp.analysis.retransmission -e tcp.analysis.fast_retransmission -e tcp.analysis.spurious_retransmission -e tcp.analysis.out_of_order -e tcp.analysis.duplicate_ack -e tcp.analysis.duplicate_ack_num -e tcp.analysis.zero_window -e tcp.analysis.lost_segment -e dns.id -e dns.qry.name -e dns.qry.type -e dns.flags.response -e dns.flags.rcode -e tls.handshake.type -e tls.handshake.version -e tls.handshake.extensions_server_name -e tls.handshake.ciphersuite -e http.request.method -e http.host -e http.request.uri -e http.response.code -e http.content_type -e http.time",
+        "/opt/homebrew/bin/tshark -r /Users/huangsizhe/Documents/network_analysis_plugin/fixtures/web-session.pcap -n -T fields -E separator=\t -E occurrence=a -E aggregator=, -E quote=n -e frame.number -e frame.time_epoch -e frame.len -e ip.src -e ip.dst -e ipv6.src -e ipv6.dst -e tcp.stream -e udp.stream -e tcp.srcport -e tcp.dstport -e udp.srcport -e udp.dstport -e tcp.seq_raw -e tcp.ack_raw -e tcp.len -e tcp.flags.str -e tcp.window_size -e tcp.analysis.ack_rtt -e tcp.analysis.retransmission -e tcp.analysis.fast_retransmission -e tcp.analysis.spurious_retransmission -e tcp.analysis.out_of_order -e tcp.analysis.duplicate_ack -e tcp.analysis.zero_window -e tcp.analysis.lost_segment -e dns.id -e dns.qry.name -e dns.flags.response -e dns.flags.rcode -e tls.handshake.type -e tls.record.length -e http.request.method -e http.host -e http.request.uri -e http.response.code -e http.content_type -e http.time"
       ],
       "render_chars": 0
     }

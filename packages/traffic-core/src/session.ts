@@ -13,6 +13,7 @@ import { fingerprintFile, PLUGIN_VERSION, queryHash } from "./util.js";
 import { parseCapinfosTsv, parseZStats, type LightIndex } from "./indexer.js";
 import { ExtractionState, extractionArgs, type Extraction } from "./events/extract.js";
 import { FrameTableBuilder, framesArgs, type FrameRecord, type FrameTable } from "./frames.js";
+import { rawQuery, type RawQueryOptions, type RawQueryResult, type RawQueryError } from "./raw.js";
 import { executeQuery } from "./query/engine.js";
 import { shapeAggregateEvidence } from "./shaper.js";
 import type { TrafficQuery } from "./query/ast.js";
@@ -64,7 +65,9 @@ export interface EvidenceResult {
   audit: AuditMetadata;
 }
 
-export type TimeseriesMetric = "bytes" | "packets" | "window" | "rtt";
+export type TimeseriesMetric = "bytes" | "packets" | "window" | "rtt" | "tls_bytes";
+
+export type { RawQueryOptions, RawQueryResult, RawQueryError } from "./raw.js";
 
 export interface TimeseriesBin {
   t_start_ms: number;
@@ -351,6 +354,8 @@ export class TrafficSession {
       else if (metric === "packets") side.push(1);
       else if (metric === "window") {
         if (f.tcp_window !== null) side.push(f.tcp_window);
+      } else if (metric === "tls_bytes") {
+        if (f.tls_record_bytes !== null) side.push(f.tls_record_bytes);
       } else if (f.ack_rtt_ms !== null) side.push(f.ack_rtt_ms);
     }
 
@@ -401,7 +406,8 @@ export class TrafficSession {
 
   async query(q: TrafficQuery): Promise<QueryResult> {
     const extraction = await this.ensureExtraction();
-    const result = executeQuery(q, extraction.conversations, extraction.events);
+    const frames = q.scope === "frame" ? (await this.ensureFrames()).frames : undefined;
+    const result = executeQuery(q, extraction.conversations, extraction.events, frames);
     return { result, audit: this.audit(q) };
   }
 
@@ -437,6 +443,11 @@ export class TrafficSession {
       },
       audit: this.audit(),
     };
+  }
+
+  /** traffic_raw_query：长尾查询的有界逃生口（字段词表校验 + 结构化 argv） */
+  rawQuery(opts: RawQueryOptions): Promise<RawQueryResult> {
+    return rawQuery(this.backend, this.capture.path, opts, this.audit());
   }
 
   audit(q?: TrafficQuery): AuditMetadata {

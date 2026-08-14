@@ -20,6 +20,7 @@ import {
   type EvidenceResult,
   type InspectResult,
   type OverviewResult,
+  type RawQueryResult,
   type TimeseriesResult,
   type TrafficQuery,
 } from "traffic-core";
@@ -171,6 +172,14 @@ function renderEvidence(_args: unknown, value: { error?: string; evidence?: Evid
     })),
   );
   return applyRenderBudget(head, rows.split("\n"), "raw fixed field set; verify claims against these records").text;
+}
+
+function renderRaw(_args: unknown, value: { error?: string; raw?: RawQueryResult }): string {
+  if (value.error) return `ERROR: ${value.error}`;
+  const r = value.raw!;
+  const head = `raw tshark fields${r.filter ? ` filter='${r.filter}'` : ""}: ${r.returned} rows${r.truncated ? " [TRUNCATED]" : ""}`;
+  const rows = r.rows.map((cells) => cells.join("\t"));
+  return applyRenderBudget(head, rows, `columns: ${r.fields.join(", ")}`).text;
 }
 
 function renderTimeseries(_args: unknown, value: { error?: string; timeseries?: TimeseriesResult }): string {
@@ -359,7 +368,7 @@ export function apply(ctx: Context, config: Config) {
     >({
       name: "traffic_timeseries",
       description:
-        "Server-side per-bin aggregation of one conversation: metric ∈ bytes|packets|window|rtt, " +
+        "Server-side per-bin aggregation of one conversation: metric ∈ bytes|packets|window|rtt|tls_bytes, " +
         "direction-split (forward=initiator→responder). bin_ms in [10,5000] (default 100); auto-widens beyond 500 bins (sampled=true). " +
         "Use for throughput shape, burst patterns, window starvation and RTT evolution — replaces manual frame dumps. " +
         USAGE,
@@ -375,7 +384,7 @@ export function apply(ctx: Context, config: Config) {
       },
       async execute(args) {
         try {
-          const metric = args.metric as "bytes" | "packets" | "window" | "rtt";
+          const metric = args.metric as "bytes" | "packets" | "window" | "rtt" | "tls_bytes";
           const ts = await getSession(args.capture_id).timeseries(
             args.conversation_id,
             metric,
@@ -383,6 +392,43 @@ export function apply(ctx: Context, config: Config) {
           );
           ts.audit.render_chars = renderTimeseries(args, { timeseries: ts }).length;
           return { timeseries: ts };
+        } catch (err) {
+          return { error: (err as Error).message };
+        }
+      },
+    }),
+  );
+
+  ctx.tools.register(
+    defineTool<
+      { capture_id: string; fields: string[]; display_filter?: string; limit?: number },
+      { error?: string; raw?: RawQueryResult }
+    >({
+      name: "traffic_raw_query",
+      description:
+        "Bounded escape hatch for long-tail queries the IR does not cover: run tshark with a display filter and field list. " +
+        "Field names are validated against the tshark vocabulary (unknown fields error out with hints). " +
+        "Structured argv (no shell); bounded rows (<=500) and cell sizes. Prefer traffic_query/traffic_evidence — use this only when the whitelists lack what you need. " +
+        USAGE,
+      parameters: {
+        capture_id: p({ type: "string", required: true, description: "capture_id from traffic_open" }),
+        fields: p({ type: "array", required: true, description: "tshark field names, e.g. ['tls.handshake.extensions_server_name','tls.handshake.ciphersuite']" }),
+        display_filter: p({ type: "string", description: 'tshark display filter, e.g. "tls.handshake.type==1"' }),
+        limit: p({ type: "number", description: "max rows [1,500], default 100" }),
+      },
+      output: {
+        schema: ENVELOPE({ raw: objPassThrough, error: { type: "string" } }),
+        render: (args, value) => [text(renderRaw(args, value))],
+      },
+      async execute(args) {
+        try {
+          const raw = await getSession(args.capture_id).rawQuery({
+            fields: args.fields,
+            display_filter: args.display_filter,
+            limit: args.limit,
+          });
+          raw.audit.render_chars = renderRaw(args, { raw }).length;
+          return { raw };
         } catch (err) {
           return { error: (err as Error).message };
         }

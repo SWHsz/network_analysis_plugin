@@ -58,6 +58,11 @@ interface ConvAccumulator {
   maxSeqEnd: { forward: number | null; reverse: number | null };
   /** tcp.analysis.ack_rtt 样本（秒） */
   ackRttSamples: number[];
+  /** v0.3：双向 TCP 载荷字节（Σtcp.len）与 TLS 记录字节 */
+  payloadForward: number;
+  payloadReverse: number;
+  tlsBytesForward: number;
+  tlsBytesReverse: number;
   events: RawEvent[];
 }
 
@@ -142,6 +147,10 @@ export class ExtractionState {
     const httpStatus = g("http.response.code");
     const httpContentType = g("http.content_type");
     const httpTime = g("http.time");
+    const tlsVersion = g("tls.handshake.version");
+    const tlsCipher = g("tls.handshake.ciphersuite");
+    const tlsSni = g("tls.handshake.extensions_server_name");
+    const tlsRecordLen = g("tls.record.length");
 
     const epoch = Number(timeEpoch);
     if (!Number.isFinite(epoch) || !frameNumber) return;
@@ -182,6 +191,10 @@ export class ExtractionState {
         firstServerHelloEpoch: null,
         maxSeqEnd: { forward: null, reverse: null },
         ackRttSamples: [],
+        payloadForward: 0,
+        payloadReverse: 0,
+        tlsBytesForward: 0,
+        tlsBytesReverse: 0,
         events: [],
       };
       this.convs.set(key, conv);
@@ -284,6 +297,24 @@ export class ExtractionState {
       }
     }
 
+    // v0.3：TCP 载荷（Σtcp.len）与 TLS 记录字节（每帧多 record 逗号聚合，需求和）
+    if (isTcp && tcpSegLen) {
+      const l = Number(tcpSegLen);
+      if (Number.isFinite(l) && l > 0) {
+        if (forward) conv.payloadForward += l;
+        else conv.payloadReverse += l;
+      }
+    }
+    if (tlsRecordLen) {
+      const s = tlsRecordLen
+        .split(",")
+        .reduce((acc, part) => acc + (Number(part) || 0), 0);
+      if (s > 0) {
+        if (forward) conv.tlsBytesForward += s;
+        else conv.tlsBytesReverse += s;
+      }
+    }
+
     // RTT 样本（tcp.analysis.ack_rtt，秒）
     if (ackRtt) {
       const v = Number(ackRtt);
@@ -293,10 +324,27 @@ export class ExtractionState {
     if (tcpHandshakeType) {
       for (const t of tcpHandshakeType.split(",")) {
         if (t === "1") {
-          conv.events.push({ epoch, frameNumber: frame, type: "tls_client_hello", direction, attributes: {} });
+          // ClientHello 的 ciphersuite 是逗号聚合的完整列表 → 计数（列表本身过长不入 IR）
+          conv.events.push({
+            epoch,
+            frameNumber: frame,
+            type: "tls_client_hello",
+            direction,
+            attributes: {
+              version: tlsVersion || null,
+              sni: tlsSni || null,
+              cipher_count: tlsCipher ? tlsCipher.split(",").length : null,
+            },
+          });
           if (conv.firstClientHelloEpoch === null) conv.firstClientHelloEpoch = epoch;
         } else if (t === "2") {
-          conv.events.push({ epoch, frameNumber: frame, type: "tls_server_hello", direction, attributes: {} });
+          conv.events.push({
+            epoch,
+            frameNumber: frame,
+            type: "tls_server_hello",
+            direction,
+            attributes: { version: tlsVersion || null, cipher: tlsCipher || null },
+          });
           if (conv.firstServerHelloEpoch === null) conv.firstServerHelloEpoch = epoch;
         }
       }
@@ -371,12 +419,18 @@ export class ExtractionState {
         const { initiator, responder } = acc;
         acc.initiator = responder;
         acc.responder = initiator;
-        const pf = acc.packetsForward;
+        const pk = acc.packetsForward;
         acc.packetsForward = acc.packetsReverse;
-        acc.packetsReverse = pf;
+        acc.packetsReverse = pk;
         const bf = acc.bytesForward;
         acc.bytesForward = acc.bytesReverse;
         acc.bytesReverse = bf;
+        const pl = acc.payloadForward;
+        acc.payloadForward = acc.payloadReverse;
+        acc.payloadReverse = pl;
+        const tb = acc.tlsBytesForward;
+        acc.tlsBytesForward = acc.tlsBytesReverse;
+        acc.tlsBytesReverse = tb;
         for (const e of acc.events) {
           if (e.direction === "initiator_to_responder") e.direction = "responder_to_initiator";
           else if (e.direction === "responder_to_initiator") e.direction = "initiator_to_responder";
@@ -435,6 +489,9 @@ export class ExtractionState {
           throughput_bps: throughputBps,
           missing_segment_count: acc.events.filter((e) => e.type === "tcp_missing_segment").length,
           http_txn_count: acc.events.filter((e) => e.type === "http_request").length,
+          payload_bytes_forward: acc.payloadForward,
+          payload_bytes_reverse: acc.payloadReverse,
+          tls_app_bytes: acc.tlsBytesForward + acc.tlsBytesReverse,
         },
         protocol_tags,
       });

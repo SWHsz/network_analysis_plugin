@@ -32,7 +32,10 @@
         "rtt_max_ms": 145,
         "throughput_bps": 84839,
         "missing_segment_count": 0,
-        "http_txn_count": 0
+        "http_txn_count": 0,
+        "payload_bytes_forward": 1290,
+        "payload_bytes_reverse": 4367,
+        "tls_app_bytes": 87
       },
       "protocol_tags": [
         "tcp",
@@ -71,7 +74,10 @@
         "rtt_max_ms": 200,
         "throughput_bps": 12800,
         "missing_segment_count": 0,
-        "http_txn_count": 1
+        "http_txn_count": 1,
+        "payload_bytes_forward": 136,
+        "payload_bytes_reverse": 50,
+        "tls_app_bytes": 0
       },
       "protocol_tags": [
         "tcp",
@@ -110,7 +116,10 @@
         "rtt_max_ms": null,
         "throughput_bps": 12457,
         "missing_segment_count": 0,
-        "http_txn_count": 0
+        "http_txn_count": 0,
+        "payload_bytes_forward": 0,
+        "payload_bytes_reverse": 0,
+        "tls_app_bytes": 0
       },
       "protocol_tags": [
         "udp",
@@ -149,7 +158,10 @@
         "rtt_max_ms": null,
         "throughput_bps": null,
         "missing_segment_count": 0,
-        "http_txn_count": 0
+        "http_txn_count": 0,
+        "payload_bytes_forward": 0,
+        "payload_bytes_reverse": 0,
+        "tls_app_bytes": 0
       },
       "protocol_tags": [
         "udp"
@@ -187,7 +199,10 @@
         "rtt_max_ms": null,
         "throughput_bps": null,
         "missing_segment_count": 0,
-        "http_txn_count": 0
+        "http_txn_count": 0,
+        "payload_bytes_forward": 0,
+        "payload_bytes_reverse": 0,
+        "tls_app_bytes": 0
       },
       "protocol_tags": [
         "udp"
@@ -219,7 +234,11 @@
       "frameNumber": 4,
       "type": "tls_client_hello",
       "direction": "initiator_to_responder",
-      "attributes": {},
+      "attributes": {
+        "version": "0x0303",
+        "sni": null,
+        "cipher_count": 1
+      },
       "event_id": "evt:000002",
       "conversation_id": "conv:tcp:0",
       "time_ms": 75,
@@ -290,7 +309,10 @@
       "frameNumber": 6,
       "type": "tls_server_hello",
       "direction": "responder_to_initiator",
-      "attributes": {},
+      "attributes": {
+        "version": "0x0303",
+        "cipher": "0x1301"
+      },
       "event_id": "evt:000006",
       "conversation_id": "conv:tcp:0",
       "time_ms": 220,

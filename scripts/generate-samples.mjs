@@ -111,6 +111,27 @@ record("traffic_evidence", { capture_id: session.capture.capture_id, frames: [8,
 const tsr = await session.timeseries("conv:tcp:0", "bytes", 100);
 record("traffic_timeseries", { capture_id: session.capture.capture_id, conversation_id: "conv:tcp:0", metric: "bytes", bin_ms: 100 }, tsr);
 
+
+// Round 10 —— frame scope：列出会话内带载荷的帧（替代 v0.2 会话中的 bash 转储）
+const fs2 = await session.query({
+  scope: "frame",
+  where: [
+    { field: "conversation_id", op: "eq", value: "conv:tcp:0" },
+    { field: "tcp_len", op: "gt", value: 0 },
+  ],
+  select: ["frame_number", "ip_src", "tcp_len"],
+  order_by: [{ field: "tcp_len", direction: "desc" }],
+  limit: 10,
+});
+record("traffic_query(frame scope)", { capture_id: session.capture.capture_id, query: { scope: "frame", where: [{ field: "tcp_len", op: "gt", value: 0 }] } }, fs2);
+
+// Round 11 —— raw query：逃生口（字段词表校验 + 有界）
+const rq2 = await session.rawQuery({
+  display_filter: "dns.flags.rcode==3",
+  fields: ["dns.qry.name", "dns.flags.rcode"],
+});
+record("traffic_raw_query", { capture_id: session.capture.capture_id, display_filter: "dns.flags.rcode==3", fields: ["dns.qry.name", "dns.flags.rcode"] }, rq2);
+
 // 索引一并落盘（供 ir-schema 文档引用）
 const index = await session.ensureIndex();
 const extraction = await session.ensureExtraction();

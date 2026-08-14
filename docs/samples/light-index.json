@@ -1,7 +1,7 @@
 {
-  "plugin_version": "0.2.0",
+  "plugin_version": "0.3.0",
   "tshark_version": "4.4.8",
-  "built_at": "2026-08-14T15:20:29.802Z",
+  "built_at": "2026-08-14T16:14:01.448Z",
   "capinfos": {
     "format": "pcap",
     "packet_count": 32,

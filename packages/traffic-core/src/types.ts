@@ -85,6 +85,11 @@ export interface ConversationMetrics {
   missing_segment_count: number;
   /** http_request 事件数（事务对以 request 计） */
   http_txn_count: number;
+  /** v0.3：双向 TCP 载荷字节（Σtcp.len，不含头部；与 bytes_* 的 frame.len 口径区分） */
+  payload_bytes_forward: number;
+  payload_bytes_reverse: number;
+  /** v0.3：TLS 记录层应用字节（Σtls.record.length），非 TLS 会话为 0 */
+  tls_app_bytes: number;
 }
 
 export type EventType =

@@ -36,6 +36,8 @@ export interface FrameRecord {
   dns_response: boolean | null;
   dns_rcode: number | null;
   tls_handshake_type: number | null;
+  /** 该帧 TLS 记录层字节（多 record 求和） */
+  tls_record_bytes: number | null;
   http_method: string | null;
   http_host: string | null;
   http_uri: string | null;
@@ -87,6 +89,7 @@ export const FRAMES_FIELDS = [
   "dns.flags.response",
   "dns.flags.rcode",
   "tls.handshake.type",
+  "tls.record.length",
   "http.request.method",
   "http.host",
   "http.request.uri",
@@ -159,6 +162,9 @@ export function parseFrameLine(line: string, firstEpoch: number): FrameRecord | 
     dns_response: g("dns.flags.response") ? truthyAny(g("dns.flags.response")) : null,
     dns_rcode: num(g("dns.flags.rcode")),
     tls_handshake_type: num(g("tls.handshake.type")),
+    tls_record_bytes: g("tls.record.length")
+      ? g("tls.record.length").split(",").reduce((acc, part) => acc + (Number(part) || 0), 0)
+      : null,
     http_method: str(g("http.request.method")),
     http_host: str(g("http.host")),
     http_uri: str(g("http.request.uri")),

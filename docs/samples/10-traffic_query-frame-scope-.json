@@ -1,56 +1,75 @@
 {
-  "tool": "traffic_query(conversations with retransmissions)",
+  "tool": "traffic_query(frame scope)",
   "input": {
     "capture_id": "cap_4c000d9b26cb69fb",
     "query": {
-      "scope": "conversation",
+      "scope": "frame",
       "where": [
         {
-          "field": "retransmission_count",
+          "field": "tcp_len",
           "op": "gt",
           "value": 0
-        }
-      ],
-      "order_by": [
-        {
-          "field": "retransmission_count",
-          "direction": "desc"
         }
       ]
     }
   },
   "output": {
     "result": {
-      "returned": 2,
-      "total": 2,
+      "returned": 9,
+      "total": 9,
       "offset": 0,
       "truncated": false,
       "items": [
         {
-          "conversation_id": "conv:tcp:0",
-          "transport": "tcp",
-          "initiator_ip": "192.168.1.4",
-          "responder_ip": "142.250.74.14",
-          "duration_ms": 620,
-          "retransmission_count": 3,
-          "tcp_handshake_ms": 70,
-          "tls_handshake_ms": 145
+          "frame_number": 9,
+          "ip_src": "142.250.74.14",
+          "tcp_len": 1440
         },
         {
-          "conversation_id": "conv:tcp:1",
-          "transport": "tcp",
-          "initiator_ip": "192.168.1.4",
-          "responder_ip": "93.184.216.34",
-          "duration_ms": 420,
-          "retransmission_count": 1,
-          "tcp_handshake_ms": 70,
-          "tls_handshake_ms": null
+          "frame_number": 10,
+          "ip_src": "142.250.74.14",
+          "tcp_len": 1440
+        },
+        {
+          "frame_number": 11,
+          "ip_src": "142.250.74.14",
+          "tcp_len": 1440
+        },
+        {
+          "frame_number": 7,
+          "ip_src": "192.168.1.4",
+          "tcp_len": 320
+        },
+        {
+          "frame_number": 8,
+          "ip_src": "192.168.1.4",
+          "tcp_len": 320
+        },
+        {
+          "frame_number": 13,
+          "ip_src": "192.168.1.4",
+          "tcp_len": 300
+        },
+        {
+          "frame_number": 14,
+          "ip_src": "192.168.1.4",
+          "tcp_len": 300
+        },
+        {
+          "frame_number": 4,
+          "ip_src": "192.168.1.4",
+          "tcp_len": 50
+        },
+        {
+          "frame_number": 6,
+          "ip_src": "142.250.74.14",
+          "tcp_len": 47
         }
       ]
     },
     "audit": {
       "capture_id": "cap_4c000d9b26cb69fb",
-      "query_hash": "bc0d28cec159f0a1",
+      "query_hash": "06ecd7fde174604f",
       "backend": "tshark",
       "backend_version": "4.4.8",
       "plugin_version": "0.3.0",

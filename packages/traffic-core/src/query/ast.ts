@@ -1,9 +1,10 @@
 import type { Conversation, TrafficEvent } from "../types.js";
+import type { FrameRecord } from "../frames.js";
 import { EVENT_ATTR_FIELDS } from "../events/registry.js";
 
 /** v0.1 查询 DSL：Filter + Projection + Ordering + Limit，条件之间只支持 AND。 */
 
-export type QueryScope = "conversation" | "event";
+export type QueryScope = "conversation" | "event" | "frame";
 
 export type CompareOp = "eq" | "ne" | "gt" | "gte" | "lt" | "lte" | "in" | "contains";
 
@@ -37,14 +38,18 @@ export class QueryValidationError extends Error {
 export interface FieldSpec {
   /** 值类型 */
   type: "number" | "string" | "string[]";
-  /** 从 IR 对象取值的投影函数 */
-  project: (obj: Conversation | TrafficEvent) => unknown;
+  /** 从查询行（conversation / event / frame）取值的投影函数 */
+  project: (obj: QueryRow) => unknown;
 }
 
+export type QueryRow = Conversation | TrafficEvent | FrameRecord;
+
 const conv = (f: (c: Conversation) => unknown): FieldSpec["project"] => (o) =>
-  f(o as Conversation);
+  f(o as unknown as Conversation);
 const evt = (f: (e: TrafficEvent) => unknown): FieldSpec["project"] => (o) =>
-  f(o as TrafficEvent);
+  f(o as unknown as TrafficEvent);
+const frm = (f: (r: FrameRecord) => unknown): FieldSpec["project"] => (o) =>
+  f(o as unknown as FrameRecord);
 
 export const CONVERSATION_FIELDS: Record<string, FieldSpec> = {
   conversation_id: { type: "string", project: conv((c) => c.conversation_id) },
@@ -98,7 +103,33 @@ export const EVENT_FIELDS: Record<string, FieldSpec> = {
  * 紧凑默认投影（Context Shaper v2）：不指定 select 时的输出列，
  * 主动收敛模型可见宽度；显式 select 不受影响。
  */
+/** v0.3：frame scope —— 按白名单字段过滤/排序帧（来自缓存的帧表，不扫 pcap） */
+export const FRAME_FIELDS: Record<string, FieldSpec> = {
+  frame_number: { type: "number", project: frm((r) => r.frame_number) },
+  time_ms: { type: "number", project: frm((r) => r.time_ms) },
+  transport: { type: "string", project: frm((r) => r.transport) },
+  ip_src: { type: "string", project: frm((r) => r.ip_src) },
+  ip_dst: { type: "string", project: frm((r) => r.ip_dst) },
+  src_port: { type: "number", project: frm((r) => r.src_port) },
+  dst_port: { type: "number", project: frm((r) => r.dst_port) },
+  /** 派生：conv:{transport}:{stream}（无流标识为 null） */
+  conversation_id: {
+    type: "string",
+    project: frm((r) => (r.transport && r.stream_id !== null ? `conv:${r.transport}:${r.stream_id}` : null)),
+  },
+  tcp_seq_raw: { type: "number", project: frm((r) => r.tcp_seq_raw) },
+  tcp_ack_raw: { type: "number", project: frm((r) => r.tcp_ack_raw) },
+  tcp_len: { type: "number", project: frm((r) => r.tcp_len) },
+  tcp_flags: { type: "string", project: frm((r) => r.tcp_flags) },
+  tcp_window: { type: "number", project: frm((r) => r.tcp_window) },
+  ack_rtt_ms: { type: "number", project: frm((r) => r.ack_rtt_ms) },
+  tls_record_bytes: { type: "number", project: frm((r) => r.tls_record_bytes) },
+  /** 命中的 tcp.analysis 标志（contains 查询） */
+  analysis: { type: "string", project: frm((r) => (r.analysis.length ? r.analysis.join("|") : null)) },
+};
+
 export const DEFAULT_SELECT: Record<QueryScope, string[]> = {
+  frame: ["frame_number", "time_ms", "ip_src", "ip_dst", "tcp_len", "tcp_flags", "analysis"],
   conversation: [
     "conversation_id",
     "transport",
@@ -119,12 +150,13 @@ export const MAX_LIMIT = 200;
 
 /** 校验查询；不合法时抛 QueryValidationError，错误信息包含允许的字段/操作列表 */
 export function validateQuery(q: TrafficQuery): void {
-  const table = q.scope === "conversation" ? CONVERSATION_FIELDS : EVENT_FIELDS;
-  const scopeName = q.scope === "conversation" ? "conversation" : "event";
+  const table =
+    q.scope === "conversation" ? CONVERSATION_FIELDS : q.scope === "event" ? EVENT_FIELDS : FRAME_FIELDS;
+  const scopeName = q.scope;
   const allowed = Object.keys(table).join(", ");
 
-  if (q.scope !== "conversation" && q.scope !== "event") {
-    throw new QueryValidationError(`scope must be "conversation" or "event"`);
+  if (q.scope !== "conversation" && q.scope !== "event" && q.scope !== "frame") {
+    throw new QueryValidationError(`scope must be "conversation", "event" or "frame"`);
   }
 
   const seen = new Set<string>();
