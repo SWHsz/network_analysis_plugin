@@ -163,3 +163,85 @@ madd(eth(IP(src=ms, dst=mc) / TCP(sport=msp, dport=mcp, flags="A", seq=MISN_S + 
 
 wrpcap("fixtures/mid-capture.pcap", mid)
 print(f"wrote fixtures/mid-capture.pcap with {len(mid)} packets (mid-capture, server-first, no SYN)")
+
+# ---- edge-cases fixture：v0.2 事件族的确定性覆盖 ------------------------------
+# conv X1 TCP 10.0.0.1:6001 -> 10.0.0.2:80  HTTP（响应分两个 TCP 段，重组后一个 200）
+# conv X2 TCP 10.0.0.1:6002 -> 10.0.0.3:443 乱序+缺失段+dup-ack+快速重传+零窗口
+# 节奏设计让 tcp.analysis.ack_rtt 有非平凡样本（数据->ACK 间隔 12ms/25ms）。
+edge = []
+E1_C, E1_S = "10.0.0.1", "10.0.0.2"
+E2_C, E2_S = "10.0.0.1", "10.0.0.3"
+
+
+def eadd(pkt, t_ms):
+    pkt.time = t_ms / 1000.0
+    edge.append(pkt)
+
+
+# conv X1: HTTP with split response ------------------------------------------------
+x1p, x1sp = 6001, 80
+X1_C_ISN, X1_S_ISN = 11000, 12000
+get_req = b"GET /data HTTP/1.1\r\nHost: edge.test\r\n\r\n"
+resp_head = b"HTTP/1.1 200 OK\r\nContent-Length: 40\r\n\r\n"
+resp_body = b"E" * 40
+resp_all = resp_head + resp_body
+resp_part1, resp_part2 = resp_all[:30], resp_all[30:]  # 强制两个 TCP 段
+
+eadd(eth(IP(src=E1_C, dst=E1_S) / TCP(sport=x1p, dport=x1sp, flags="S", seq=X1_C_ISN)), 0)
+eadd(eth(IP(src=E1_S, dst=E1_C) / TCP(sport=x1sp, dport=x1p, flags="SA", seq=X1_S_ISN, ack=X1_C_ISN + 1)), 4)
+eadd(eth(IP(src=E1_C, dst=E1_S) / TCP(sport=x1p, dport=x1sp, flags="A", seq=X1_C_ISN + 1, ack=X1_S_ISN + 1)), 8)
+eadd(eth(IP(src=E1_C, dst=E1_S) / TCP(sport=x1p, dport=x1sp, flags="PA", seq=X1_C_ISN + 1, ack=X1_S_ISN + 1) / Raw(get_req)), 10)
+# ACK 在 12ms 后 → ack_rtt ≈ 12ms 样本
+eadd(eth(IP(src=E1_S, dst=E1_C) / TCP(sport=x1sp, dport=x1p, flags="A", seq=X1_S_ISN + 1, ack=X1_C_ISN + 1 + len(get_req))), 22)
+eadd(eth(IP(src=E1_S, dst=E1_C) / TCP(sport=x1sp, dport=x1p, flags="PA", seq=X1_S_ISN + 1, ack=X1_C_ISN + 1 + len(get_req)) / Raw(resp_part1)), 30)
+eadd(eth(IP(src=E1_S, dst=E1_C) / TCP(sport=x1sp, dport=x1p, flags="PA", seq=X1_S_ISN + 1 + len(resp_part1), ack=X1_C_ISN + 1 + len(get_req)) / Raw(resp_part2)), 32)
+eadd(eth(IP(src=E1_C, dst=E1_S) / TCP(sport=x1p, dport=x1sp, flags="A", seq=X1_C_ISN + 1 + len(get_req), ack=X1_S_ISN + 1 + len(resp_all))), 57)  # rtt≈25ms
+eadd(eth(IP(src=E1_C, dst=E1_S) / TCP(sport=x1p, dport=x1sp, flags="FA", seq=X1_C_ISN + 1 + len(get_req), ack=X1_S_ISN + 1 + len(resp_all))), 70)
+eadd(eth(IP(src=E1_S, dst=E1_C) / TCP(sport=x1sp, dport=x1p, flags="FA", seq=X1_S_ISN + 1 + len(resp_all), ack=X1_C_ISN + 2 + len(get_req))), 74)
+
+# conv X2: 乱序 / 缺失段 / dup-ack / 快速重传 / 零窗口 --------------------------------
+x2p, x2sp = 6002, 443
+X2_C_ISN, X2_S_ISN = 21000, 22000
+segA = b"A" * 100  # seq S0（将丢失）
+segB = b"B" * 100  # seq S0+100（先到 → out_of_order + lost_segment gap=100）
+segC = b"C" * 100  # seq S0+200
+
+s0 = X2_S_ISN + 1
+eadd(eth(IP(src=E2_C, dst=E2_S) / TCP(sport=x2p, dport=x2sp, flags="S", seq=X2_C_ISN)), 100)
+eadd(eth(IP(src=E2_S, dst=E2_C) / TCP(sport=x2sp, dport=x2p, flags="SA", seq=X2_S_ISN, ack=X2_C_ISN + 1)), 104)
+eadd(eth(IP(src=E2_C, dst=E2_S) / TCP(sport=x2p, dport=x2sp, flags="A", seq=X2_C_ISN + 1, ack=X2_S_ISN + 1)), 108)
+# B 先到（乱序 + 缺失段：期望 s0，收到 s0+100，gap=100）
+eadd(eth(IP(src=E2_S, dst=E2_C) / TCP(sport=x2sp, dport=x2p, flags="PA", seq=s0 + 100, ack=X2_C_ISN + 1) / Raw(segB)), 120)
+# C 到（缺口仍在：相对最高连续 s0 仍缺 100）
+eadd(eth(IP(src=E2_S, dst=E2_C) / TCP(sport=x2sp, dport=x2p, flags="PA", seq=s0 + 200, ack=X2_C_ISN + 1) / Raw(segC)), 124)
+# 客户端 3 个重复 ACK（等 s0）
+for i in range(3):
+    eadd(eth(IP(src=E2_C, dst=E2_S) / TCP(sport=x2p, dport=x2sp, flags="A", seq=X2_C_ISN + 1, ack=s0)), 130 + i * 3)
+# 服务端快速重传 segA（填缺口）
+eadd(eth(IP(src=E2_S, dst=E2_C) / TCP(sport=x2sp, dport=x2p, flags="PA", seq=s0, ack=X2_C_ISN + 1) / Raw(segA)), 142)
+# 客户端 ACK 越过全部（dup-ack 系列结束）
+eadd(eth(IP(src=E2_C, dst=E2_S) / TCP(sport=x2p, dport=x2sp, flags="A", seq=X2_C_ISN + 1, ack=s0 + 300)), 150)
+# 零窗口：客户端通告 win=0，随后窗口更新
+eadd(eth(IP(src=E2_S, dst=E2_C) / TCP(sport=x2sp, dport=x2p, flags="PA", seq=s0 + 300, ack=X2_C_ISN + 1) / Raw(segA)), 160)
+eadd(eth(IP(src=E2_C, dst=E2_S) / TCP(sport=x2p, dport=x2sp, flags="A", seq=X2_C_ISN + 1, ack=s0 + 300, window=0)), 168)
+eadd(eth(IP(src=E2_C, dst=E2_S) / TCP(sport=x2p, dport=x2sp, flags="A", seq=X2_C_ISN + 1, ack=s0 + 300, window=64240)), 190)
+
+
+# conv X3: 乱序。Wireshark OOO 判定（packet-tcp.c）：迟到段须在接收方最后一个
+# ACK 之后 ~3ms 内到达、此前未见过、且 nextseq != seq+seglen。
+# 节奏：D2(t0+100) 先到 → 1ms 后接收方 dup ACK(t0)（仅 1 个，低于 fast-retrans
+# 的 dupack>=2 阈值）→ 再 1.5ms 后 D1(t0) 首份到达。
+X3_C, X3_S = "10.0.0.1", "10.0.0.4"
+x3p, x3sp = 6003, 8080
+X3_C_ISN, X3_S_ISN = 31000, 32000
+t0 = X3_S_ISN + 1
+eadd(eth(IP(src=X3_C, dst=X3_S) / TCP(sport=x3p, dport=x3sp, flags="S", seq=X3_C_ISN)), 300)
+eadd(eth(IP(src=X3_S, dst=X3_C) / TCP(sport=x3sp, dport=x3p, flags="SA", seq=X3_S_ISN, ack=X3_C_ISN + 1)), 304)
+eadd(eth(IP(src=X3_C, dst=X3_S) / TCP(sport=x3p, dport=x3sp, flags="A", seq=X3_C_ISN + 1, ack=X3_S_ISN + 1)), 308)
+eadd(eth(IP(src=X3_S, dst=X3_C) / TCP(sport=x3sp, dport=x3p, flags="PA", seq=t0 + 100, ack=X3_C_ISN + 1) / Raw(b"X" * 100)), 320)
+eadd(eth(IP(src=X3_C, dst=X3_S) / TCP(sport=x3p, dport=x3sp, flags="A", seq=X3_C_ISN + 1, ack=t0)), 321)
+eadd(eth(IP(src=X3_S, dst=X3_C) / TCP(sport=x3sp, dport=x3p, flags="PA", seq=t0, ack=X3_C_ISN + 1) / Raw(b"W" * 100)), 322.5)
+eadd(eth(IP(src=X3_C, dst=X3_S) / TCP(sport=x3p, dport=x3sp, flags="A", seq=X3_C_ISN + 1, ack=t0 + 200)), 340)
+
+wrpcap("fixtures/edge-cases.pcap", edge)
+print(f"wrote fixtures/edge-cases.pcap with {len(edge)} packets (out_of_order/lost_segment/dup_ack/zero_window/http/ack_rtt)")

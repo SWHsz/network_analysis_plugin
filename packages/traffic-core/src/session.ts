@@ -12,6 +12,7 @@ import { resolveCacheRoot } from "./cachedir.js";
 import { fingerprintFile, PLUGIN_VERSION, queryHash } from "./util.js";
 import { parseCapinfosTsv, parseZStats, type LightIndex } from "./indexer.js";
 import { ExtractionState, extractionArgs, type Extraction } from "./events/extract.js";
+import { FrameTableBuilder, framesArgs, type FrameRecord, type FrameTable } from "./frames.js";
 import { executeQuery } from "./query/engine.js";
 import { shapeAggregateEvidence } from "./shaper.js";
 import type { TrafficQuery } from "./query/ast.js";
@@ -46,6 +47,44 @@ export interface QueryResult {
   audit: AuditMetadata;
 }
 
+export interface EvidenceOptions {
+  /** 直接指定帧号 */
+  frames?: number[];
+  /** 或指定 event_id（取其 evidence frame） */
+  event_ids?: string[];
+}
+
+export interface EvidenceResult {
+  requested: number;
+  returned: number;
+  truncated: boolean;
+  /** 请求中不存在于捕获里的帧号 */
+  missing_frames: number[];
+  frames: FrameRecord[];
+  audit: AuditMetadata;
+}
+
+export type TimeseriesMetric = "bytes" | "packets" | "window" | "rtt";
+
+export interface TimeseriesBin {
+  t_start_ms: number;
+  /** bytes/packets 为计数；window/rtt 为该箱中位数（无样本为 null） */
+  forward: number | null;
+  reverse: number | null;
+}
+
+export interface TimeseriesResult {
+  conversation_id: string;
+  metric: TimeseriesMetric;
+  requested_bin_ms: number;
+  /** 超过 500 箱时自动加倍加宽（sampled=true） */
+  bin_ms: number;
+  bins_count: number;
+  sampled: boolean;
+  bins: TimeseriesBin[];
+  audit: AuditMetadata;
+}
+
 interface CacheVersion {
   plugin_version: string;
   tshark_version: string;
@@ -62,7 +101,6 @@ export class TrafficSession {
   private indexPromise: Promise<LightIndex> | undefined;
   private extractionPromise: Promise<Extraction> | undefined;
   private readonly commands: string[] = [];
-
   private constructor(
     public readonly capture: Capture,
     private readonly backend: TsharkBackend,
@@ -196,6 +234,154 @@ export class TrafficSession {
     return this.extractionPromise;
   }
 
+  private framesPromise: Promise<FrameTable> | undefined;
+
+  /**
+   * per-frame 原始字段表（traffic_evidence / traffic_timeseries 数据源）。
+   * 与事件抽取分开的第二次懒遍历（字段集更大），同样按版本缓存。
+   */
+  async ensureFrames(): Promise<FrameTable> {
+    this.framesPromise ??= (async () => {
+      const cachedPath = path.join(this.captureDir, "frames.json");
+      try {
+        const cached = JSON.parse(await readFile(cachedPath, "utf8")) as FrameTable;
+        if (cached.plugin_version === PLUGIN_VERSION && cached.tshark_version === this.capture.backend.version) {
+          return cached;
+        }
+      } catch {
+        /* 无缓存或损坏，重建 */
+      }
+      const builder = new FrameTableBuilder();
+      const { command } = await this.backend.streamTsharkLines(
+        framesArgs(this.capture.path),
+        (line) => builder.feed(line),
+      );
+      this.commands.push(command);
+      const table = builder.finish(this.capture.backend.version);
+      await writeFile(cachedPath, JSON.stringify(table), "utf8");
+      return table;
+    })();
+    return this.framesPromise;
+  }
+
+  /** traffic_evidence：帧级原始记录（固定字段集、有界），供模型复核 claim */
+  async evidence(opts: EvidenceOptions): Promise<EvidenceResult> {
+    const EVIDENCE_FRAME_CAP = 200;
+    let requested: number[] = [];
+    if (opts.event_ids && opts.event_ids.length > 0) {
+      const extraction = await this.ensureExtraction();
+      const byId = new Map(extraction.events.map((e) => [e.event_id, e]));
+      for (const id of opts.event_ids) {
+        const evt = byId.get(id);
+        if (evt && evt.evidence.kind === "frame") requested.push(evt.evidence.frame_number);
+      }
+    } else {
+      requested = [...(opts.frames ?? [])];
+    }
+    const unique = [...new Set(requested)].sort((a, b) => a - b);
+
+    const table = await this.ensureFrames();
+    const byFrame = new Map(table.frames.map((f) => [f.frame_number, f]));
+    const missing: number[] = [];
+    const found: FrameRecord[] = [];
+    for (const fn of unique) {
+      const rec = byFrame.get(fn);
+      if (rec) found.push(rec);
+      else missing.push(fn);
+    }
+    const truncated = found.length > EVIDENCE_FRAME_CAP;
+    return {
+      requested: unique.length,
+      returned: Math.min(found.length, EVIDENCE_FRAME_CAP),
+      truncated,
+      missing_frames: missing,
+      frames: found.slice(0, EVIDENCE_FRAME_CAP),
+      audit: this.audit(),
+    };
+  }
+
+  /** traffic_timeseries：服务端分箱聚合（bytes/packets/window/rtt，双向） */
+  async timeseries(
+    conversationId: string,
+    metric: TimeseriesMetric,
+    binMs = 100,
+  ): Promise<TimeseriesResult> {
+    const extraction = await this.ensureExtraction();
+    const conversation = extraction.conversations.find((c) => c.conversation_id === conversationId);
+    if (!conversation) {
+      throw new Error(
+        `unknown conversation '${conversationId}'. Known (first 20): ${extraction.conversations
+          .slice(0, 20)
+          .map((c) => c.conversation_id)
+          .join(", ")}`,
+      );
+    }
+    if (!Number.isFinite(binMs) || binMs < 10 || binMs > 5000) {
+      throw new Error("bin_ms must be in [10, 5000]");
+    }
+
+    const table = await this.ensureFrames();
+    const streamId = Number(conversationId.split(":")[2]);
+    const convFrames = table.frames.filter(
+      (f) => f.transport === conversation.transport && f.stream_id === streamId,
+    );
+    const isForward = (f: FrameRecord): boolean =>
+      f.ip_src === conversation.initiator.ip && f.src_port === conversation.initiator.port;
+
+    const durationMs = convFrames.length
+      ? convFrames[convFrames.length - 1]!.time_ms - convFrames[0]!.time_ms
+      : 0;
+    // 自动加宽：超过 500 箱时 bin 翻倍（sampled 标注）
+    let width = binMs;
+    let sampled = false;
+    while (durationMs / width > 500) {
+      width *= 2;
+      sampled = true;
+    }
+
+    const binsCount = Math.max(1, Math.ceil(durationMs / width) + 1);
+    const acc = Array.from({ length: binsCount }, () => ({
+      f: [] as number[],
+      r: [] as number[],
+    }));
+    for (const f of convFrames) {
+      const idx = Math.min(binsCount - 1, Math.max(0, Math.floor(f.time_ms / width)));
+      const side = isForward(f) ? acc[idx]!.f : acc[idx]!.r;
+      if (metric === "bytes") side.push(f.len);
+      else if (metric === "packets") side.push(1);
+      else if (metric === "window") {
+        if (f.tcp_window !== null) side.push(f.tcp_window);
+      } else if (f.ack_rtt_ms !== null) side.push(f.ack_rtt_ms);
+    }
+
+    const summarize = (values: number[]): number | null => {
+      if (values.length === 0) return null;
+      if (metric === "bytes" || metric === "packets") return values.reduce((a, b) => a + b, 0);
+      const sorted = [...values].sort((a, b) => a - b);
+      const mid = Math.floor(sorted.length / 2);
+      const v =
+        sorted.length % 2 === 1 ? sorted[mid]! : (sorted[mid - 1]! + sorted[mid]!) / 2;
+      return Number(v.toFixed(3));
+    };
+
+    const bins: TimeseriesBin[] = acc.map((b, i) => ({
+      t_start_ms: i * width,
+      forward: summarize(b.f),
+      reverse: summarize(b.r),
+    }));
+
+    return {
+      conversation_id: conversationId,
+      metric,
+      requested_bin_ms: binMs,
+      bin_ms: width,
+      bins_count: binsCount,
+      sampled,
+      bins,
+      audit: this.audit(),
+    };
+  }
+
   async overview(): Promise<OverviewResult> {
     const index = await this.ensureIndex();
     const byBytes = [...index.conversations].sort(
@@ -261,6 +447,7 @@ export class TrafficSession {
       backend_version: this.capture.backend.version,
       plugin_version: PLUGIN_VERSION,
       backend_commands: this.commands,
+      render_chars: 0,
     };
   }
 }

@@ -32,7 +32,12 @@
         "dns_query_count": 0,
         "tls_handshake_count": 1,
         "tcp_handshake_ms": 70,
-        "tls_handshake_ms": 145
+        "tls_handshake_ms": 145,
+        "rtt_median_ms": 60,
+        "rtt_max_ms": 145,
+        "throughput_bps": 84839,
+        "missing_segment_count": 0,
+        "http_txn_count": 0
       },
       "protocol_tags": [
         "tcp",
@@ -40,8 +45,8 @@
       ]
     },
     "timeline": {
-      "returned": 5,
-      "total": 5,
+      "returned": 6,
+      "total": 6,
       "offset": 0,
       "truncated": false,
       "items": [
@@ -61,12 +66,29 @@
           }
         },
         {
+          "epoch": 0.11,
+          "frameNumber": 5,
+          "type": "tcp_dup_ack",
+          "direction": "initiator_to_responder",
+          "attributes": {
+            "dup_ack_count": 1
+          },
+          "event_id": "evt:000004",
+          "conversation_id": "conv:tcp:0",
+          "time_ms": 110,
+          "detection": "tshark_tcp_analysis",
+          "evidence": {
+            "kind": "frame",
+            "frame_number": 5
+          }
+        },
+        {
           "epoch": 0.22,
           "frameNumber": 6,
           "type": "tls_server_hello",
           "direction": "responder_to_initiator",
           "attributes": {},
-          "event_id": "evt:000005",
+          "event_id": "evt:000006",
           "conversation_id": "conv:tcp:0",
           "time_ms": 220,
           "detection": "tshark_tls_dissector",
@@ -83,7 +105,7 @@
           "attributes": {
             "variant": "plain"
           },
-          "event_id": "evt:000007",
+          "event_id": "evt:000008",
           "conversation_id": "conv:tcp:0",
           "time_ms": 340,
           "detection": "tshark_tcp_analysis",
@@ -100,7 +122,7 @@
           "attributes": {
             "variant": "plain"
           },
-          "event_id": "evt:000008",
+          "event_id": "evt:000009",
           "conversation_id": "conv:tcp:0",
           "time_ms": 450,
           "detection": "tshark_tcp_analysis",
@@ -117,7 +139,7 @@
           "attributes": {
             "variant": "plain"
           },
-          "event_id": "evt:000009",
+          "event_id": "evt:000010",
           "conversation_id": "conv:tcp:0",
           "time_ms": 540,
           "detection": "tshark_tcp_analysis",
@@ -148,12 +170,14 @@
       "query_hash": "",
       "backend": "tshark",
       "backend_version": "4.4.8",
-      "plugin_version": "0.1.0",
+      "plugin_version": "0.2.0",
       "backend_commands": [
         "/opt/homebrew/bin/capinfos -T -t -u -c -d -a -e /Users/huangsizhe/Documents/network_analysis_plugin/fixtures/web-session.pcap",
         "/opt/homebrew/bin/tshark -r /Users/huangsizhe/Documents/network_analysis_plugin/fixtures/web-session.pcap -n -q -z io,phs -z conv,tcp -z conv,udp",
-        "/opt/homebrew/bin/tshark -r /Users/huangsizhe/Documents/network_analysis_plugin/fixtures/web-session.pcap -n -T fields -E separator=\t -E occurrence=a -E aggregator=, -E quote=n -e frame.number -e frame.time_epoch -e frame.len -e ip.src -e ip.dst -e ipv6.src -e ipv6.dst -e tcp.stream -e udp.stream -e tcp.srcport -e tcp.dstport -e udp.srcport -e udp.dstport -e tcp.flags.syn -e tcp.flags.ack -e tcp.analysis.retransmission -e tcp.analysis.fast_retransmission -e tcp.analysis.spurious_retransmission -e dns.id -e dns.qry.name -e dns.qry.type -e dns.flags.response -e dns.flags.rcode -e tls.handshake.type"
-      ]
+        "/opt/homebrew/bin/tshark -r /Users/huangsizhe/Documents/network_analysis_plugin/fixtures/web-session.pcap -n -T fields -E separator=\t -E occurrence=a -E aggregator=, -E quote=n -e frame.number -e frame.time_epoch -e frame.len -e ip.src -e ip.dst -e ipv6.src -e ipv6.dst -e tcp.stream -e udp.stream -e tcp.srcport -e tcp.dstport -e udp.srcport -e udp.dstport -e tcp.flags.syn -e tcp.flags.ack -e tcp.seq_raw -e tcp.len -e tcp.analysis.ack_rtt -e tcp.analysis.retransmission -e tcp.analysis.fast_retransmission -e tcp.analysis.spurious_retransmission -e tcp.analysis.out_of_order -e tcp.analysis.duplicate_ack -e tcp.analysis.duplicate_ack_num -e tcp.analysis.zero_window -e tcp.analysis.lost_segment -e dns.id -e dns.qry.name -e dns.qry.type -e dns.flags.response -e dns.flags.rcode -e tls.handshake.type -e http.request.method -e http.host -e http.request.uri -e http.response.code -e http.content_type -e http.time",
+        "/opt/homebrew/bin/tshark -r /Users/huangsizhe/Documents/network_analysis_plugin/fixtures/web-session.pcap -n -T fields -E separator=\t -E occurrence=a -E aggregator=, -E quote=n -e frame.number -e frame.time_epoch -e frame.len -e ip.src -e ip.dst -e ipv6.src -e ipv6.dst -e tcp.stream -e udp.stream -e tcp.srcport -e tcp.dstport -e udp.srcport -e udp.dstport -e tcp.seq_raw -e tcp.ack_raw -e tcp.len -e tcp.flags.str -e tcp.window_size -e tcp.analysis.ack_rtt -e tcp.analysis.retransmission -e tcp.analysis.fast_retransmission -e tcp.analysis.spurious_retransmission -e tcp.analysis.out_of_order -e tcp.analysis.duplicate_ack -e tcp.analysis.zero_window -e tcp.analysis.lost_segment -e dns.id -e dns.qry.name -e dns.flags.response -e dns.flags.rcode -e tls.handshake.type -e http.request.method -e http.host -e http.request.uri -e http.response.code -e http.content_type -e http.time"
+      ],
+      "render_chars": 0
     }
   }
 }

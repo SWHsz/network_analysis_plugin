@@ -27,7 +27,12 @@
         "dns_query_count": 0,
         "tls_handshake_count": 1,
         "tcp_handshake_ms": 70,
-        "tls_handshake_ms": 145
+        "tls_handshake_ms": 145,
+        "rtt_median_ms": 60,
+        "rtt_max_ms": 145,
+        "throughput_bps": 84839,
+        "missing_segment_count": 0,
+        "http_txn_count": 0
       },
       "protocol_tags": [
         "tcp",
@@ -61,10 +66,16 @@
         "dns_query_count": 0,
         "tls_handshake_count": 0,
         "tcp_handshake_ms": 70,
-        "tls_handshake_ms": null
+        "tls_handshake_ms": null,
+        "rtt_median_ms": 35,
+        "rtt_max_ms": 200,
+        "throughput_bps": 12800,
+        "missing_segment_count": 0,
+        "http_txn_count": 1
       },
       "protocol_tags": [
-        "tcp"
+        "tcp",
+        "http"
       ]
     },
     {
@@ -94,7 +105,12 @@
         "dns_query_count": 2,
         "tls_handshake_count": 0,
         "tcp_handshake_ms": null,
-        "tls_handshake_ms": null
+        "tls_handshake_ms": null,
+        "rtt_median_ms": null,
+        "rtt_max_ms": null,
+        "throughput_bps": 12457,
+        "missing_segment_count": 0,
+        "http_txn_count": 0
       },
       "protocol_tags": [
         "udp",
@@ -128,7 +144,12 @@
         "dns_query_count": 0,
         "tls_handshake_count": 0,
         "tcp_handshake_ms": null,
-        "tls_handshake_ms": null
+        "tls_handshake_ms": null,
+        "rtt_median_ms": null,
+        "rtt_max_ms": null,
+        "throughput_bps": null,
+        "missing_segment_count": 0,
+        "http_txn_count": 0
       },
       "protocol_tags": [
         "udp"
@@ -161,7 +182,12 @@
         "dns_query_count": 0,
         "tls_handshake_count": 0,
         "tcp_handshake_ms": null,
-        "tls_handshake_ms": null
+        "tls_handshake_ms": null,
+        "rtt_median_ms": null,
+        "rtt_max_ms": null,
+        "throughput_bps": null,
+        "missing_segment_count": 0,
+        "http_txn_count": 0
       },
       "protocol_tags": [
         "udp"
@@ -224,6 +250,23 @@
       }
     },
     {
+      "epoch": 0.11,
+      "frameNumber": 5,
+      "type": "tcp_dup_ack",
+      "direction": "initiator_to_responder",
+      "attributes": {
+        "dup_ack_count": 1
+      },
+      "event_id": "evt:000004",
+      "conversation_id": "conv:tcp:0",
+      "time_ms": 110,
+      "detection": "tshark_tcp_analysis",
+      "evidence": {
+        "kind": "frame",
+        "frame_number": 5
+      }
+    },
+    {
       "epoch": 0.2,
       "frameNumber": 20,
       "type": "dns_query",
@@ -233,7 +276,7 @@
         "qname": "nonexistent.example",
         "qtype": "1"
       },
-      "event_id": "evt:000004",
+      "event_id": "evt:000005",
       "conversation_id": "conv:udp:0",
       "time_ms": 200,
       "detection": "tshark_dns_dissector",
@@ -248,7 +291,7 @@
       "type": "tls_server_hello",
       "direction": "responder_to_initiator",
       "attributes": {},
-      "event_id": "evt:000005",
+      "event_id": "evt:000006",
       "conversation_id": "conv:tcp:0",
       "time_ms": 220,
       "detection": "tshark_tls_dissector",
@@ -268,7 +311,7 @@
         "qtype": "1",
         "rcode_num": 3
       },
-      "event_id": "evt:000006",
+      "event_id": "evt:000007",
       "conversation_id": "conv:udp:0",
       "time_ms": 260,
       "detection": "tshark_dns_dissector",
@@ -285,7 +328,7 @@
       "attributes": {
         "variant": "plain"
       },
-      "event_id": "evt:000007",
+      "event_id": "evt:000008",
       "conversation_id": "conv:tcp:0",
       "time_ms": 340,
       "detection": "tshark_tcp_analysis",
@@ -302,7 +345,7 @@
       "attributes": {
         "variant": "plain"
       },
-      "event_id": "evt:000008",
+      "event_id": "evt:000009",
       "conversation_id": "conv:tcp:0",
       "time_ms": 450,
       "detection": "tshark_tcp_analysis",
@@ -319,13 +362,32 @@
       "attributes": {
         "variant": "plain"
       },
-      "event_id": "evt:000009",
+      "event_id": "evt:000010",
       "conversation_id": "conv:tcp:0",
       "time_ms": 540,
       "detection": "tshark_tcp_analysis",
       "evidence": {
         "kind": "frame",
         "frame_number": 14
+      }
+    },
+    {
+      "epoch": 1.1,
+      "frameNumber": 25,
+      "type": "http_request",
+      "direction": "initiator_to_responder",
+      "attributes": {
+        "method": "GET",
+        "host": "example.com",
+        "uri": "/index.html"
+      },
+      "event_id": "evt:000011",
+      "conversation_id": "conv:tcp:1",
+      "time_ms": 1100,
+      "detection": "tshark_http_dissector",
+      "evidence": {
+        "kind": "frame",
+        "frame_number": 25
       }
     },
     {
@@ -336,13 +398,32 @@
       "attributes": {
         "variant": "plain"
       },
-      "event_id": "evt:000010",
+      "event_id": "evt:000012",
       "conversation_id": "conv:tcp:1",
       "time_ms": 1150,
       "detection": "tshark_tcp_analysis",
       "evidence": {
         "kind": "frame",
         "frame_number": 26
+      }
+    },
+    {
+      "epoch": 1.3,
+      "frameNumber": 27,
+      "type": "http_response",
+      "direction": "responder_to_initiator",
+      "attributes": {
+        "status_code": 200,
+        "content_type": null,
+        "resp_time_ms": 200
+      },
+      "event_id": "evt:000013",
+      "conversation_id": "conv:tcp:1",
+      "time_ms": 1300,
+      "detection": "tshark_http_dissector",
+      "evidence": {
+        "kind": "frame",
+        "frame_number": 27
       }
     }
   ],

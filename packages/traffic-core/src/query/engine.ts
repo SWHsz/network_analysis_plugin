@@ -2,6 +2,7 @@ import type { BoundedResult, Conversation, TrafficEvent } from "../types.js";
 import {
   CONVERSATION_FIELDS,
   DEFAULT_LIMIT,
+  DEFAULT_SELECT,
   EVENT_FIELDS,
   validateQuery,
   type Condition,
@@ -38,7 +39,9 @@ export function executeQuery(
   const limit = query.limit ?? DEFAULT_LIMIT;
   const page = sorted.slice(offset, offset + limit);
 
-  const select = query.select && query.select.length > 0 ? query.select : Object.keys(table);
+  // 紧凑默认投影（Context Shaper v2）：未显式 select 时输出收敛的列集
+  const select =
+    query.select && query.select.length > 0 ? query.select : DEFAULT_SELECT[query.scope];
   const items = page.map((obj) => {
     const row: Record<string, unknown> = {};
     for (const f of select) row[f] = table[f]!.project(obj);

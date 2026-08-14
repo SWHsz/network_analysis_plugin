@@ -1,6 +1,6 @@
-# Traffic Query DSL — v0.1
+# Traffic Query DSL — v0.2
 
-> v0.1 表达力 = **Filter + Projection + Ordering + Limit/Offset**。
+> 表达力 = **Filter + Projection + Ordering + Limit/Offset**。
 > 条件之间**只支持 AND**；字段白名单制；不支持 OR / 任意表达式 / join / 函数。
 
 ## 查询 AST
@@ -10,9 +10,9 @@
   "scope": "conversation",        // "conversation" | "event"
   "where": [                       // AND 语义
     { "field": "transport", "op": "eq", "value": "tcp" },
-    { "field": "retransmission_count", "op": "gt", "value": 0 }
+    { "field": "retransmission_count", "op": "gt", value: 0 }
   ],
-  "select": ["conversation_id", "duration_ms"],   // 省略 = 全部默认字段
+  "select": ["conversation_id", "duration_ms"],   // 省略 = 紧凑默认投影
   "order_by": [{ "field": "duration_ms", "direction": "desc" }],
   "limit": 20,                     // 1..200，默认 50
   "offset": 0
@@ -21,9 +21,21 @@
 
 操作符：`eq` `ne` `gt` `gte` `lt` `lte` `in`（数组值）`contains`（string/string[]）。
 
-**null 语义**：metrics 中未观测的字段为 null（≠0）。null 参与数值比较恒为假，仅 `ne`（及不含它的 `in`）匹配。这防止模型把「无握手观测」当「0ms 握手」。
+**null 语义**：未观测的指标为 null（≠0）。null 参与数值比较恒为假，仅 `ne`
+（及不含它的 `in`）匹配——防止「无握手观测」被当「0ms 握手」。
 
-**错误返回**：校验失败时错误信息包含该 scope 的完整字段白名单，模型可自纠。
+**错误返回**：校验失败信息包含该 scope 的完整字段白名单，模型可自纠。
+
+## 紧凑默认投影（v0.2）
+
+不指定 `select` 时输出收敛列集（显式 select 不受影响）：
+
+- **conversation**（10 列）：conversation_id, transport, initiator_ip/port,
+  responder_ip/port, duration_ms, bytes_total, retransmission_count, direction_basis
+- **event**（5 列）：event_id, conversation_id, type, time_ms, frame_number
+
+配合渲染预算（默认 12k 字符，超出砍行不砍列并标注）控制每步上下文开销；
+`audit.render_chars` 记录每次调用的模型可见字符数。
 
 ## 字段白名单
 
@@ -31,24 +43,43 @@
 
 | 字段 | 类型 | 备注 |
 |---|---|---|
-| `conversation_id` `transport` | string | |
+| `conversation_id` `transport` `direction_basis` | string | direction_basis: handshake/port_heuristic/first_packet |
 | `initiator_ip` `initiator_port` `responder_ip` `responder_port` | string/number | |
 | `start_ms` `duration_ms` | number | |
-| `packets_forward` `packets_reverse` `packets_total` | number | |
-| `bytes_forward` `bytes_reverse` `bytes_total` | number | |
-| `retransmission_count` `dns_query_count` `tls_handshake_count` | number | 预计算聚合（索引期物化，见 event-registry） |
+| `packets_forward/reverse/total` `bytes_forward/reverse/total` | number | |
+| `retransmission_count` `dns_query_count` `tls_handshake_count` | number | 预计算聚合 |
 | `tcp_handshake_ms` `tls_handshake_ms` | number | 可为 null |
+| `rtt_median_ms` `rtt_max_ms` | number | v0.2：ack_rtt 启发式样本，可为 null |
+| `throughput_bps` | number | v0.2：bytes_total*8/duration，可为 null |
+| `missing_segment_count` `http_txn_count` | number | v0.2 |
 | `protocol_tags` | string[] | 用 `contains` 查 |
 
 ### scope = event
 
-| 字段 | 类型 | 备注 |
-|---|---|---|
-| `event_id` `conversation_id` `type` `direction` | string | |
-| `time_ms` | number | 相对捕获起点 |
-| `frame_number` | number | 证据下钻点 |
+基础字段：`event_id` `conversation_id` `type` `direction` `time_ms` `frame_number`。
 
-注意：`attributes`（qname/rcode 等）v0.1 **不进入** where 白名单——过滤 DNS 事件用 `type`，再在结果里看 attributes。放开 attributes 过滤是 v0.2 议题（需要按 type 校验字段）。
+**attr.* 字段**（v0.2）：按注册表 `queryable` 声明生成，**要求 where 中给出
+兼容的 `type eq/in` 条件**（按类型校验，不兼容时报错列出适用类型）：
+
+| attr 字段 | 适用 type | 类型 |
+|---|---|---|
+| `attr.variant` | tcp_retransmission | string |
+| `attr.dup_ack_count` | tcp_dup_ack | number |
+| `attr.gap_bytes` / `attr.origin` | tcp_missing_segment | number / string |
+| `attr.qname` | dns_query, dns_response | string |
+| `attr.rcode_num` | dns_response | number |
+| `attr.method` / `attr.host` / `attr.uri` | http_request | string |
+| `attr.status_code` / `attr.content_type` | http_response | number / string |
+
+```json
+{
+  "scope": "event",
+  "where": [
+    { "field": "type", "op": "eq", "value": "dns_response" },
+    { "field": "attr.rcode_num", "op": "eq", "value": 3 }
+  ]
+}
+```
 
 ## 结果信封（Context Shaper）
 
@@ -56,15 +87,19 @@
 { "returned": 20, "total": 1831, "offset": 0, "truncated": true, "items": [ … ] }
 ```
 
-`truncated:true` 时模型应细化查询或翻页，渲染层会附 `[TRUNCATED]` 提示。
-聚合 evidence 的 frame 列表上限 100，超限 `truncated:true` + 完整 `frame_count`。
+`truncated:true` 时渲染附 `[TRUNCATED]` 提示。聚合 evidence 的 frame 列表
+上限 100（`AGGREGATE_FRAME_CAP`）。
 
-## 与三层工具的关系
+## 工具面（v0.2，6 个）
 
 ```text
-traffic_overview / traffic_inspect   （Query Macro：固定 AST 形状）
-traffic_query(AST)                    （通用入口）
+traffic_open / traffic_overview        （Capture Identity / 轻索引概览）
+traffic_query(AST)                     （通用入口）
+traffic_inspect(conversation_id)       （单会话下钻 + 时间线）
+traffic_evidence(frames|event_ids)     （帧级原始记录复核，≤200 帧/次，固定字段集）
+traffic_timeseries(conv, metric, bin)  （bytes|packets|window|rtt 双向分箱，bin∈[10,5000]ms，
+                                        >500 箱自动加倍加宽并标 sampled）
 ```
 
-全部经同一执行路径：`validateQuery` → 内存过滤（AND）→ 稳定排序 → 分页 → 投影。
-事件/会话数据来自按 capture 缓存的单遍抽取（`events.json`），不重复扫描 pcap。
+数据来自按 capture 缓存的单遍抽取（`events.json`）与帧表（`frames.json`），
+查询不重扫 pcap。

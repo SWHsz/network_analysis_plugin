@@ -195,4 +195,37 @@ describe("ExtractionState", () => {
     expect(conv.direction_basis).toBe("first_packet");
     expect(conv.initiator.port).toBe(40000);
   });
+
+  it("missing_segment without prior seq in direction → origin=capture_start, gap=null", () => {
+    const s = new ExtractionState();
+    const E0 = "1700000000.0";
+    // 中途抓包首帧（无 SYN）：lost_segment 且该方向无先验序号
+    s.feed(line({ "frame.number": "1", "frame.time_epoch": E0, "frame.len": "120", "ip.src": "10.0.0.2", "ip.dst": "10.0.0.1", "tcp.stream": "0", "tcp.srcport": "443", "tcp.dstport": "52300", "tcp.flags.ack": "True", "tcp.seq_raw": "9000", "tcp.len": "100", "tcp.analysis.lost_segment": "1" }));
+    const evt = s.finish("4.4.8").events.find((e) => e.type === "tcp_missing_segment")!;
+    expect(evt.attributes.origin).toBe("capture_start");
+    expect(evt.attributes.gap_bytes).toBeNull();
+  });
+
+  it("missing_segment with prior max seq → gap computed, origin=mid_stream", () => {
+    const s = new ExtractionState();
+    const E0 = "1700000000.0";
+    // SYNACK 建立基线 2001 → 数据 seq 2001..2100 → 缺口段 seq 2200
+    s.feed(line({ "frame.number": "1", "frame.time_epoch": E0, "frame.len": "60", "ip.src": "10.0.0.2", "ip.dst": "10.0.0.1", "tcp.stream": "0", "tcp.srcport": "443", "tcp.dstport": "52300", "tcp.flags.syn": "True", "tcp.flags.ack": "True", "tcp.seq_raw": "2000" }));
+    s.feed(line({ "frame.number": "2", "frame.time_epoch": `${Number(E0) + 0.01}`, "frame.len": "160", "ip.src": "10.0.0.2", "ip.dst": "10.0.0.1", "tcp.stream": "0", "tcp.srcport": "443", "tcp.dstport": "52300", "tcp.flags.ack": "True", "tcp.seq_raw": "2001", "tcp.len": "100" }));
+    s.feed(line({ "frame.number": "3", "frame.time_epoch": `${Number(E0) + 0.02}`, "frame.len": "160", "ip.src": "10.0.0.2", "ip.dst": "10.0.0.1", "tcp.stream": "0", "tcp.srcport": "443", "tcp.dstport": "52300", "tcp.flags.ack": "True", "tcp.seq_raw": "2200", "tcp.len": "100", "tcp.analysis.lost_segment": "1" }));
+    const evt = s.finish("4.4.8").events.find((e) => e.type === "tcp_missing_segment")!;
+    expect(evt.attributes.origin).toBe("mid_stream");
+    expect(evt.attributes.gap_bytes).toBe(99); // 2101(下一期望) → 2200：缺 [2101,2200) 共 99B
+  });
+
+  it("http events map method/host/uri/status and resp_time", () => {
+    const s = new ExtractionState();
+    s.feed(line({ "frame.number": "1", "frame.time_epoch": "1700000000.0", "frame.len": "100", "ip.src": "10.0.0.1", "ip.dst": "10.0.0.2", "tcp.stream": "0", "tcp.srcport": "5000", "tcp.dstport": "80", "tcp.flags.ack": "True", "http.request.method": "GET", "http.host": "edge.test", "http.request.uri": "/data" }));
+    s.feed(line({ "frame.number": "2", "frame.time_epoch": "1700000000.03", "frame.len": "200", "ip.src": "10.0.0.2", "ip.dst": "10.0.0.1", "tcp.stream": "0", "tcp.srcport": "80", "tcp.dstport": "5000", "tcp.flags.ack": "True", "http.response.code": "200", "http.content_type": "text/html", "http.time": "0.030000000" }));
+    const evts = s.finish("4.4.8").events;
+    expect(evts.find((e) => e.type === "http_request")!.attributes).toMatchObject({ method: "GET", host: "edge.test", uri: "/data" });
+    const resp = evts.find((e) => e.type === "http_response")!;
+    expect(resp.attributes).toMatchObject({ status_code: 200, content_type: "text/html", resp_time_ms: 30 });
+    expect(resp.detection).toBe("tshark_http_dissector");
+  });
 });

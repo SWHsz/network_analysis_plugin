@@ -75,14 +75,30 @@ export interface ConversationMetrics {
   tcp_handshake_ms: number | null;
   /** 首个 ClientHello → 首个 ServerHello 耗时，未观测到为 null */
   tls_handshake_ms: number | null;
+  /** tcp.analysis.ack_rtt 样本中位数（毫秒）。启发式投影，未观测到为 null */
+  rtt_median_ms: number | null;
+  /** tcp.analysis.ack_rtt 样本最大值（毫秒），未观测到为 null */
+  rtt_max_ms: number | null;
+  /** bytes_total*8/duration（bit/s），duration≤0 时为 null */
+  throughput_bps: number | null;
+  /** tcp_missing_segment 事件数（含抓包起点截断/中途丢段两类，见 attributes.origin） */
+  missing_segment_count: number;
+  /** http_request 事件数（事务对以 request 计） */
+  http_txn_count: number;
 }
 
 export type EventType =
   | "tcp_retransmission"
+  | "tcp_out_of_order"
+  | "tcp_dup_ack"
+  | "tcp_zero_window"
+  | "tcp_missing_segment"
   | "dns_query"
   | "dns_response"
   | "tls_client_hello"
-  | "tls_server_hello";
+  | "tls_server_hello"
+  | "http_request"
+  | "http_response";
 
 export type EventDirection = "initiator_to_responder" | "responder_to_initiator" | "unknown";
 
@@ -104,7 +120,11 @@ export interface TrafficEvent {
 }
 
 /** 判定来源：tshark 启发式字段的投影，非 ground truth。 */
-export type EventDetection = "tshark_tcp_analysis" | "tshark_dns_dissector" | "tshark_tls_dissector";
+export type EventDetection =
+  | "tshark_tcp_analysis"
+  | "tshark_dns_dissector"
+  | "tshark_tls_dissector"
+  | "tshark_http_dissector";
 
 export type EventEvidence =
   | { kind: "frame"; frame_number: number }
@@ -136,4 +156,6 @@ export interface AuditMetadata {
   plugin_version: string;
   /** 实际执行的 backend 命令摘要（debug 用） */
   backend_commands: string[];
+  /** 模型可见渲染文本的字符数（Context Shaper 开销度量；render 前为 0） */
+  render_chars: number;
 }

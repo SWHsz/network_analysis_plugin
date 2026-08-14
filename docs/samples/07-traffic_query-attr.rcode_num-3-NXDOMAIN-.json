@@ -1,5 +1,5 @@
 {
-  "tool": "traffic_query(dns responses)",
+  "tool": "traffic_query(attr.rcode_num=3 NXDOMAIN)",
   "input": {
     "capture_id": "cap_4c000d9b26cb69fb",
     "query": {
@@ -9,22 +9,22 @@
           "field": "type",
           "op": "eq",
           "value": "dns_response"
+        },
+        {
+          "field": "attr.rcode_num",
+          "op": "eq",
+          "value": 3
         }
       ]
     }
   },
   "output": {
     "result": {
-      "returned": 2,
-      "total": 2,
+      "returned": 1,
+      "total": 1,
       "offset": 0,
       "truncated": false,
       "items": [
-        {
-          "event_id": "evt:000003",
-          "time_ms": 95,
-          "frame_number": 19
-        },
         {
           "event_id": "evt:000007",
           "time_ms": 260,
@@ -34,7 +34,7 @@
     },
     "audit": {
       "capture_id": "cap_4c000d9b26cb69fb",
-      "query_hash": "a5eabe104ae62bb6",
+      "query_hash": "aee8d613ffc6b772",
       "backend": "tshark",
       "backend_version": "4.4.8",
       "plugin_version": "0.2.0",

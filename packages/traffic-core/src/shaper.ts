@@ -50,3 +50,32 @@ export function renderEnvelope(env: {
 }): string {
   return `returned ${env.returned} of ${env.total} (offset ${env.offset})${env.truncated ? " [TRUNCATED — refine query or paginate]" : ""}`;
 }
+
+export const DEFAULT_RENDER_MAX_CHARS = 12_000;
+
+/**
+ * Context Shaper v2 的渲染预算：超出 maxChars 时砍行（不砍列），
+ * 返回被保留的行数与截断标志。规范值（execute 返回）不受影响。
+ */
+export function applyRenderBudget(
+  header: string,
+  rows: string[],
+  footer: string,
+  maxChars: number = DEFAULT_RENDER_MAX_CHARS,
+): { text: string; droppedRows: number } {
+  const overhead = header.length + footer.length + rows.length + 8;
+  let budget = maxChars - overhead;
+  const kept: string[] = [];
+  let dropped = 0;
+  for (const row of rows) {
+    if (row.length + 1 <= budget) {
+      kept.push(row);
+      budget -= row.length + 1;
+    } else {
+      dropped = rows.length - kept.length;
+      break;
+    }
+  }
+  const notice = dropped > 0 ? `\n[RENDER BUDGET EXCEEDED — ${dropped} row(s) dropped; narrow select or lower limit]` : "";
+  return { text: header + "\n" + kept.join("\n") + (dropped > 0 ? notice : "") + "\n" + footer, droppedRows: dropped };
+}

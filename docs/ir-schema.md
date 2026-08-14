@@ -42,7 +42,7 @@ Capture ──┬── Endpoint（内嵌于 Conversation）
 | `metrics` | ConversationMetrics | 派生指标（见下） |
 | `protocol_tags` | string[] | 仅标记**实际观测到**的协议特征（`tcp`/`udp` + `tls`/`dns`，来自事件证据） |
 
-### ConversationMetrics（v0.1 固定集合）
+### ConversationMetrics（v0.2 固定集合）
 
 | 字段 | 来源 | 未观测时 |
 |---|---|---|
@@ -51,6 +51,10 @@ Capture ──┬── Endpoint（内嵌于 Conversation）
 | `tls_handshake_count` | ClientHello 计数 | 0 |
 | `tcp_handshake_ms` | 首个 SYN → 握手完成的客户端 ACK | null |
 | `tls_handshake_ms` | 首个 ClientHello → 首个 ServerHello | null |
+| `rtt_median_ms` / `rtt_max_ms` | v0.2：`tcp.analysis.ack_rtt` 样本中位数/最大值（heuristic 投影） | null |
+| `throughput_bps` | v0.2：bytes_total×8/duration | null（duration≤0） |
+| `missing_segment_count` | v0.2：tcp_missing_segment 事件数 | 0 |
+| `http_txn_count` | v0.2：http_request 事件数（事务以 request 计） | 0 |
 
 null 与 0 语义不同：null 表示「未观测到」（如 UDP 会话的 TCP 握手），查询引擎对 null 的数值比较恒为假，仅 `ne` 匹配。
 
@@ -100,7 +104,15 @@ frame 列表上限 100（`AGGREGATE_FRAME_CAP`），超限置 `truncated:true`�
 
 ## 缓存与新鲜度
 
-- 索引（`-z conv/phs`）与事件抽取（单遍 `-T fields`）按 capture_id 落盘：
-  `<cacheRoot>/captures/cap_<id>/{index.json, events.json, version}`；
+- 索引（`-z conv/phs`）、事件抽取（单遍 `-T fields` → `events.json`）、帧表
+  （`frames.json`，固定字段集，供 traffic_evidence / traffic_timeseries）按
+  capture_id 落盘：`<cacheRoot>/captures/cap_<id>/{index.json, events.json, frames.json, version}`；
 - `version = plugin_version + tshark版本`，任一变化自动失效重建；
 - 会话内并发去重（同一 session 的重复调用共享同一个 Promise）。
+
+## 上下文开销度量（v0.2）
+
+每次工具调用的 `audit.render_chars` 记录模型可见渲染字符数（execute 内用与
+output.render 相同的函数计算）。`node scripts/context-report.mjs 23.pcap`
+给出与 v0.1 真实会话 bash 路径的对照（v0.1：15 次 bash 输出 73477 字符；
+v0.2 同等深度 ≈3.2k 字符，约 23x 节省）。

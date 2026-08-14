@@ -27,6 +27,15 @@ export interface Extraction {
 
 const TRUTHY = new Set(["1", "true", "True", "TRUE"]);
 
+/**
+ * -T fields occurrence=a 下布尔标志可能聚合为 "1,1"（同帧多 occurrence），
+ * 判定真值须按逗号拆分。
+ */
+function truthyAny(value: string | undefined): boolean {
+  if (!value) return false;
+  return value.split(",").some((tok) => TRUTHY.has(tok));
+}
+
 interface ConvAccumulator {
   transport: Transport;
   streamId: number;
@@ -45,6 +54,10 @@ interface ConvAccumulator {
   handshakeDoneEpoch: number | null;
   firstClientHelloEpoch: number | null;
   firstServerHelloEpoch: number | null;
+  /** 每方向已见最高连续序号终点（seq_raw+len），用于缺失段 gap 计算 */
+  maxSeqEnd: { forward: number | null; reverse: number | null };
+  /** tcp.analysis.ack_rtt 样本（秒） */
+  ackRttSamples: number[];
   events: RawEvent[];
 }
 
@@ -63,6 +76,20 @@ function parseEndpoint(ip: string | undefined, port: string | undefined): Endpoi
 
 function sameEndpoint(a: Endpoint | null, b: Endpoint | null): boolean {
   return !!a && !!b && a.ip === b.ip && a.port === b.port;
+}
+
+function segLenPositive(segLen: string | undefined): boolean {
+  if (!segLen) return false;
+  const n = Number(segLen);
+  return Number.isFinite(n) && n > 0;
+}
+
+function median(sorted: number[]): number | null {
+  if (sorted.length === 0) return null;
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 1
+    ? sorted[mid]!
+    : (sorted[mid - 1]! + sorted[mid]!) / 2;
 }
 
 /** 一次 tshark -T fields 全量遍历的行处理器；feed() 每行调用一次。 */
@@ -95,12 +122,26 @@ export class ExtractionState {
     const tcpRetrans = g("tcp.analysis.retransmission");
     const tcpFastRetrans = g("tcp.analysis.fast_retransmission");
     const tcpSpuriousRetrans = g("tcp.analysis.spurious_retransmission");
-    const tlsHandshakeType = g("tls.handshake.type");
+    const tcpHandshakeType = g("tls.handshake.type");
     const dnsId = g("dns.id");
     const dnsResponse = g("dns.flags.response");
     const dnsQname = g("dns.qry.name");
     const dnsQtype = g("dns.qry.type");
     const dnsRcode = g("dns.flags.rcode");
+    const tcpOutOfOrder = g("tcp.analysis.out_of_order");
+    const tcpDupAck = g("tcp.analysis.duplicate_ack");
+    const tcpDupAckNum = g("tcp.analysis.duplicate_ack_num");
+    const tcpZeroWindow = g("tcp.analysis.zero_window");
+    const tcpLostSegment = g("tcp.analysis.lost_segment");
+    const tcpSeqRaw = g("tcp.seq_raw");
+    const tcpSegLen = g("tcp.len");
+    const ackRtt = g("tcp.analysis.ack_rtt");
+    const httpMethod = g("http.request.method");
+    const httpHost = g("http.host");
+    const httpUri = g("http.request.uri");
+    const httpStatus = g("http.response.code");
+    const httpContentType = g("http.content_type");
+    const httpTime = g("http.time");
 
     const epoch = Number(timeEpoch);
     if (!Number.isFinite(epoch) || !frameNumber) return;
@@ -139,6 +180,8 @@ export class ExtractionState {
         handshakeDoneEpoch: null,
         firstClientHelloEpoch: null,
         firstServerHelloEpoch: null,
+        maxSeqEnd: { forward: null, reverse: null },
+        ackRttSamples: [],
         events: [],
       };
       this.convs.set(key, conv);
@@ -157,34 +200,98 @@ export class ExtractionState {
     const frame = Number(frameNumber);
 
     // --- TCP 握手计时（仅 metrics，不产生事件）---
-    if (isTcp && TRUTHY.has(tcpSyn ?? "")) {
+    if (isTcp && truthyAny(tcpSyn)) {
       conv.sawSyn = true;
-      if (!TRUTHY.has(tcpAck ?? "") && conv.firstSynEpoch === null && forward) {
+      if (!truthyAny(tcpAck) && conv.firstSynEpoch === null && forward) {
         conv.firstSynEpoch = epoch;
+      }
+      // SYN/SYNACK 建立该方向的序号基线（SYN 占 1 序号），
+      // 供缺失段 gap 计算区分 mid_stream 与 capture_start
+      if (tcpSeqRaw) {
+        const base = Number(tcpSeqRaw) + 1;
+        if (forward && conv.maxSeqEnd.forward === null) conv.maxSeqEnd.forward = base;
+        if (!forward && conv.maxSeqEnd.reverse === null) conv.maxSeqEnd.reverse = base;
       }
     } else if (
       isTcp &&
       conv.firstSynEpoch !== null &&
       conv.handshakeDoneEpoch === null &&
-      !TRUTHY.has(tcpSyn ?? "") &&
-      TRUTHY.has(tcpAck ?? "") &&
+      !truthyAny(tcpSyn) &&
+      truthyAny(tcpAck) &&
       forward
     ) {
       conv.handshakeDoneEpoch = epoch;
     }
 
-    // --- 事件映射（v0.1：3 族 5 种，见 EVENT_REGISTRY）---
-    if (isTcp && (TRUTHY.has(tcpRetrans ?? "") || TRUTHY.has(tcpFastRetrans ?? "") || TRUTHY.has(tcpSpuriousRetrans ?? ""))) {
-      const variant = TRUTHY.has(tcpRetrans ?? "")
+    // --- 事件映射（v0.2：5 族 11 种，见 EVENT_REGISTRY）---
+    if (isTcp && (truthyAny(tcpRetrans) || truthyAny(tcpFastRetrans) || truthyAny(tcpSpuriousRetrans))) {
+      const variant = truthyAny(tcpRetrans)
         ? "plain"
-        : TRUTHY.has(tcpFastRetrans ?? "")
+        : truthyAny(tcpFastRetrans)
           ? "fast"
           : "spurious";
       conv.events.push({ epoch, frameNumber: frame, type: "tcp_retransmission", direction, attributes: { variant } });
     }
 
-    if (tlsHandshakeType) {
-      for (const t of tlsHandshakeType.split(",")) {
+    if (isTcp && truthyAny(tcpOutOfOrder)) {
+      conv.events.push({ epoch, frameNumber: frame, type: "tcp_out_of_order", direction, attributes: {} });
+    }
+
+    if (isTcp && truthyAny(tcpDupAck)) {
+      conv.events.push({
+        epoch,
+        frameNumber: frame,
+        type: "tcp_dup_ack",
+        direction,
+        attributes: { dup_ack_count: tcpDupAckNum ? Number(tcpDupAckNum) : null },
+      });
+    }
+
+    if (isTcp && truthyAny(tcpZeroWindow)) {
+      conv.events.push({ epoch, frameNumber: frame, type: "tcp_zero_window", direction, attributes: {} });
+    }
+
+    if (isTcp && truthyAny(tcpLostSegment)) {
+      // gap 相对流内该方向已见最高连续序号；无先验序号（中途抓包首帧）则标 capture_start
+      const seq = tcpSeqRaw ? Number(tcpSeqRaw) : null;
+      const segLen = tcpSegLen ? Number(tcpSegLen) : 0;
+      const priorEnd = forward ? conv.maxSeqEnd.forward : conv.maxSeqEnd.reverse;
+      let gap: number | null = null;
+      let origin: string = "mid_stream";
+      if (seq !== null) {
+        if (priorEnd === null) {
+          origin = "capture_start";
+        } else if (seq > priorEnd) {
+          gap = seq - priorEnd;
+        }
+      }
+      conv.events.push({
+        epoch,
+        frameNumber: frame,
+        type: "tcp_missing_segment",
+        direction,
+        attributes: { gap_bytes: gap, origin },
+      });
+    }
+
+    // 每方向最高连续序号终点（len>0 的数据段），供后续缺失段 gap 计算
+    if (isTcp && tcpSeqRaw && segLenPositive(tcpSegLen)) {
+      const end = Number(tcpSeqRaw) + Number(tcpSegLen);
+      const side = forward ? conv.maxSeqEnd.forward : conv.maxSeqEnd.reverse;
+      if (side === null || end > side) {
+        if (forward) conv.maxSeqEnd.forward = end;
+        else conv.maxSeqEnd.reverse = end;
+      }
+    }
+
+    // RTT 样本（tcp.analysis.ack_rtt，秒）
+    if (ackRtt) {
+      const v = Number(ackRtt);
+      if (Number.isFinite(v) && v >= 0) conv.ackRttSamples.push(v);
+    }
+
+    if (tcpHandshakeType) {
+      for (const t of tcpHandshakeType.split(",")) {
         if (t === "1") {
           conv.events.push({ epoch, frameNumber: frame, type: "tls_client_hello", direction, attributes: {} });
           if (conv.firstClientHelloEpoch === null) conv.firstClientHelloEpoch = epoch;
@@ -195,13 +302,37 @@ export class ExtractionState {
       }
     }
 
+    if (httpMethod) {
+      conv.events.push({
+        epoch,
+        frameNumber: frame,
+        type: "http_request",
+        direction,
+        attributes: { method: httpMethod, host: httpHost || null, uri: httpUri || null },
+      });
+    }
+    if (httpStatus) {
+      const respMs = httpTime ? Number((Number(httpTime) * 1000).toFixed(3)) : null;
+      conv.events.push({
+        epoch,
+        frameNumber: frame,
+        type: "http_response",
+        direction,
+        attributes: {
+          status_code: Number(httpStatus),
+          content_type: httpContentType || null,
+          resp_time_ms: respMs,
+        },
+      });
+    }
+
     if (dnsQname) {
       const attrs = {
         dns_id: dnsId ? parseInt(dnsId, 16) : null,
         qname: dnsQname.split(",")[0]!,
         qtype: dnsQtype ?? null,
       };
-      if (TRUTHY.has(dnsResponse ?? "")) {
+      if (truthyAny(dnsResponse)) {
         conv.events.push({
           epoch,
           frameNumber: frame,
@@ -257,9 +388,11 @@ export class ExtractionState {
 
       const hasTls = acc.events.some((e) => e.type === "tls_client_hello" || e.type === "tls_server_hello");
       const hasDns = acc.events.some((e) => e.type === "dns_query" || e.type === "dns_response");
+      const hasHttp = acc.events.some((e) => e.type === "http_request" || e.type === "http_response");
       const protocol_tags: string[] = [acc.transport];
       if (hasTls) protocol_tags.push("tls");
       if (hasDns) protocol_tags.push("dns");
+      if (hasHttp) protocol_tags.push("http");
 
       const tcpHandshakeMs =
         acc.firstSynEpoch !== null && acc.handshakeDoneEpoch !== null
@@ -269,6 +402,17 @@ export class ExtractionState {
         acc.firstClientHelloEpoch !== null && acc.firstServerHelloEpoch !== null
           ? Number(((acc.firstServerHelloEpoch - acc.firstClientHelloEpoch) * 1000).toFixed(3))
           : null;
+
+      // v0.2 指标：RTT（ack_rtt 启发式投影）与吞吐
+      const rttSortedMs = [...acc.ackRttSamples].sort((a, b) => a - b);
+      const rttMedianMs =
+        rttSortedMs.length > 0 ? Number((median(rttSortedMs)! * 1000).toFixed(3)) : null;
+      const rttMaxMs =
+        rttSortedMs.length > 0 ? Number((rttSortedMs[rttSortedMs.length - 1]! * 1000).toFixed(3)) : null;
+      const convDurationMs = (lastEpoch - firstEventEpoch) * 1000;
+      const bytesTotal = acc.bytesForward + acc.bytesReverse;
+      const throughputBps =
+        convDurationMs > 0 ? Math.round((bytesTotal * 8) / (convDurationMs / 1000)) : null;
 
       conversations.push({
         conversation_id,
@@ -286,6 +430,11 @@ export class ExtractionState {
           tls_handshake_count: acc.events.filter((e) => e.type === "tls_client_hello").length,
           tcp_handshake_ms: tcpHandshakeMs,
           tls_handshake_ms: tlsHandshakeMs,
+          rtt_median_ms: rttMedianMs,
+          rtt_max_ms: rttMaxMs,
+          throughput_bps: throughputBps,
+          missing_segment_count: acc.events.filter((e) => e.type === "tcp_missing_segment").length,
+          http_txn_count: acc.events.filter((e) => e.type === "http_request").length,
         },
         protocol_tags,
       });
@@ -320,8 +469,9 @@ export class ExtractionState {
 }
 
 function detectFor(type: TrafficEvent["type"]): TrafficEvent["detection"] {
-  if (type === "tcp_retransmission") return "tshark_tcp_analysis";
+  if (type.startsWith("tcp_")) return "tshark_tcp_analysis";
   if (type.startsWith("dns_")) return "tshark_dns_dissector";
+  if (type.startsWith("http_")) return "tshark_http_dissector";
   return "tshark_tls_dissector";
 }
 

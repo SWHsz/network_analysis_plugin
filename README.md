@@ -5,21 +5,29 @@
 核心边界：
 
 > **Plugin 负责「看见什么、怎么查、证据从哪里来」；LLM 负责「这些观测意味着什么」。**
-> 工具只输出 observation（可下钻到 frame 的事实），不输出「拥塞/攻击/网站慢」类结论。
+> 工具只输出 observation（可下钻到 frame），不输出「拥塞/攻击/网站慢」类结论。
 
 ```text
 PCAP ──确定性索引/抽取──▶ Traffic Observation IR ──受约束 Query──▶ 有界 Observation ──▶ LLM 下钻推理 ──▶ Packet-level Evidence
 ```
+
+## v0.2 能力（围绕三大目的）
+
+| 目的 | 机制 |
+|---|---|
+| **省上下文** | 紧凑默认投影、12k 渲染预算（砍行不砍列）、`traffic_timeseries` 服务端分箱聚合替代全量帧转储；实测同等分析深度比 v0.1 的 bash 路径省 ~23x（`scripts/context-report.mjs`） |
+| **结构化输入** | 5 族 11 种事件（tcp.analysis 家族 + HTTP 事务）、metrics v2（rtt/吞吐/缺失段）、attr.* 按类型校验的查询白名单 |
+| **可检验证据** | `traffic_evidence` 返回固定字段集的帧级原始记录（≤200 帧/次）供模型复核 claim；全部观测携带 frame 级 evidence + audit（backend 版本、query_hash、render_chars） |
 
 ## 仓库结构
 
 ```text
 packages/
 ├── traffic-core/     # 纯 TS 库：指纹/轻索引/IR/事件抽取/Query/Backend（不依赖 harness）
-└── dsh-plugin/       # DeepSeek Harness 插件：4 个 defineTool 的薄胶水
-fixtures/             # 确定性测试 pcap（scapy 生成脚本 + web-session.pcap）
+└── dsh-plugin/       # DeepSeek Harness 插件：6 个 defineTool 的薄胶水
+fixtures/             # 确定性测试 pcap（web-session / mid-capture / edge-cases）
 docs/                 # 设计文档（见下）与样例规范
-scripts/              # generate-samples / verify-pinned-download
+scripts/              # generate-samples / verify-pinned-download / dsh-runtime-smoke / context-report
 ```
 
 ## 工具面（DSH）
@@ -28,11 +36,13 @@ scripts/              # generate-samples / verify-pinned-download
 |---|---|
 | `traffic_open(path)` | Capture Identity：指纹、格式、包数、时长。不解析包 |
 | `traffic_overview(capture_id)` | 轻索引概览：协议分布、会话计数、top 会话 |
-| `traffic_query(capture_id, query)` | 通用 AST 查询：scope∈{conversation,event}，AND-only，字段白名单 |
+| `traffic_query(capture_id, query)` | 通用 AST 查询：scope∈{conversation,event}，AND-only，字段白名单 + attr.* |
 | `traffic_inspect(capture_id, conversation_id)` | 单会话下钻：metrics + 事件时间线 + frame 证据 |
+| `traffic_evidence(capture_id, frames\|event_ids)` | 帧级原始记录（固定字段集）复核，≤200 帧/次 |
+| `traffic_timeseries(capture_id, conv, metric, bin_ms)` | bytes/packets/window/rtt 双向分箱，bin∈[10,5000]ms，>500 箱自动加宽 |
 
-典型 agent loop：`open → overview → query(conversation) → inspect → query(event)` 拿 frame 证据。
-六轮完整转录见 `docs/samples/`。
+典型 agent loop：`open → overview → query(conversation) → inspect → query(event) → evidence 复核`；
+时序分析用 `timeseries`。九轮完整转录见 `docs/samples/`。
 
 `execute` 返回完整规范值（含 audit/provenance），DSH 的 `output.render` 输出有界表格文本
 （`{returned,total,offset,truncated}` 信封 + 聚合 frame 列表上限 100）。
@@ -58,7 +68,8 @@ pnpm install
 pnpm build          # traffic-core → dsh-plugin（拓扑序）
 pnpm test           # vitest：解析器/查询引擎单测 + 真实 tshark 集成（无 tshark 自动 skip）
 pnpm typecheck
-pnpm smoke          # 用真实 @deepseek-ai/{cordis,schemastery,dsh-tools} 加载插件并执行四工具全链路
+pnpm smoke          # 用真实 @deepseek-ai/{cordis,schemastery,dsh-tools} 加载插件并执行六工具全链路
+node scripts/context-report.mjs 23.pcap   # v0.2 vs v0.1(bash) 上下文开销对照
 
 # 生成/更新样例规范（docs/samples/）
 node scripts/generate-samples.mjs
@@ -125,8 +136,7 @@ dsh --profile web --dump-config   # 应出现 "# == dsh-traffic-analysis-plugin"
 | `docs/event-registry.md` | 3 族 5 种事件、抽取管线、扩展指南 |
 | `docs/samples/` | 六轮 agent loop 的定稿样例（样例即规范） |
 
-## v0.1 明确不做
+## 明确不做（v0.3 候选）
 
-Query Planner、Raw Escape Hatch（`traffic_raw_query`）、Zeek/nDPI backend、
-OR 条件与任意表达式、QUIC/HTTP transaction 层、attributes 进 where 白名单、
-二进制打包进 npm 包（首次运行下载替代）。
+zcode MCP 胶水、tshark 二进制 npm 子包、QUIC/HTTP2 stream 层、跨 conversation
+事务配对、OR 条件与任意表达式。

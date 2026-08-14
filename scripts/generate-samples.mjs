@@ -91,6 +91,26 @@ record("traffic_query(dns responses)", { capture_id: session.capture.capture_id,
   where: [{ field: "type", op: "eq", value: "dns_response" }],
 } }, nxdomain);
 
+
+// Round 7 —— attr.* 查询：NXDOMAIN 的 DNS 应答
+const nxd = await session.query({
+  scope: "event",
+  where: [
+    { field: "type", op: "eq", value: "dns_response" },
+    { field: "attr.rcode_num", op: "eq", value: 3 },
+  ],
+  select: ["event_id", "time_ms", "frame_number"],
+});
+record("traffic_query(attr.rcode_num=3 NXDOMAIN)", { capture_id: session.capture.capture_id, query: { scope: "event", where: [{ field: "type", op: "eq", value: "dns_response" }, { field: "attr.rcode_num", op: "eq", value: 3 }] } }, nxd);
+
+// Round 8 —— 帧级证据复核（固定字段集原始记录）
+const evd = await session.evidence({ frames: [8, 11, 14] });
+record("traffic_evidence", { capture_id: session.capture.capture_id, frames: [8, 11, 14] }, evd);
+
+// Round 9 —— 时序聚合（双向吞吐分箱）
+const tsr = await session.timeseries("conv:tcp:0", "bytes", 100);
+record("traffic_timeseries", { capture_id: session.capture.capture_id, conversation_id: "conv:tcp:0", metric: "bytes", bin_ms: 100 }, tsr);
+
 // 索引一并落盘（供 ir-schema 文档引用）
 const index = await session.ensureIndex();
 const extraction = await session.ensureExtraction();
