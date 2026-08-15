@@ -11,7 +11,7 @@
 PCAP ──确定性索引/抽取──▶ Traffic Observation IR ──受约束 Query──▶ 有界 Observation ──▶ LLM 下钻推理 ──▶ Packet-level Evidence
 ```
 
-## v0.2 能力（围绕三大目的）
+## 能力总览（v0.5，围绕三大目的 + 有界 SQL）
 
 | 目的 | 机制 |
 |---|---|
@@ -19,7 +19,7 @@ PCAP ──确定性索引/抽取──▶ Traffic Observation IR ──受约�
 | **结构化输入** | 5 族 11 种事件（tcp.analysis 家族 + HTTP 事务 + TLS 握手属性 version/cipher/sni）、metrics v3（rtt/吞吐/缺失段/payload/tls_app 字节）、attr.* 按类型校验的查询白名单、**frame scope** 按白名单字段过滤帧 |
 | **可检验证据** | `traffic_evidence` 返回固定字段集的帧级原始记录（≤200 帧/次）供模型复核 claim；全部观测携带 frame 级 evidence + audit（backend 版本、query_hash、render_chars） |
 | **长尾不锁死** | `traffic_raw_query(display_filter, fields, limit)` 有界逃生口：字段经 tshark 词表校验（附最近似候选）、结构化 argv（无 shell）、有界输出、调用进 audit——覆盖 IR 未预设的查询空间 |
-| **有界 SQL（v0.5，S1 增配） | `traffic_sql`/`traffic_schema`：DuckDB-in-Parquet 只读查询层——宽表/attr 拍平/frame_refs 证据侧表/事务 view；语句与函数白名单（文件/系统副作用全拒）、行预算、超时 interrupt；现有 JSON 链路与 8 工具零改动（RFC-001 P7） |
+| **有界 SQL（v0.5，S1 增配）** | `traffic_sql`/`traffic_schema`：DuckDB-in-Parquet 只读查询层——宽表/attr 拍平/frame_refs 证据侧表/事务 view；语句与函数白名单（文件/系统副作用全拒）、行预算、超时 interrupt；现有 JSON 链路与 8 工具零改动（RFC-001 P7） |
 | **协议深化（v0.4）** | `tls_certificate` 事件（CN/SAN，TLS≤1.2）、QUIC stream 模型（Conversation→Stream，`scope:"stream"`）、`traffic_http_timeline` HTTP 事务瀑布；升级路线由 `scripts/promotion-report.mjs` 从真实会话的 raw_query 频次数据驱动 |
 
 ## 仓库结构
@@ -76,7 +76,7 @@ pnpm install
 pnpm build          # traffic-core → dsh-plugin（拓扑序）
 pnpm test           # vitest：解析器/查询引擎单测 + 真实 tshark 集成（无 tshark 自动 skip）
 pnpm typecheck
-pnpm smoke          # 用真实 @deepseek-ai/{cordis,schemastery,dsh-tools} 加载插件并执行六工具全链路
+pnpm smoke          # 用真实 @deepseek-ai/{cordis,schemastery,dsh-tools} 加载插件并执行十工具全链路（含 DuckDB SQL）
 node scripts/context-report.mjs 23.pcap   # v0.2 vs v0.1(bash) 上下文开销对照
 node scripts/promotion-report.mjs .       # 挖会话 raw_query 频次 → IR 升级路线图
 
@@ -145,7 +145,7 @@ dsh --profile web --dump-config   # 应出现 "# == dsh-traffic-analysis-plugin"
 | `docs/event-registry.md` | 3 族 5 种事件、抽取管线、扩展指南 |
 | `docs/samples/` | 六轮 agent loop 的定稿样例（样例即规范） |
 
-## 明确不做（v0.5 候选）
+## 明确不做（下一版候选，按 RFC-001 判决驱动）
 
 zcode MCP 胶水、tshark 二进制 npm 子包、QUIC/HTTP2 stream 层、跨 conversation
 事务配对、OR 条件与任意表达式。
