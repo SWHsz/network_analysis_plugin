@@ -11,3 +11,4 @@ dist/
 /session.jsonl
 /flows-*.csv.gz
 dsh-session-*
+演进计划RFC.md
