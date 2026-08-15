@@ -20,6 +20,7 @@ import {
   type EvidenceResult,
   type InspectResult,
   type OverviewResult,
+  type HttpTimelineResult,
   type RawQueryResult,
   type TimeseriesResult,
   type TrafficQuery,
@@ -43,7 +44,7 @@ export const Config: Schema<Config> = z.object({
 });
 
 const USAGE =
-  "Typical flow: traffic_open(path) → traffic_overview(capture_id) → traffic_query(scope=conversation) → traffic_inspect(conversation_id) → traffic_query(scope=event) for frame evidence → traffic_evidence(frames) to verify claims. Use traffic_timeseries for per-bin throughput/window/rtt series.";
+  "Typical flow: traffic_open(path) → traffic_overview(capture_id) → traffic_query(scope=conversation) → traffic_inspect(conversation_id) → traffic_query(scope=event) for frame evidence → traffic_evidence(frames) to verify claims. Use traffic_timeseries for per-bin throughput/window/rtt series; scope 'stream' for QUIC streams, traffic_http_timeline for HTTP waterfalls.";
 
 /** 打开的会话注册表；容量上限防止模型打开过多文件不关闭 */
 const MAX_SESSIONS = 8;
@@ -172,6 +173,23 @@ function renderEvidence(_args: unknown, value: { error?: string; evidence?: Evid
     })),
   );
   return applyRenderBudget(head, rows.split("\n"), "raw fixed field set; verify claims against these records").text;
+}
+
+function renderHttpTimeline(_args: unknown, value: { error?: string; timeline?: HttpTimelineResult }): string {
+  if (value.error) return `ERROR: ${value.error}`;
+  const t = value.timeline!;
+  const head = `http transactions: ${t.transactions.length}${t.unmatched_requests > 0 ? ` (${t.unmatched_requests} unmatched request(s))` : ""}${t.conversation_id ? ` in ${t.conversation_id}` : ""}`;
+  if (t.transactions.length === 0) return `${head}\n(no http transactions observed — plaintext HTTP only; HTTPS content is encrypted)`;
+  const tEnd = Math.max(...t.transactions.map((x) => x.response_time_ms ?? x.request_time_ms), 1);
+  const W = 40;
+  const rows = t.transactions.map((x) => {
+    const s = Math.round((x.request_time_ms / tEnd) * W);
+    const e = Math.round(((x.response_time_ms ?? x.request_time_ms) / tEnd) * W);
+    const bar = " ".repeat(Math.max(0, s)) + "█".repeat(Math.max(1, e - s));
+    const dur = x.resp_time_ms !== null ? `${x.resp_time_ms}ms` : "…";
+    return `${String(x.request_time_ms).padStart(8)}ms [${bar.padEnd(W)}] ${x.method ?? "?"} ${(x.uri ?? "").slice(0, 40)} → ${x.status_code ?? "?"} (${dur}) f${x.request_frame}${x.response_frame !== null ? `→${x.response_frame}` : ""}`;
+  });
+  return applyRenderBudget(head, rows, "").text;
 }
 
 function renderRaw(_args: unknown, value: { error?: string; raw?: RawQueryResult }): string {
@@ -392,6 +410,37 @@ export function apply(ctx: Context, config: Config) {
           );
           ts.audit.render_chars = renderTimeseries(args, { timeseries: ts }).length;
           return { timeseries: ts };
+        } catch (err) {
+          return { error: (err as Error).message };
+        }
+      },
+    }),
+  );
+
+  ctx.tools.register(
+    defineTool<
+      { capture_id: string; conversation_id?: string },
+      { error?: string; timeline?: HttpTimelineResult }
+    >({
+      name: "traffic_http_timeline",
+      description:
+        "HTTP transaction waterfall: pairs http_request/http_response events per conversation (FIFO by time) " +
+        "into transactions with method/uri/status/resp_time and frame evidence, rendered as an ASCII timeline. " +
+        "Plaintext HTTP only — HTTPS payloads are encrypted. " +
+        USAGE,
+      parameters: {
+        capture_id: p({ type: "string", required: true, description: "capture_id from traffic_open" }),
+        conversation_id: p({ type: "string", description: "optional: restrict to one conversation" }),
+      },
+      output: {
+        schema: ENVELOPE({ timeline: objPassThrough, error: { type: "string" } }),
+        render: (args, value) => [text(renderHttpTimeline(args, value))],
+      },
+      async execute(args) {
+        try {
+          const timeline = await getSession(args.capture_id).httpTimeline(args.conversation_id);
+          timeline.audit.render_chars = renderHttpTimeline(args, { timeline }).length;
+          return { timeline };
         } catch (err) {
           return { error: (err as Error).message };
         }

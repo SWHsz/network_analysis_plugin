@@ -58,6 +58,13 @@ Capture ──┬── Endpoint（内嵌于 Conversation）
 
 null 与 0 语义不同：null 表示「未观测到」（如 UDP 会话的 TCP 握手），查询引擎对 null 的数值比较恒为假，仅 `ne` 匹配。
 
+## QuicStream（v0.4）
+
+QUIC 会话下挂的 stream 汇总（`Conversation.streams`）：`stream_id`、`stream_direction`
+（Bidirectional/Unidirectional）、`initiator`（QUIC 层视角 Client/Server，与 conversation
+方向判定独立）、起止/时长、packets/bytes（按出现该 stream_id 的帧计，一帧多 stream
+重复计入的近似）、`evidence_frames`（≤50）。诚实边界：加密帧无法归属 stream。
+
 ## Event
 
 时间轴上的观测点，全局按时间排序，`event_id` 形如 `evt:000123`。

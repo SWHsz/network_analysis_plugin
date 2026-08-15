@@ -39,7 +39,7 @@ const ctx = {
 plugin.apply(ctx, config);
 const names = registered.map((t) => t.name ?? t?.definition?.name).filter(Boolean);
 console.log("[apply] registered tools:", names.join(", "));
-if (names.length !== 7) throw new Error(`expected 7 tools, got ${names.length}: ${names}`);
+if (names.length !== 8) throw new Error(`expected 8 tools, got ${names.length}: ${names}`);
 
 // 3) 直接执行工具（defineTool 的返回对象结构探测 + 调用）
 const unwrap = (t) => (t.execute ? t : (t.definition ?? t.tool ?? t));
@@ -50,6 +50,7 @@ const inspect = unwrap(registered.find((t) => (t.name ?? t?.definition?.name) ==
 const evidence = unwrap(registered.find((t) => (t.name ?? t?.definition?.name) === "traffic_evidence"));
 const timeseries = unwrap(registered.find((t) => (t.name ?? t?.definition?.name) === "traffic_timeseries"));
 const raw = unwrap(registered.find((t) => (t.name ?? t?.definition?.name) === "traffic_raw_query"));
+const httpTimeline = unwrap(registered.find((t) => (t.name ?? t?.definition?.name) === "traffic_http_timeline"));
 
 const render = (tool, args, value) => {
   const out = tool.output?.render ?? tool?.definition?.output?.render;
@@ -109,5 +110,16 @@ console.log("\n=== traffic_raw_query (escape hatch) ===");
 const rawRes = await raw.execute({ capture_id: captureId, display_filter: "dns.flags.rcode==3", fields: ["dns.qry.name", "dns.flags.rcode"] });
 if (rawRes.error) throw new Error(`traffic_raw_query failed: ${rawRes.error}`);
 console.log(render(raw, {}, rawRes).slice(0, 300));
+
+console.log("\n=== traffic_http_timeline (edge-cases HTTP) ===");
+{
+  // 打开第二个 capture（edge-cases.pcap 含 HTTP 事务）
+  const open2 = unwrap(registered.find((t) => (t.name ?? t?.definition?.name) === "traffic_open"));
+  const r2 = await open2.execute({ path: "fixtures/edge-cases.pcap" });
+  if (r2.error) throw new Error(`open2 failed: ${r2.error}`);
+  const tl = await httpTimeline.execute({ capture_id: r2.capture.capture_id });
+  if (tl.error) throw new Error(`http_timeline failed: ${tl.error}`);
+  console.log(render(httpTimeline, {}, tl).slice(0, 400));
+}
 
 console.log("\nOK — plugin loaded and executed against real DSH runtime libs.");

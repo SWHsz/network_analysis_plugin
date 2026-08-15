@@ -2,6 +2,7 @@ import type {
   Conversation,
   Endpoint,
   EventDirection,
+  QuicStreamSummary,
   TrafficEvent,
   Transport,
 } from "../types.js";
@@ -63,6 +64,19 @@ interface ConvAccumulator {
   payloadReverse: number;
   tlsBytesForward: number;
   tlsBytesReverse: number;
+  /** v0.4：QUIC stream 聚合（仅可解密帧可见，近似观测） */
+  quicStreams: Map<
+    number,
+    {
+      direction: string | null;
+      initiator: string | null;
+      firstEpoch: number;
+      lastEpoch: number;
+      packets: number;
+      bytes: number;
+      frames: number[];
+    }
+  >;
   events: RawEvent[];
 }
 
@@ -151,6 +165,13 @@ export class ExtractionState {
     const tlsCipher = g("tls.handshake.ciphersuite");
     const tlsSni = g("tls.handshake.extensions_server_name");
     const tlsRecordLen = g("tls.record.length");
+    const x509Utf8 = g("x509sat.uTF8String");
+    const x509Printable = g("x509sat.PrintableString");
+    const x509DnsName = g("x509ce.dNSName");
+    const certLens = g("tls.handshake.certificate_length");
+    const quicStreamIds = g("quic.stream.stream_id");
+    const quicStreamDir = g("quic.stream.direction");
+    const quicStreamInit = g("quic.stream.initiator");
 
     const epoch = Number(timeEpoch);
     if (!Number.isFinite(epoch) || !frameNumber) return;
@@ -195,6 +216,7 @@ export class ExtractionState {
         payloadReverse: 0,
         tlsBytesForward: 0,
         tlsBytesReverse: 0,
+        quicStreams: new Map(),
         events: [],
       };
       this.convs.set(key, conv);
@@ -315,6 +337,31 @@ export class ExtractionState {
       }
     }
 
+    // v0.4：QUIC stream 归属（逗号聚合的多 STREAM 帧逐个记账；方向/发起方取首个观测值）
+    if (quicStreamIds) {
+      for (const sidTok of quicStreamIds.split(",")) {
+        const sid = Number(sidTok);
+        if (!Number.isFinite(sid)) continue;
+        let s = conv.quicStreams.get(sid);
+        if (!s) {
+          s = {
+            direction: quicStreamDir ? quicStreamDir.split(",")[0]! : null,
+            initiator: quicStreamInit ? quicStreamInit.split(",")[0]! : null,
+            firstEpoch: epoch,
+            lastEpoch: epoch,
+            packets: 0,
+            bytes: 0,
+            frames: [],
+          };
+          conv.quicStreams.set(sid, s);
+        }
+        s.lastEpoch = epoch;
+        s.packets += 1;
+        s.bytes += len;
+        if (s.frames.length < 50) s.frames.push(frame);
+      }
+    }
+
     // RTT 样本（tcp.analysis.ack_rtt，秒）
     if (ackRtt) {
       const v = Number(ackRtt);
@@ -346,6 +393,21 @@ export class ExtractionState {
             attributes: { version: tlsVersion || null, cipher: tlsCipher || null },
           });
           if (conv.firstServerHelloEpoch === null) conv.firstServerHelloEpoch = epoch;
+        } else if (t === "11") {
+          // Certificate：subject CN 取首个字符串值（UTF8String 或 PrintableString），
+          // SAN 取 dNSName 列表；cert_count 按 certificate.length occurrence 计
+          const cn = (x509Utf8 || x509Printable || "").split(",")[0] || null;
+          conv.events.push({
+            epoch,
+            frameNumber: frame,
+            type: "tls_certificate",
+            direction,
+            attributes: {
+              cn,
+              san_dns: x509DnsName || null,
+              cert_count: certLens ? certLens.split(",").length : null,
+            },
+          });
         }
       }
     }
@@ -447,6 +509,7 @@ export class ExtractionState {
       if (hasTls) protocol_tags.push("tls");
       if (hasDns) protocol_tags.push("dns");
       if (hasHttp) protocol_tags.push("http");
+      if (acc.quicStreams.size > 0) protocol_tags.push("quic");
 
       const tcpHandshakeMs =
         acc.firstSynEpoch !== null && acc.handshakeDoneEpoch !== null
@@ -492,8 +555,26 @@ export class ExtractionState {
           payload_bytes_forward: acc.payloadForward,
           payload_bytes_reverse: acc.payloadReverse,
           tls_app_bytes: acc.tlsBytesForward + acc.tlsBytesReverse,
+          quic_stream_count: acc.quicStreams.size,
         },
         protocol_tags,
+        ...(acc.quicStreams.size > 0
+          ? {
+              streams: [...acc.quicStreams.entries()]
+                .sort((a, b) => a[0] - b[0])
+                .map(([sid, s]) => ({
+                  conversation_id,
+                  stream_id: sid,
+                  stream_direction: s.direction,
+                  initiator: s.initiator,
+                  start_ms: Number(((s.firstEpoch - baseEpoch) * 1000).toFixed(3)),
+                  duration_ms: Number(((s.lastEpoch - s.firstEpoch) * 1000).toFixed(3)),
+                  packets: s.packets,
+                  bytes: s.bytes,
+                  evidence_frames: s.frames,
+                })) satisfies QuicStreamSummary[],
+            }
+          : {}),
       });
     }
 

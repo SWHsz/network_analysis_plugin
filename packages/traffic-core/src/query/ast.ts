@@ -1,4 +1,4 @@
-import type { Conversation, TrafficEvent } from "../types.js";
+import type { Conversation, TrafficEvent, QuicStreamSummary } from "../types.js";
 import type { FrameRecord } from "../frames.js";
 import { EVENT_ATTR_FIELDS, EVENT_REGISTRY } from "../events/registry.js";
 
@@ -7,7 +7,7 @@ const VALID_OPS = new Set(["eq", "ne", "gt", "gte", "lt", "lte", "in", "contains
 
 /** v0.1 查询 DSL：Filter + Projection + Ordering + Limit，条件之间只支持 AND。 */
 
-export type QueryScope = "conversation" | "event" | "frame";
+export type QueryScope = "conversation" | "event" | "frame" | "stream";
 
 export type CompareOp = "eq" | "ne" | "gt" | "gte" | "lt" | "lte" | "in" | "contains";
 
@@ -45,7 +45,7 @@ export interface FieldSpec {
   project: (obj: QueryRow) => unknown;
 }
 
-export type QueryRow = Conversation | TrafficEvent | FrameRecord;
+export type QueryRow = Conversation | TrafficEvent | FrameRecord | QuicStreamSummary;
 
 const conv = (f: (c: Conversation) => unknown): FieldSpec["project"] => (o) =>
   f(o as unknown as Conversation);
@@ -78,6 +78,7 @@ export const CONVERSATION_FIELDS: Record<string, FieldSpec> = {
   rtt_max_ms: { type: "number", project: conv((c) => c.metrics.rtt_max_ms) },
   throughput_bps: { type: "number", project: conv((c) => c.metrics.throughput_bps) },
   missing_segment_count: { type: "number", project: conv((c) => c.metrics.missing_segment_count) },
+  quic_stream_count: { type: "number", project: conv((c) => c.metrics.quic_stream_count) },
   http_txn_count: { type: "number", project: conv((c) => c.metrics.http_txn_count) },
   direction_basis: { type: "string", project: conv((c) => c.direction_basis) },
   protocol_tags: { type: "string[]", project: conv((c) => c.protocol_tags) },
@@ -131,7 +132,20 @@ export const FRAME_FIELDS: Record<string, FieldSpec> = {
   analysis: { type: "string", project: frm((r) => (r.analysis.length ? r.analysis.join("|") : null)) },
 };
 
+/** v0.4：stream scope —— QUIC stream 汇总（来自事件抽取的 stream 聚合，非帧表） */
+export const STREAM_FIELDS: Record<string, FieldSpec> = {
+  stream_id: { type: "number", project: (o) => (o as QuicStreamSummary).stream_id },
+  conversation_id: { type: "string", project: (o) => (o as QuicStreamSummary).conversation_id },
+  stream_direction: { type: "string", project: (o) => (o as QuicStreamSummary).stream_direction },
+  initiator: { type: "string", project: (o) => (o as QuicStreamSummary).initiator },
+  start_ms: { type: "number", project: (o) => (o as QuicStreamSummary).start_ms },
+  duration_ms: { type: "number", project: (o) => (o as QuicStreamSummary).duration_ms },
+  packets: { type: "number", project: (o) => (o as QuicStreamSummary).packets },
+  bytes: { type: "number", project: (o) => (o as QuicStreamSummary).bytes },
+};
+
 export const DEFAULT_SELECT: Record<QueryScope, string[]> = {
+  stream: ["stream_id", "conversation_id", "stream_direction", "initiator", "start_ms", "duration_ms", "bytes"],
   frame: ["frame_number", "time_ms", "ip_src", "ip_dst", "tcp_len", "tcp_flags", "analysis"],
   conversation: [
     "conversation_id",
@@ -154,12 +168,19 @@ export const MAX_LIMIT = 200;
 /** 校验查询；不合法时抛 QueryValidationError，错误信息包含允许的字段/操作列表 */
 export function validateQuery(q: TrafficQuery): void {
   const table =
-    q.scope === "conversation" ? CONVERSATION_FIELDS : q.scope === "event" ? EVENT_FIELDS : FRAME_FIELDS;
+    q.scope === "conversation"
+      ? CONVERSATION_FIELDS
+      : q.scope === "event"
+        ? EVENT_FIELDS
+        : q.scope === "frame"
+          ? FRAME_FIELDS
+          : STREAM_FIELDS;
   const scopeName = q.scope;
   const allowed = Object.keys(table).join(", ");
 
-  if (q.scope !== "conversation" && q.scope !== "event" && q.scope !== "frame") {
-    throw new QueryValidationError(`scope must be "conversation", "event" or "frame"`);
+  const VALID_SCOPES = ["conversation", "event", "frame", "stream"] as const;
+  if (!VALID_SCOPES.includes(q.scope)) {
+    throw new QueryValidationError(`scope must be one of ${VALID_SCOPES.join(", ")}`);
   }
 
   const seen = new Set<string>();

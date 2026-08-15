@@ -18,14 +18,15 @@ PCAP ──确定性索引/抽取──▶ Traffic Observation IR ──受约�
 | **省上下文** | 紧凑默认投影、12k 渲染预算（砍行不砍列）、`traffic_timeseries` 服务端分箱聚合替代全量帧转储；实测同等分析深度比 v0.1 的 bash 路径省 ~23x（`scripts/context-report.mjs`） |
 | **结构化输入** | 5 族 11 种事件（tcp.analysis 家族 + HTTP 事务 + TLS 握手属性 version/cipher/sni）、metrics v3（rtt/吞吐/缺失段/payload/tls_app 字节）、attr.* 按类型校验的查询白名单、**frame scope** 按白名单字段过滤帧 |
 | **可检验证据** | `traffic_evidence` 返回固定字段集的帧级原始记录（≤200 帧/次）供模型复核 claim；全部观测携带 frame 级 evidence + audit（backend 版本、query_hash、render_chars） |
-| **长尾不锁死** | `traffic_raw_query(display_filter, fields, limit)` 有界逃生口：字段经 tshark 词表校验、结构化 argv（无 shell）、有界输出、调用进 audit——覆盖 IR 未预设的查询空间 |
+| **长尾不锁死** | `traffic_raw_query(display_filter, fields, limit)` 有界逃生口：字段经 tshark 词表校验（附最近似候选）、结构化 argv（无 shell）、有界输出、调用进 audit——覆盖 IR 未预设的查询空间 |
+| **协议深化（v0.4）** | `tls_certificate` 事件（CN/SAN，TLS≤1.2）、QUIC stream 模型（Conversation→Stream，`scope:"stream"`）、`traffic_http_timeline` HTTP 事务瀑布；升级路线由 `scripts/promotion-report.mjs` 从真实会话的 raw_query 频次数据驱动 |
 
 ## 仓库结构
 
 ```text
 packages/
 ├── traffic-core/     # 纯 TS 库：指纹/轻索引/IR/事件抽取/Query/Backend（不依赖 harness）
-└── dsh-plugin/       # DeepSeek Harness 插件：7 个 defineTool 的薄胶水
+└── dsh-plugin/       # DeepSeek Harness 插件：8 个 defineTool 的薄胶水
 fixtures/             # 确定性测试 pcap（web-session / mid-capture / edge-cases）
 docs/                 # 设计文档（见下）与样例规范
 scripts/              # generate-samples / verify-pinned-download / dsh-runtime-smoke / context-report
@@ -42,9 +43,11 @@ scripts/              # generate-samples / verify-pinned-download / dsh-runtime-
 | `traffic_evidence(capture_id, frames\|event_ids)` | 帧级原始记录（固定字段集）复核，≤200 帧/次 |
 | `traffic_timeseries(capture_id, conv, metric, bin_ms)` | bytes/packets/window/rtt/tls_bytes 双向分箱，bin∈[10,5000]ms，>500 箱自动加宽 |
 | `traffic_raw_query(capture_id, fields, filter, limit)` | 有界逃生口：tshark display filter + 词表校验字段，IR 未覆盖的长尾查询 |
+| `traffic_http_timeline(capture_id, conversation_id?)` | HTTP 事务瀑布（配对 + ASCII 时间线，仅明文 HTTP） |
 
 典型 agent loop：`open → overview → query(conversation) → inspect → query(event) → evidence 复核`；
-时序分析用 `timeseries`；IR 没有的字段走 `raw_query`。十一轮完整转录见 `docs/samples/`。
+时序分析用 `timeseries`；HTTP 页面加载看 `http_timeline`；QUIC 用 `scope:"stream"`；
+IR 没有的字段走 `raw_query`。十三轮完整转录见 `docs/samples/`。
 
 `execute` 返回完整规范值（含 audit/provenance），DSH 的 `output.render` 输出有界表格文本
 （`{returned,total,offset,truncated}` 信封 + 聚合 frame 列表上限 100）。
@@ -72,6 +75,7 @@ pnpm test           # vitest：解析器/查询引擎单测 + 真实 tshark 集�
 pnpm typecheck
 pnpm smoke          # 用真实 @deepseek-ai/{cordis,schemastery,dsh-tools} 加载插件并执行六工具全链路
 node scripts/context-report.mjs 23.pcap   # v0.2 vs v0.1(bash) 上下文开销对照
+node scripts/promotion-report.mjs .       # 挖会话 raw_query 频次 → IR 升级路线图
 
 # 生成/更新样例规范（docs/samples/）
 node scripts/generate-samples.mjs
@@ -138,7 +142,7 @@ dsh --profile web --dump-config   # 应出现 "# == dsh-traffic-analysis-plugin"
 | `docs/event-registry.md` | 3 族 5 种事件、抽取管线、扩展指南 |
 | `docs/samples/` | 六轮 agent loop 的定稿样例（样例即规范） |
 
-## 明确不做（v0.4 候选）
+## 明确不做（v0.5 候选）
 
 zcode MCP 胶水、tshark 二进制 npm 子包、QUIC/HTTP2 stream 层、跨 conversation
 事务配对、OR 条件与任意表达式。

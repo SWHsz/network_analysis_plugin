@@ -116,6 +116,19 @@ export const EVENT_REGISTRY: Record<EventType, EventSpec> = {
       tsharkFields: ["tls.handshake.type", "tls.handshake.version", "tls.handshake.ciphersuite"],
     },
   },
+  tls_certificate: {
+    type: "tls_certificate",
+    detection: "tshark_tls_dissector",
+    description:
+      "TLS Certificate 握手消息（仅 TLS≤1.2 可见；TLS 1.3 中证书已加密，事件不会产生）。" +
+      "attributes.cn 取 subject 首个字符串（x509sat UTF8/Printable），san_dns 为 SAN " +
+      "dNSName 列表（逗号 join），cert_count 为证书链中的证书数。",
+    attributes: { cn: "string", san_dns: "string", cert_count: "number" },
+    queryable: ["cn", "san_dns"],
+    source: {
+      tsharkFields: ["tls.handshake.type", "x509sat.uTF8String", "x509sat.PrintableString", "x509ce.dNSName", "tls.handshake.certificate_length"],
+    },
+  },
   http_request: {
     type: "http_request",
     detection: "tshark_http_dissector",
@@ -161,6 +174,10 @@ export const BASE_FIELDS = [
   "tcp.analysis.ack_rtt",
   // v0.3：TLS 应用字节（每帧多 record 以逗号聚合，需求和）
   "tls.record.length",
+  // v0.4：QUIC stream 归属（仅可解密帧可见；多 STREAM 帧逗号聚合）
+  "quic.stream.stream_id",
+  "quic.stream.direction",
+  "quic.stream.initiator",
 ] as const;
 
 /** 全部需要抽取的 tshark 字段（公共 + 注册表并集，按插入顺序去重） */

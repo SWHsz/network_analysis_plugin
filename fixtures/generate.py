@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """生成 fixtures/web-session.pcap —— 确定性测试抓包。
 
+quic-sample.pcapng 不由本脚本生成：来自 Wireshark 官方测试集
+test/captures/quic_follow_multistream.pcapng（GPL 项目测试文件），
+用于 QUIC stream 聚合的真实回归。
+
 需要 scapy：
     python3 -m venv /tmp/scapy-venv && /tmp/scapy-venv/bin/pip install scapy
     /tmp/scapy-venv/bin/python fixtures/generate.py
@@ -245,3 +249,40 @@ eadd(eth(IP(src=X3_C, dst=X3_S) / TCP(sport=x3p, dport=x3sp, flags="A", seq=X3_C
 
 wrpcap("fixtures/edge-cases.pcap", edge)
 print(f"wrote fixtures/edge-cases.pcap with {len(edge)} packets (out_of_order/lost_segment/dup_ack/zero_window/http/ack_rtt)")
+
+
+# ---- tls-cert fixture：v0.4 tls_certificate 事件（TLS 1.2 明文握手证书） --------
+# 自签证书（CN=fixture.example.test，SAN=www/api.fixture.example.test）DER 内嵌，
+# 保证 fixture 可复现不依赖外部文件。
+import base64 as _b64
+CERT_DER = _b64.b64decode("MIIDkjCCAnqgAwIBAgIUNzVtR9WucGkKHw4lXlRbtwhS/bowDQYJKoZIhvcNAQELBQAwODEdMBsGA1UEAwwUZml4dHVyZS5leGFtcGxlLnRlc3QxFzAVBgNVBAoMDlRyYWZmaWNGaXh0dXJlMB4XDTI2MDgxNTA3NTYzMloXDTM2MDgxMjA3NTYzMlowODEdMBsGA1UEAwwUZml4dHVyZS5leGFtcGxlLnRlc3QxFzAVBgNVBAoMDlRyYWZmaWNGaXh0dXJlMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA29BnIBF7dIqSsFslt1T6KasZBZJ61nNRd+1JccemzU7VMf300oGItCKI0rBFjLyqjh3teLNvOAvdOCllyjkmDocAYNOz2Z4oZ/4hyZ/P1UfmCBXBRMSm72nM7/YodE2Epk2G4LjaKSFO5DqTNTS6LzvKR951EP6HiJVl/N1hePa7u2Xb/X/lVwOxnpZvhaChPeJ7gcD03DCF5UPz0DhmPx7fAIVagIM7W9oxAc3nDCLNjEMDG1Gee/IeZAIiOCnRfBirAHRC9IpfMN6qM97iSSBKeuvEL39+SSr9UUPyZhUnYQVNI+yw7nKu53Ud0cSYiBmyxMqK5e413jelZI68qQIDAQABo4GTMIGQMB0GA1UdDgQWBBQTCVm0PJGAR41AjQbunN/ChdbVDjAfBgNVHSMEGDAWgBQTCVm0PJGAR41AjQbunN/ChdbVDjAPBgNVHRMBAf8EBTADAQH/MD0GA1UdEQQ2MDSCGHd3dy5maXh0dXJlLmV4YW1wbGUudGVzdIIYYXBpLmZpeHR1cmUuZXhhbXBsZS50ZXN0MA0GCSqGSIb3DQEBCwUAA4IBAQAIVh4c015/GNNlVquLhOMvXCw24KqCp0W8jLhmIWROpzaa/kaeHUJEYuRlcn8ZBviH3tEKZ+Vl9AQ4DcCmXplMSd0qNmDGGvUDHLflOWlj3pou0lETcAcaA8e8K5cHxP5tFEt0lAKgKqjwxSi2Ik/wV7PurpZtT52bGd2+pwF3fwDIwR+rh8EiiAOoYtuYp0z/X8utmdv0pv8pDIhQFCsKRWjkGGkL6eJA3k6bgTftCx9yT+prnpEq2unt5NejgjgKJj/wKVIzmFPQWG1BAJvBArfLFu1uqg5d9hnNkGWVqKjcd6eKxyZDqOuT+fc6Byw+kmXlunBtE2qY7BtGQ9lE")
+
+certs = []
+def cadd(pkt, t_ms):
+    pkt.time = t_ms / 1000.0
+    certs.append(pkt)
+
+TC_C, TC_S = "10.0.0.1", "10.0.0.5"
+tcp_cp, tcp_sp = 7001, 443
+TC_C_ISN, TC_S_ISN = 41000, 42000
+
+ch_body = bytes.fromhex("0303") + bytes(32) + b"\x00" + b"\x00\x02" + bytes.fromhex("1301") + b"\x01\x00"
+ch = bytes.fromhex("160303" + format(len(ch_body) + 4, "04x")) + bytes.fromhex("01" + format(len(ch_body), "06x")) + ch_body
+sh_body = bytes.fromhex("0303") + bytes(range(32)) + b"\x00" + bytes.fromhex("1301") + b"\x00"
+sh = bytes.fromhex("160303" + format(len(sh_body) + 4, "04x")) + bytes.fromhex("02" + format(len(sh_body), "06x")) + sh_body
+cert_entry = len(CERT_DER).to_bytes(3, "big") + CERT_DER
+cert_body = len(cert_entry).to_bytes(3, "big") + cert_entry
+certmsg = bytes.fromhex("160303" + format(len(cert_body) + 4, "04x")) + bytes.fromhex("0b" + format(len(cert_body), "06x")) + cert_body
+shd = bytes.fromhex("1603030004") + bytes.fromhex("0e000000")
+
+cadd(eth(IP(src=TC_C, dst=TC_S) / TCP(sport=tcp_cp, dport=tcp_sp, flags="S", seq=TC_C_ISN)), 0)
+cadd(eth(IP(src=TC_S, dst=TC_C) / TCP(sport=tcp_sp, dport=tcp_cp, flags="SA", seq=TC_S_ISN, ack=TC_C_ISN + 1)), 5)
+cadd(eth(IP(src=TC_C, dst=TC_S) / TCP(sport=tcp_cp, dport=tcp_sp, flags="A", seq=TC_C_ISN + 1, ack=TC_S_ISN + 1)), 10)
+cadd(eth(IP(src=TC_C, dst=TC_S) / TCP(sport=tcp_cp, dport=tcp_sp, flags="PA", seq=TC_C_ISN + 1, ack=TC_S_ISN + 1) / Raw(ch)), 15)
+cadd(eth(IP(src=TC_S, dst=TC_C) / TCP(sport=tcp_sp, dport=tcp_cp, flags="PA", seq=TC_S_ISN + 1, ack=TC_C_ISN + 1 + len(ch)) / Raw(sh)), 40)
+cadd(eth(IP(src=TC_S, dst=TC_C) / TCP(sport=tcp_sp, dport=tcp_cp, flags="PA", seq=TC_S_ISN + 1 + len(sh), ack=TC_C_ISN + 1 + len(ch)) / Raw(certmsg)), 45)
+cadd(eth(IP(src=TC_S, dst=TC_C) / TCP(sport=tcp_sp, dport=tcp_cp, flags="PA", seq=TC_S_ISN + 1 + len(sh) + len(certmsg), ack=TC_C_ISN + 1 + len(ch)) / Raw(shd)), 47)
+cadd(eth(IP(src=TC_C, dst=TC_S) / TCP(sport=tcp_cp, dport=tcp_sp, flags="A", seq=TC_C_ISN + 1 + len(ch), ack=TC_S_ISN + 1 + len(sh) + len(certmsg) + len(shd))), 60)
+
+wrpcap("fixtures/tls-cert.pcap", certs)
+print("wrote fixtures/tls-cert.pcap with " + str(len(certs)) + " packets (TLS1.2 + certificate)")

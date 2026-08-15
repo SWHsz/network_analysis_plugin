@@ -78,9 +78,9 @@ describe("validateQuery", () => {
     expect(() =>
       validateQuery({
         scope: "event",
-        where: [{ field: "type", op: "in", value: ["tls_certificate", "tls_server_hello"] }],
+        where: [{ field: "type", op: "in", value: ["tls_certificate_authority", "tls_server_hello"] }],
       }),
-    ).toThrow(/unknown event type\(s\): tls_certificate.*Valid types:/s);
+    ).toThrow(/unknown event type\(s\): tls_certificate_authority.*Valid types:/s);
     expect(() =>
       validateQuery({ scope: "conversation", where: [{ field: "transport", op: "eq", value: "sctp" }] }),
     ).toThrow(/transport must be "tcp" or "udp"/);

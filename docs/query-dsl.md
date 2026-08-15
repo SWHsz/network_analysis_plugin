@@ -1,4 +1,4 @@
-# Traffic Query DSL — v0.3
+# Traffic Query DSL — v0.4
 
 > 表达力 = **Filter + Projection + Ordering + Limit/Offset**。
 > 条件之间**只支持 AND**；字段白名单制；不支持 OR / 任意表达式 / join / 函数。
@@ -7,7 +7,7 @@
 
 ```jsonc
 {
-  "scope": "conversation",        // "conversation" | "event" | "frame"
+  "scope": "conversation",        // "conversation" | "event" | "frame" | "stream"
   "where": [                       // AND 语义
     { "field": "transport", "op": "eq", "value": "tcp" },
     { "field": "retransmission_count", "op": "gt", value: 0 }
@@ -56,7 +56,14 @@
 | `missing_segment_count` `http_txn_count` | number | v0.2 |
 | `payload_bytes_forward/reverse` | number | v0.3：Σtcp.len（不含头部） |
 | `tls_app_bytes` | number | v0.3：Σtls.record.length，非 TLS 为 0 |
+| `quic_stream_count` | number | v0.4：观测到 stream_id 的 QUIC stream 数 |
 | `protocol_tags` | string[] | 用 `contains` 查 |
+
+### scope = stream（v0.4）
+
+QUIC stream 汇总（来自事件抽取的聚合，非帧表）：`stream_id` `conversation_id`
+`stream_direction` `initiator` `start_ms` `duration_ms` `packets` `bytes`。
+可见性受 QUIC 解密约束（见 event-registry）。
 
 ### scope = frame（v0.3）
 
@@ -103,7 +110,7 @@
 `truncated:true` 时渲染附 `[TRUNCATED]` 提示。聚合 evidence 的 frame 列表
 上限 100（`AGGREGATE_FRAME_CAP`）。
 
-## 工具面（v0.3，7 个）
+## 工具面（v0.4，8 个）
 
 ```text
 traffic_open / traffic_overview        （Capture Identity / 轻索引概览）
@@ -115,6 +122,8 @@ traffic_timeseries(conv, metric, bin)  （bytes|packets|window|rtt|tls_bytes 双
 traffic_raw_query(fields, filter, lim) （有界逃生口：字段经 tshark -G fields 词表校验，
                                         结构化 argv、行数≤500、单元格≤4k；无效字段（含 display_filter
                                         内的）报错并附词表最近似候选，一步自纠）
+traffic_http_timeline(conv?)           （HTTP 事务瀑布：request→response FIFO 配对 + ASCII 时间线；
+                                        仅明文 HTTP）
 ```
 
 **逃生口哲学**：预设（IR 注册表）覆盖高频，AST 覆盖组合，raw_query 覆盖长尾——

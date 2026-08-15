@@ -35,7 +35,8 @@
         "http_txn_count": 0,
         "payload_bytes_forward": 1290,
         "payload_bytes_reverse": 4367,
-        "tls_app_bytes": 87
+        "tls_app_bytes": 87,
+        "quic_stream_count": 0
       },
       "protocol_tags": [
         "tcp",
@@ -77,7 +78,8 @@
         "http_txn_count": 1,
         "payload_bytes_forward": 136,
         "payload_bytes_reverse": 50,
-        "tls_app_bytes": 0
+        "tls_app_bytes": 0,
+        "quic_stream_count": 0
       },
       "protocol_tags": [
         "tcp",
@@ -119,7 +121,8 @@
         "http_txn_count": 0,
         "payload_bytes_forward": 0,
         "payload_bytes_reverse": 0,
-        "tls_app_bytes": 0
+        "tls_app_bytes": 0,
+        "quic_stream_count": 0
       },
       "protocol_tags": [
         "udp",
@@ -161,7 +164,8 @@
         "http_txn_count": 0,
         "payload_bytes_forward": 0,
         "payload_bytes_reverse": 0,
-        "tls_app_bytes": 0
+        "tls_app_bytes": 0,
+        "quic_stream_count": 0
       },
       "protocol_tags": [
         "udp"
@@ -202,7 +206,8 @@
         "http_txn_count": 0,
         "payload_bytes_forward": 0,
         "payload_bytes_reverse": 0,
-        "tls_app_bytes": 0
+        "tls_app_bytes": 0,
+        "quic_stream_count": 0
       },
       "protocol_tags": [
         "udp"

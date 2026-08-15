@@ -40,6 +40,27 @@ export interface Capture {
 export type Transport = "tcp" | "udp";
 
 /**
+ * QUIC stream 汇总（v0.4）。一条 QUIC conversation（UDP 5-tuple）内可承载多条 stream。
+ * 诚实边界：tshark 仅对可解密的 QUIC 帧（Initial/Handshake，或提供 keylog 的 1-RTT）
+ * 可见 stream_id；加密帧无法归属。packets/bytes 按「出现该 stream_id 的帧」计，
+ * 一帧含多个 stream 帧时重复计入（近似观测，见 docs/event-registry.md）。
+ */
+export interface QuicStreamSummary {
+  conversation_id: string;
+  stream_id: number;
+  /** quic.stream.direction: Bidirectional | Unidirectional */
+  stream_direction: string | null;
+  /** quic.stream.initiator: Client | Server（QUIC 层视角，与 conversation 方向判定独立） */
+  initiator: string | null;
+  start_ms: number;
+  duration_ms: number;
+  packets: number;
+  bytes: number;
+  /** 该 stream 观测到的帧号（上限 50，超出截断） */
+  evidence_frames: number[];
+}
+
+/**
  * Conversation：两个 endpoint 之间的一次双向传输会话。
  * 方向以 initiator（发起方）为基准：forward = initiator→responder。
  */
@@ -63,6 +84,8 @@ export interface Conversation {
   bytes: { forward: number; reverse: number };
   /** 由本包事件抽取聚合出的派生指标（无数据为 0/null） */
   metrics: ConversationMetrics;
+  /** v0.4：QUIC 会话的 stream 汇总（非 QUIC 会话为空数组/缺省） */
+  streams?: QuicStreamSummary[];
   /** 仅标记实际观测到的协议特征：transport + dns/tls 等来自事件证据 */
   protocol_tags: string[];
 }
@@ -90,6 +113,8 @@ export interface ConversationMetrics {
   payload_bytes_reverse: number;
   /** v0.3：TLS 记录层应用字节（Σtls.record.length），非 TLS 会话为 0 */
   tls_app_bytes: number;
+  /** v0.4：观测到 stream_id 的 QUIC stream 数（受解密可见性约束） */
+  quic_stream_count: number;
 }
 
 export type EventType =
@@ -102,6 +127,7 @@ export type EventType =
   | "dns_response"
   | "tls_client_hello"
   | "tls_server_hello"
+  | "tls_certificate"
   | "http_request"
   | "http_response";
 

@@ -132,6 +132,26 @@ const rq2 = await session.rawQuery({
 });
 record("traffic_raw_query", { capture_id: session.capture.capture_id, display_filter: "dns.flags.rcode==3", fields: ["dns.qry.name", "dns.flags.rcode"] }, rq2);
 
+
+// Round 12 —— HTTP waterfall（基于 edge-cases 的事务配对）
+{
+  const s2 = await TrafficSession.open(new URL("../fixtures/edge-cases.pcap", import.meta.url).pathname, { cacheDir, autoDownload: false });
+  const tl = await s2.httpTimeline();
+  record("traffic_http_timeline", { capture_id: s2.capture.capture_id }, tl);
+}
+
+// Round 13 —— QUIC stream scope（基于官方 quic_follow_multistream 样本）
+{
+  const s3 = await TrafficSession.open(new URL("../fixtures/quic-sample.pcapng", import.meta.url).pathname, { cacheDir, autoDownload: false });
+  const qs = await s3.query({
+    scope: "stream",
+    where: [{ field: "bytes", op: "gt", value: 100000 }],
+    select: ["stream_id", "stream_direction", "initiator", "bytes", "packets"],
+    order_by: [{ field: "bytes", direction: "desc" }],
+  });
+  record("traffic_query(stream scope on quic)", { capture_id: s3.capture.capture_id, query: { scope: "stream", where: [{ field: "bytes", op: "gt", value: 100000 }] } }, qs);
+}
+
 // 索引一并落盘（供 ir-schema 文档引用）
 const index = await session.ensureIndex();
 const extraction = await session.ensureExtraction();

@@ -69,6 +69,28 @@ export type TimeseriesMetric = "bytes" | "packets" | "window" | "rtt" | "tls_byt
 
 export type { RawQueryOptions, RawQueryResult, RawQueryError } from "./raw.js";
 
+/** v0.4：HTTP 事务（waterfall 的一行） */
+export interface HttpTransaction {
+  conversation_id: string;
+  method: string | null;
+  host: string | null;
+  uri: string | null;
+  status_code: number | null;
+  request_time_ms: number;
+  response_time_ms: number | null;
+  /** http.time（请求→应答），未配对为 null */
+  resp_time_ms: number | null;
+  request_frame: number;
+  response_frame: number | null;
+}
+
+export interface HttpTimelineResult {
+  conversation_id: string | null; // null = 整个 capture
+  transactions: HttpTransaction[];
+  unmatched_requests: number;
+  audit: AuditMetadata;
+}
+
 export interface TimeseriesBin {
   t_start_ms: number;
   /** bytes/packets 为计数；window/rtt 为该箱中位数（无样本为 null） */
@@ -448,6 +470,56 @@ export class TrafficSession {
   /** traffic_raw_query：长尾查询的有界逃生口（字段词表校验 + 结构化 argv） */
   rawQuery(opts: RawQueryOptions): Promise<RawQueryResult> {
     return rawQuery(this.backend, this.capture.path, opts, this.audit());
+  }
+
+  /**
+   * traffic_http_timeline：HTTP 事务配对（waterfall 语义宏）。
+   * 同 conversation 内按时间序 FIFO 配对 request→response（response 为反向首个），
+   * 未配对的 request 保留（response 字段为 null）。
+   */
+  async httpTimeline(conversationId?: string): Promise<HttpTimelineResult> {
+    const extraction = await this.ensureExtraction();
+    const httpEvents = extraction.events.filter((e) => {
+      if (e.type !== "http_request" && e.type !== "http_response") return false;
+      return conversationId ? e.conversation_id === conversationId : true;
+    });
+
+    const transactions: HttpTransaction[] = [];
+    const pending: HttpTransaction[] = [];
+    let unmatched = 0;
+    for (const e of httpEvents) {
+      if (e.type === "http_request") {
+        pending.push({
+          conversation_id: e.conversation_id,
+          method: (e.attributes.method as string) ?? null,
+          host: (e.attributes.host as string) ?? null,
+          uri: (e.attributes.uri as string) ?? null,
+          status_code: null,
+          request_time_ms: e.time_ms,
+          response_time_ms: null,
+          resp_time_ms: null,
+          request_frame: e.evidence.kind === "frame" ? e.evidence.frame_number : 0,
+          response_frame: null,
+        });
+      } else {
+        const req = pending.shift();
+        if (!req) {
+          continue; // 无待配对请求的响应（如 4xx 前的探测响应）
+        }
+        transactions.push({
+          ...req,
+          status_code: (e.attributes.status_code as number) ?? null,
+          response_time_ms: e.time_ms,
+          resp_time_ms: (e.attributes.resp_time_ms as number) ?? Number((e.time_ms - req.request_time_ms).toFixed(3)),
+          response_frame: e.evidence.kind === "frame" ? e.evidence.frame_number : null,
+        });
+      }
+    }
+    unmatched = pending.length;
+    transactions.push(...pending.map((p) => ({ ...p, response_time_ms: null, response_frame: null })));
+    transactions.sort((a, b) => a.request_time_ms - b.request_time_ms);
+
+    return { conversation_id: conversationId ?? null, transactions, unmatched_requests: unmatched, audit: this.audit() };
   }
 
   audit(q?: TrafficQuery): AuditMetadata {

@@ -1,10 +1,10 @@
-# Event Registry — v0.3
+# Event Registry — v0.4
 
 注册表是事件类型的**单一来源**：`packages/traffic-core/src/events/registry.ts`。
 抽取字段集合（`EXTRACTION_FIELDS`）、attributes 形状、detection 标注、查询白名单
 （`EVENT_ATTR_FIELDS`，由 `queryable` 声明生成）、文档均由它派生。
 
-## v0.3 的 5 族 11 种（TLS 族 attributes 扩展）
+## v0.4 的 6 族 12 种（新增 tls_certificate + QUIC stream 聚合）
 
 ### TCP 分析族（detection: tshark_tcp_analysis）
 
@@ -21,7 +21,10 @@
 - `dns_query` `{dns_id,qname,qtype}`、`dns_response` `{dns_id,qname,rcode_num}`；
 - `tls_client_hello` `{version, sni, cipher_count}`（v0.3：sni 可推断目标站点；
   完整套件列表过长不入 IR，需要时走 traffic_raw_query）；
-- `tls_server_hello` `{version, cipher}`（v0.3：cipher 如 0x1301）。
+- `tls_server_hello` `{version, cipher}`（v0.3：cipher 如 0x1301）；
+- `tls_certificate` `{cn, san_dns, cert_count}`（v0.4：**仅 TLS≤1.2 可见**——TLS 1.3
+  的证书在加密握手里，事件不会产生。cn 取 subject 首个字符串，san_dns 为 dNSName
+  列表逗号 join）。
 
 ### HTTP 族（v0.2 新增，detection: tshark_http_dissector）
 
@@ -67,6 +70,14 @@ HTTP 事件经 TCP 重组还原（响应跨多个 TCP 段时事件帧号为重�
   一端被捕获；
 - `detection` 字段标明来源；LLM 引用应表述为「tshark 判定为 X」。
 
-## 不做（v0.3 候选）
+## QUIC stream 聚合（v0.4）
 
-QUIC/HTTP2 stream 层、跨 conversation 事务配对、SACK 分析。
+QUIC 会话（一条 UDP 5-tuple）在 Conversation 下挂 `streams: QuicStreamSummary[]`
+（stream_id/方向/发起方/起止/计数/帧证据，`scope:"stream"` 可查询）。
+**可见性边界**：tshark 仅对可解密帧（Initial/Handshake，或提供 keylog 的 1-RTT）
+能读 stream_id；加密帧无法归属 stream。packets/bytes 按「出现该 stream_id 的帧」计，
+一帧含多个 STREAM 帧时重复计入（近似观测）。
+
+## 不做（v0.5 候选）
+
+HTTP/2 stream 层、SACK 分析、跨 conversation 事务配对。

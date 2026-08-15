@@ -13,7 +13,7 @@ export type {
   TrafficEvent,
   Transport,
 } from "./types.js";
-export { TrafficSession, type SessionOptions, type OverviewResult, type InspectResult, type QueryResult, type TimelineOptions, type EvidenceOptions, type EvidenceResult, type TimeseriesMetric, type TimeseriesResult, type TimeseriesBin } from "./session.js";
+export { TrafficSession, type SessionOptions, type OverviewResult, type InspectResult, type QueryResult, type TimelineOptions, type EvidenceOptions, type EvidenceResult, type TimeseriesMetric, type TimeseriesResult, type TimeseriesBin, type HttpTransaction, type HttpTimelineResult } from "./session.js";
 export type {
   CompareOp,
   Condition,
