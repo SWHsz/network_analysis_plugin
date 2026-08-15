@@ -20,6 +20,8 @@
 ```
 
 操作符：`eq` `ne` `gt` `gte` `lt` `lte` `in`（数组值）`contains`（string/string[]）。
+**未知 op 立即报错**（无 LIKE/regex）；`type`/`transport` 的值经枚举校验，
+拼错即报错并列出全部合法值——杜绝「静默空集」浪费调用轮次。
 
 **null 语义**：未观测的指标为 null（≠0）。null 参与数值比较恒为假，仅 `ne`
 （及不含它的 `in`）匹配——防止「无握手观测」被当「0ms 握手」。
@@ -111,7 +113,8 @@ traffic_evidence(frames|event_ids)     （帧级原始记录复核，≤200 帧/
 traffic_timeseries(conv, metric, bin)  （bytes|packets|window|rtt|tls_bytes 双向分箱，bin∈[10,5000]ms，
                                         >500 箱自动加倍加宽并标 sampled）
 traffic_raw_query(fields, filter, lim) （有界逃生口：字段经 tshark -G fields 词表校验，
-                                        结构化 argv、行数≤500、单元格≤4k；错误字段即时报错并提示命名风格）
+                                        结构化 argv、行数≤500、单元格≤4k；无效字段（含 display_filter
+                                        内的）报错并附词表最近似候选，一步自纠）
 ```
 
 **逃生口哲学**：预设（IR 注册表）覆盖高频，AST 覆盖组合，raw_query 覆盖长尾——

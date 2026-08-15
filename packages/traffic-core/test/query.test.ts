@@ -65,6 +65,27 @@ describe("validateQuery", () => {
     expect(() => validateQuery({ scope: "event", where: [{ field: "type", op: "in", value: "tcp_retransmission" }] })).toThrow(/array/);
   });
 
+  it("rejects unknown ops instead of silently matching nothing (v0.3.1)", () => {
+    expect(() =>
+      validateQuery({ scope: "event", where: [{ field: "type", op: "like", value: "tls%" }] }),
+    ).toThrow(/unknown op 'like'/);
+    expect(() =>
+      validateQuery({ scope: "conversation", where: [{ field: "bytes_total", op: "regex", value: ".*" }] }),
+    ).toThrow(/unknown op 'regex'/);
+  });
+
+  it("rejects unknown event types and bad transport values with valid lists", () => {
+    expect(() =>
+      validateQuery({
+        scope: "event",
+        where: [{ field: "type", op: "in", value: ["tls_certificate", "tls_server_hello"] }],
+      }),
+    ).toThrow(/unknown event type\(s\): tls_certificate.*Valid types:/s);
+    expect(() =>
+      validateQuery({ scope: "conversation", where: [{ field: "transport", op: "eq", value: "sctp" }] }),
+    ).toThrow(/transport must be "tcp" or "udp"/);
+  });
+
   it("rejects out-of-range limit", () => {
     expect(() => validateQuery({ scope: "conversation", limit: MAX_LIMIT + 1 })).toThrow(/limit/);
     expect(() => validateQuery({ scope: "conversation", limit: 0 })).toThrow(/limit/);

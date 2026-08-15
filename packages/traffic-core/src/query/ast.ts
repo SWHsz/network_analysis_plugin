@@ -1,6 +1,9 @@
 import type { Conversation, TrafficEvent } from "../types.js";
 import type { FrameRecord } from "../frames.js";
-import { EVENT_ATTR_FIELDS } from "../events/registry.js";
+import { EVENT_ATTR_FIELDS, EVENT_REGISTRY } from "../events/registry.js";
+
+/** 合法操作符（v0.3.1：未知 op 一律报错，杜绝静默空集） */
+const VALID_OPS = new Set(["eq", "ne", "gt", "gte", "lt", "lte", "in", "contains"]);
 
 /** v0.1 查询 DSL：Filter + Projection + Ordering + Limit，条件之间只支持 AND。 */
 
@@ -167,6 +170,11 @@ export function validateQuery(q: TrafficQuery): void {
         typeValues.add(String(v));
       }
     }
+    if (!VALID_OPS.has(cond.op)) {
+      throw new QueryValidationError(
+        `unknown op '${cond.op}'. Allowed: eq, ne, gt, gte, lt, lte, in, contains (no LIKE/regex)`,
+      );
+    }
     const spec = table[cond.field];
     if (!spec) {
       throw new QueryValidationError(
@@ -196,6 +204,25 @@ export function validateQuery(q: TrafficQuery): void {
     }
     if (spec.type === "number" && typeof cond.value === "string" && cond.op !== "contains") {
       throw new QueryValidationError(`field '${cond.field}' is numeric; value must be a number`);
+    }
+  }
+
+  // 枚举值校验（v0.3.1）：拼错的 type/transport 立即报错而非静默空集
+  if (q.scope === "event" && typeValues.size > 0) {
+    const validTypes = Object.keys(EVENT_REGISTRY);
+    const bogus = [...typeValues].filter((t) => !validTypes.includes(t));
+    if (bogus.length > 0) {
+      throw new QueryValidationError(
+        `unknown event type(s): ${bogus.join(", ")}. Valid types: ${validTypes.join(", ")}`,
+      );
+    }
+  }
+  for (const cond of q.where ?? []) {
+    if (cond.field === "transport" && cond.op === "eq") {
+      const v = String(cond.value);
+      if (v !== "tcp" && v !== "udp") {
+        throw new QueryValidationError(`transport must be "tcp" or "udp", got '${v}'`);
+      }
     }
   }
 

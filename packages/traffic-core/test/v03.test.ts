@@ -94,6 +94,21 @@ describe("v0.3: tls attrs / frame scope / raw query", { skip: skip || undefined 
     ).rejects.toThrow(/unknown tshark field/i);
   });
 
+  it("raw query suggests nearest field names (v0.3.1)", async () => {
+    // 会话实测的自纠案例：点分 SNI 名 → 建议下划线形式
+    const err = await session
+      .rawQuery({ fields: ["tls.handshake.extensions.server_name"] })
+      .catch((e: Error) => e.message);
+    expect(err).toContain("tls.handshake.extensions_server_name");
+  });
+
+  it("raw query surfaces invalid display_filter fields with suggestions (v0.3.1)", async () => {
+    const err = await session
+      .rawQuery({ display_filter: "tcp.analysis.missing_segment > 0", fields: ["frame.number"] })
+      .catch((e: Error) => e.message);
+    expect(err).toMatch(/invalid field\(s\) in display_filter|unknown tshark field/i);
+  });
+
   it("raw query rejects bad filter characters and out-of-range limit", async () => {
     await expect(session.rawQuery({ display_filter: "; rm -rf /", fields: ["frame.len"] })).rejects.toThrow(
       /unsupported characters/i,

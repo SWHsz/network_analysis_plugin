@@ -38,6 +38,44 @@ export class RawQueryError extends Error {
   }
 }
 
+/** 词表中最近似的字段名（编辑距离 top-k，帮模型一步自纠） */
+function nearestFields(vocab: Set<string>, name: string, k = 3): string[] {
+  const lower = name.toLowerCase();
+  const scored: Array<[number, string]> = [];
+  for (const v of vocab) {
+    // 粗筛：只对包含同名前缀/子串或长度接近的候选算精确距离
+    const vl = v.toLowerCase();
+    if (Math.abs(vl.length - lower.length) > 4 && !vl.includes(lower.split(".").pop() ?? "")) continue;
+    scored.push([levenshtein(lower, vl), v]);
+  }
+  scored.sort((a, b) => a[0] - b[0]);
+  return scored.slice(0, k).filter(([d]) => d <= 6).map(([, v]) => v);
+}
+
+function levenshtein(a: string, b: string): number {
+  if (a === b) return 0;
+  const m = a.length;
+  const n = b.length;
+  if (Math.min(m, n) === 0) return Math.max(m, n);
+  let prev = Array.from({ length: n + 1 }, (_, i) => i);
+  for (let i = 1; i <= m; i++) {
+    const cur = [i];
+    for (let j = 1; j <= n; j++) {
+      cur[j] = Math.min(prev[j]! + 1, cur[j - 1]! + 1, prev[j - 1]! + (a[i - 1] === b[j - 1] ? 0 : 1));
+    }
+    prev = cur;
+  }
+  return prev[n]!;
+}
+
+function fieldSuggestions(vocab: Set<string>, names: string[]): string {
+  const parts = names.map((n) => {
+    const near = nearestFields(vocab, n);
+    return near.length ? `${n} (did you mean: ${near.join(" | ")}?)` : n;
+  });
+  return parts.join(", ");
+}
+
 /** display filter 的保守白名单：字母数字与一小撮结构字符（防参数逃逸） */
 const FILTER_RE = /^[A-Za-z0-9_.:\[\]=<>!&|() ]+$/;
 const FIELD_RE = /^[a-z0-9][a-z0-9_.]*$/i;
@@ -86,7 +124,8 @@ export async function rawQuery(
   const unknown = opts.fields.filter((f) => !vocab.has(f));
   if (unknown.length > 0) {
     throw new RawQueryError(
-      `unknown tshark field(s): ${unknown.join(", ")}. Run 'tshark -G fields | grep <keyword>' naming style; e.g. SNI is tls.handshake.extensions_server_name in 4.x`,
+      `unknown tshark field(s): ${fieldSuggestions(vocab, unknown)}. ` +
+        `Note: 4.x uses underscore forms for some extensions (SNI = tls.handshake.extensions_server_name)`,
     );
   }
 
@@ -95,7 +134,27 @@ export async function rawQuery(
   if (opts.display_filter) args.push("-Y", opts.display_filter);
   for (const f of fields) args.push("-e", f);
 
-  const res = await backend.runTshark(args, { timeoutMs: 120_000 });
+  let res;
+  try {
+    res = await backend.runTshark(args, { timeoutMs: 120_000 });
+  } catch (err) {
+    const msg = (err as Error).message;
+    // tshark 对 filter 里无效字段的报错在 stderr：把字段名提出来并给建议
+    // 两种格式：-e 字段错误（\n\t<name> 列表）；display filter 错误（"<expr>" is not a valid protocol ...）
+    const fieldListNames = [...msg.matchAll(/\n\t((?:tls|tcp|udp|ip|ipv6|frame|dns|http|x509sat|quic)\.[^\s\n]+)/g)].map(
+      (m) => m[1]!.trim(),
+    );
+    const quotedTokens = [...msg.matchAll(/"([^"]+)" is (?:neither a field|not a valid protocol)/gi)].flatMap((m) =>
+      m[1]!.match(/(?:[a-z0-9_]+\.)+[a-z0-9_]+/gi) ?? [],
+    );
+    const invalid = [...fieldListNames, ...quotedTokens];
+    if (invalid.length > 0) {
+      throw new RawQueryError(
+        `invalid field(s) in display_filter: ${fieldSuggestions(vocab, invalid)}`,
+      );
+    }
+    throw err;
+  }
   const lines = res.stdout.split("\n").filter((l) => l.length > 0);
   const truncated = lines.length > limit;
   const rows = lines.slice(0, limit).map((line) => {
