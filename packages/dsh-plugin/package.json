@@ -1,6 +1,6 @@
 {
   "name": "dsh-traffic-analysis-plugin",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -12,6 +12,9 @@
     "build": "tsdown && tsc --emitDeclarationOnly",
     "typecheck": "tsc --noEmit",
     "test": "echo 'dsh-plugin: covered by traffic-core tests + manual dsh run'"
+  },
+  "dependencies": {
+    "@duckdb/node-api": "^1.5.5-r.4"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": ">=4.0.0",

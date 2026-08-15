@@ -39,7 +39,7 @@ const ctx = {
 plugin.apply(ctx, config);
 const names = registered.map((t) => t.name ?? t?.definition?.name).filter(Boolean);
 console.log("[apply] registered tools:", names.join(", "));
-if (names.length !== 8) throw new Error(`expected 8 tools, got ${names.length}: ${names}`);
+if (names.length !== 10) throw new Error(`expected 10 tools, got ${names.length}: ${names}`);
 
 // 3) 直接执行工具（defineTool 的返回对象结构探测 + 调用）
 const unwrap = (t) => (t.execute ? t : (t.definition ?? t.tool ?? t));
@@ -51,6 +51,8 @@ const evidence = unwrap(registered.find((t) => (t.name ?? t?.definition?.name) =
 const timeseries = unwrap(registered.find((t) => (t.name ?? t?.definition?.name) === "traffic_timeseries"));
 const raw = unwrap(registered.find((t) => (t.name ?? t?.definition?.name) === "traffic_raw_query"));
 const httpTimeline = unwrap(registered.find((t) => (t.name ?? t?.definition?.name) === "traffic_http_timeline"));
+const sqlTool = unwrap(registered.find((t) => (t.name ?? t?.definition?.name) === "traffic_sql"));
+const schemaTool = unwrap(registered.find((t) => (t.name ?? t?.definition?.name) === "traffic_schema"));
 
 const render = (tool, args, value) => {
   const out = tool.output?.render ?? tool?.definition?.output?.render;
@@ -120,6 +122,18 @@ console.log("\n=== traffic_http_timeline (edge-cases HTTP) ===");
   const tl = await httpTimeline.execute({ capture_id: r2.capture.capture_id });
   if (tl.error) throw new Error(`http_timeline failed: ${tl.error}`);
   console.log(render(httpTimeline, {}, tl).slice(0, 400));
+}
+
+console.log("\n=== traffic_sql + traffic_schema (S1, duckdb in-process) ===");
+{
+  const sch = await schemaTool.execute({ capture_id: captureId });
+  if (sch.error) throw new Error(`traffic_schema failed: ${sch.error}`);
+  console.log(render(schemaTool, {}, sch).slice(0, 300));
+  const r = await sqlTool.execute({ capture_id: captureId, sql: "SELECT conversation_id, retransmission_count FROM conversations ORDER BY retransmission_count DESC LIMIT 2" });
+  if (r.error) throw new Error(`traffic_sql failed: ${r.error}`);
+  console.log(render(sqlTool, {}, r).slice(0, 300));
+  const bad = await sqlTool.execute({ capture_id: captureId, sql: "SELECT * FROM read_csv('/etc/hosts')" });
+  console.log("security reject:", render(sqlTool, {}, bad).slice(0, 120));
 }
 
 console.log("\nOK — plugin loaded and executed against real DSH runtime libs.");

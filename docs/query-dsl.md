@@ -129,5 +129,20 @@ traffic_http_timeline(conv?)           （HTTP 事务瀑布：request→response
 **逃生口哲学**：预设（IR 注册表）覆盖高频，AST 覆盖组合，raw_query 覆盖长尾——
 模型不会被白名单锁死，但长尾路径同样有界、可审计、无注入面。
 
+## 有界 SQL（v0.5 / S1，与 AST 并存的增配层）
+
+`traffic_sql(sql, limit)` + `traffic_schema()`：JSON 缓存物化为 Parquet 后经
+DuckDB（进程内嵌）只读查询。表：`conversations`（宽表，metrics 全拍平）、
+`events`（attr 拍平为 attr_* 列）、`frames`、`frame_refs`（证据侧表：
+owner_type/owner_id/frame_number）、`v_streams`、`v_http_transactions`。
+
+**安全边界（S1 退出标准）**：单条 SELECT/WITH；文件/系统副作用语句与表函数
+（read_csv*/read_parquet/COPY/INSTALL/ATTACH/PRAGMA/...）黑名单拒绝；
+`FROM '<字符串路径>'` 简写拒绝；FROM/JOIN 目标必须是注册表/CTE 名。
+**预算**：行上限 [1,500]（外包装强制）、超时 interrupt、渲染预算照常。
+**证据约定**：events/frames 自带 frame_number；聚合复核 join frame_refs。
+
+现有 8 工具与 JSON 缓存链路零改动（增配不重写，主从关系待对照实验判决）。
+
 数据来自按 capture 缓存的单遍抽取（`events.json`）与帧表（`frames.json`），
 查询不重扫 pcap。

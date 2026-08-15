@@ -19,6 +19,7 @@ PCAP ──确定性索引/抽取──▶ Traffic Observation IR ──受约�
 | **结构化输入** | 5 族 11 种事件（tcp.analysis 家族 + HTTP 事务 + TLS 握手属性 version/cipher/sni）、metrics v3（rtt/吞吐/缺失段/payload/tls_app 字节）、attr.* 按类型校验的查询白名单、**frame scope** 按白名单字段过滤帧 |
 | **可检验证据** | `traffic_evidence` 返回固定字段集的帧级原始记录（≤200 帧/次）供模型复核 claim；全部观测携带 frame 级 evidence + audit（backend 版本、query_hash、render_chars） |
 | **长尾不锁死** | `traffic_raw_query(display_filter, fields, limit)` 有界逃生口：字段经 tshark 词表校验（附最近似候选）、结构化 argv（无 shell）、有界输出、调用进 audit——覆盖 IR 未预设的查询空间 |
+| **有界 SQL（v0.5，S1 增配） | `traffic_sql`/`traffic_schema`：DuckDB-in-Parquet 只读查询层——宽表/attr 拍平/frame_refs 证据侧表/事务 view；语句与函数白名单（文件/系统副作用全拒）、行预算、超时 interrupt；现有 JSON 链路与 8 工具零改动（RFC-001 P7） |
 | **协议深化（v0.4）** | `tls_certificate` 事件（CN/SAN，TLS≤1.2）、QUIC stream 模型（Conversation→Stream，`scope:"stream"`）、`traffic_http_timeline` HTTP 事务瀑布；升级路线由 `scripts/promotion-report.mjs` 从真实会话的 raw_query 频次数据驱动 |
 
 ## 仓库结构
@@ -26,7 +27,7 @@ PCAP ──确定性索引/抽取──▶ Traffic Observation IR ──受约�
 ```text
 packages/
 ├── traffic-core/     # 纯 TS 库：指纹/轻索引/IR/事件抽取/Query/Backend（不依赖 harness）
-└── dsh-plugin/       # DeepSeek Harness 插件：8 个 defineTool 的薄胶水
+└── dsh-plugin/       # DeepSeek Harness 插件：10 个 defineTool 的薄胶水
 fixtures/             # 确定性测试 pcap（web-session / mid-capture / edge-cases）
 docs/                 # 设计文档（见下）与样例规范
 scripts/              # generate-samples / verify-pinned-download / dsh-runtime-smoke / context-report
@@ -44,6 +45,8 @@ scripts/              # generate-samples / verify-pinned-download / dsh-runtime-
 | `traffic_timeseries(capture_id, conv, metric, bin_ms)` | bytes/packets/window/rtt/tls_bytes 双向分箱，bin∈[10,5000]ms，>500 箱自动加宽 |
 | `traffic_raw_query(capture_id, fields, filter, limit)` | 有界逃生口：tshark display filter + 词表校验字段，IR 未覆盖的长尾查询 |
 | `traffic_http_timeline(capture_id, conversation_id?)` | HTTP 事务瀑布（配对 + ASCII 时间线，仅明文 HTTP） |
+| `traffic_sql(capture_id, sql, limit?)` | 有界只读 SQL（DuckDB）：白名单校验 + 行预算 + 证据约定（S1） |
+| `traffic_schema(capture_id)` | SQL 目录：表/列/null 语义/证据可用性/行数（S1） |
 
 典型 agent loop：`open → overview → query(conversation) → inspect → query(event) → evidence 复核`；
 时序分析用 `timeseries`；HTTP 页面加载看 `http_timeline`；QUIC 用 `scope:"stream"`；

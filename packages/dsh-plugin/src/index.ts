@@ -22,6 +22,7 @@ import {
   type OverviewResult,
   type HttpTimelineResult,
   type RawQueryResult,
+  type SqlResult,
   type TimeseriesResult,
   type TrafficQuery,
 } from "traffic-core";
@@ -190,6 +191,30 @@ function renderHttpTimeline(_args: unknown, value: { error?: string; timeline?: 
     return `${String(x.request_time_ms).padStart(8)}ms [${bar.padEnd(W)}] ${x.method ?? "?"} ${(x.uri ?? "").slice(0, 40)} → ${x.status_code ?? "?"} (${dur}) f${x.request_frame}${x.response_frame !== null ? `→${x.response_frame}` : ""}`;
   });
   return applyRenderBudget(head, rows, "").text;
+}
+
+function renderSql(_args: unknown, value: { error?: string; sql?: SqlResult }): string {
+  if (value.error) return `ERROR: ${value.error}`;
+  const r = value.sql!;
+  const head = `sql: ${r.returned} rows${r.truncated ? " [TRUNCATED at limit]" : ""} (${r.elapsed_ms}ms, columns: ${r.columns.join(", ")})`;
+  const rows = r.rows.map((row) =>
+    r.columns.map((c) => String(row[c] ?? "null")).join("\t"),
+  );
+  return applyRenderBudget(head, rows, "run traffic_schema to inspect tables/columns; evidence: events carry frame_number, aggregates join frame_refs").text;
+}
+
+function renderSqlSchema(_args: unknown, value: { error?: string; schema?: { tables: unknown[]; rowCounts: Record<string, number> } }): string {
+  if (value.error) return `ERROR: ${value.error}`;
+  const s = value.schema!;
+  const lines: string[] = [];
+  for (const t of s.tables as Array<{ name: string; kind: string; description: string; evidence: string; columns: Array<{ name: string; type: string; description: string; null_semantics?: string }> }>) {
+    lines.push(`${t.name} (${t.kind}, ${s.rowCounts[t.name] ?? 0} rows, evidence: ${t.evidence}) — ${t.description}`);
+    for (const c of t.columns) {
+      lines.push(`  ${c.name} ${c.type} — ${c.description}${c.null_semantics ? ` [null: ${c.null_semantics}]` : ""}`);
+    }
+    lines.push("");
+  }
+  return applyRenderBudget("SQL schema (read-only SELECT only; registered tables below):", lines, "").text;
 }
 
 function renderRaw(_args: unknown, value: { error?: string; raw?: RawQueryResult }): string {
@@ -410,6 +435,63 @@ export function apply(ctx: Context, config: Config) {
           );
           ts.audit.render_chars = renderTimeseries(args, { timeseries: ts }).length;
           return { timeseries: ts };
+        } catch (err) {
+          return { error: (err as Error).message };
+        }
+      },
+    }),
+  );
+
+  ctx.tools.register(
+    defineTool<
+      { capture_id: string; sql: string; limit?: number },
+      { error?: string; sql?: SqlResult }
+    >({
+      name: "traffic_sql",
+      description:
+        "Run a read-only bounded SQL query (DuckDB) over the capture's materialized tables. " +
+        "Only single SELECT/WITH statements; file/system functions are blocked. Registered tables (see traffic_schema): " +
+        "conversations (wide), events (attrs flattened as attr_*), frames, frame_refs (evidence side table), v_streams, v_http_transactions. " +
+        "Row cap [1,500] default 100; evidence: events/frames carry frame_number, aggregates join frame_refs on owner_id. " +
+        USAGE,
+      parameters: {
+        capture_id: p({ type: "string", required: true, description: "capture_id from traffic_open" }),
+        sql: p({ type: "string", required: true, description: 'single SELECT/WITH statement, e.g. "SELECT conversation_id, retransmission_count FROM conversations ORDER BY retransmission_count DESC LIMIT 5"' }),
+        limit: p({ type: "number", description: "row cap [1,500], default 100" }),
+      },
+      output: {
+        schema: ENVELOPE({ sql: objPassThrough, error: { type: "string" } }),
+        render: (args, value) => [text(renderSql(args, value))],
+      },
+      async execute(args) {
+        try {
+          const r = await getSession(args.capture_id).sqlQuery(args.sql, { limit: args.limit });
+          return { sql: r };
+        } catch (err) {
+          return { error: (err as Error).message };
+        }
+      },
+    }),
+  );
+
+  ctx.tools.register(
+    defineTool<{ capture_id: string }, { error?: string; schema?: unknown }>({
+      name: "traffic_schema",
+      description:
+        "Inspect the SQL interface: registered tables/views with columns, types, null semantics, evidence availability and row counts. " +
+        "Read this before writing traffic_sql. " +
+        USAGE,
+      parameters: {
+        capture_id: p({ type: "string", required: true, description: "capture_id from traffic_open" }),
+      },
+      output: {
+        schema: ENVELOPE({ schema: objPassThrough, error: { type: "string" } }),
+        render: (args, value) => [text(renderSqlSchema(args, value as never))],
+      },
+      async execute(args) {
+        try {
+          const schema = await getSession(args.capture_id).sqlSchema();
+          return { schema };
         } catch (err) {
           return { error: (err as Error).message };
         }

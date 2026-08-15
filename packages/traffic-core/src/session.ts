@@ -14,6 +14,9 @@ import { parseCapinfosTsv, parseZStats, type LightIndex } from "./indexer.js";
 import { ExtractionState, extractionArgs, type Extraction } from "./events/extract.js";
 import { FrameTableBuilder, framesArgs, type FrameRecord, type FrameTable } from "./frames.js";
 import { rawQuery, type RawQueryOptions, type RawQueryResult, type RawQueryError } from "./raw.js";
+import { BoundedSql, type SqlResult, type SqlQueryOptions } from "./sql/executor.js";
+import { buildSqlStore } from "./sql/materialize.js";
+import { SQL_CATALOG } from "./sql/catalog.js";
 import { executeQuery } from "./query/engine.js";
 import { shapeAggregateEvidence } from "./shaper.js";
 import type { TrafficQuery } from "./query/ast.js";
@@ -68,6 +71,9 @@ export interface EvidenceResult {
 export type TimeseriesMetric = "bytes" | "packets" | "window" | "rtt" | "tls_bytes";
 
 export type { RawQueryOptions, RawQueryResult, RawQueryError } from "./raw.js";
+export type { SqlResult, SqlQueryOptions } from "./sql/executor.js";
+export { SqlSecurityError, validateUserSql } from "./sql/executor.js";
+export { SQL_CATALOG, type SqlTableDoc, type SqlColumnDoc } from "./sql/catalog.js";
 
 /** v0.4：HTTP 事务（waterfall 的一行） */
 export interface HttpTransaction {
@@ -465,6 +471,45 @@ export class TrafficSession {
       },
       audit: this.audit(),
     };
+  }
+
+  private sqlPromise: Promise<BoundedSql> | undefined;
+
+  /** S1：SQL 栈（惰性物化 parquet + view；现有 JSON 链路不动） */
+  async ensureSql(): Promise<BoundedSql> {
+    this.sqlPromise ??= (async () => {
+      const extraction = await this.ensureExtraction();
+      const frames = await this.ensureFrames();
+      return buildSqlStore({
+        captureDir: this.captureDir,
+        extraction,
+        frames,
+        tsharkVersion: this.capture.backend.version,
+      });
+    })();
+    return this.sqlPromise;
+  }
+
+  /** traffic_sql：Bounded SQL（语句/函数白名单 + 预算信封，见 docs/query-dsl.md） */
+  async sqlQuery(sql: string, opts: SqlQueryOptions = {}): Promise<SqlResult & { audit: AuditMetadata }> {
+    const store = await this.ensureSql();
+    const r = await store.query(sql, opts);
+    return { ...r, audit: this.audit() };
+  }
+
+  /** traffic_schema：注册表/view 目录（含 null 语义与证据可用性） */
+  async sqlSchema(): Promise<{
+    tables: typeof SQL_CATALOG;
+    rowCounts: Record<string, number>;
+    audit: AuditMetadata;
+  }> {
+    const store = await this.ensureSql();
+    const counts: Record<string, number> = {};
+    for (const t of SQL_CATALOG) {
+      const r = await store.query(`SELECT count(*) AS n FROM ${t.name}`, { limit: 1 });
+      counts[t.name] = Number(r.rows[0]?.n ?? 0);
+    }
+    return { tables: SQL_CATALOG, rowCounts: counts, audit: this.audit() };
   }
 
   /** traffic_raw_query：长尾查询的有界逃生口（字段词表校验 + 结构化 argv） */

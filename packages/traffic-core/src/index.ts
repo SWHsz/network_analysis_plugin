@@ -43,6 +43,9 @@ export {
 
 export { BackendTimeoutError, BackendSpawnError } from "./backend/spawn.js";
 export { rawQuery, RawQueryError, type RawQueryOptions, type RawQueryResult } from "./raw.js";
+export { BoundedSql, SqlSecurityError, validateUserSql, type SqlResult, type SqlQueryOptions } from "./sql/executor.js";
+export { SQL_CATALOG, type SqlTableDoc, type SqlColumnDoc } from "./sql/catalog.js";
+export { buildSqlStore } from "./sql/materialize.js";
 export { shapeAggregateEvidence, renderEnvelope, renderRows, applyRenderBudget, DEFAULT_RENDER_MAX_CHARS, AGGREGATE_FRAME_CAP } from "./shaper.js";
 export { resolveCacheRoot } from "./cachedir.js";
 export { parseCapinfosTsv, parseZStats, type LightIndex } from "./indexer.js";
