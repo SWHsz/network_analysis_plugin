@@ -10,3 +10,4 @@ dist/
 /23.pcap
 /session.jsonl
 /flows-*.csv.gz
+dsh-session-*.zip
