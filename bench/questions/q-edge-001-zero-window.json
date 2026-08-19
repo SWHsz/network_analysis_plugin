@@ -1,0 +1,88 @@
+{
+  "question_id": "q-edge-001",
+  "version": 1,
+  "capture": {
+    "fixture": "edge-cases",
+    "path": "fixtures/edge-cases.pcap",
+    "gt": "ground_truth/edge-cases.gt.json"
+  },
+  "type": "scalar_enum",
+  "question": "edge-cases 捕获中有三条 TCP 会话。其中面向 10.0.0.3 的会话（五元组 tcp 10.0.0.1:6002 → 10.0.0.3:443）是否发生过零窗口通告（接收方在 ACK 中通告 receive window = 0）？",
+  "answer_schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "x-kind": "scalar_enum",
+    "type": "object",
+    "properties": {
+      "zero_window_occurred": {
+        "type": "object",
+        "properties": {
+          "value": { "type": "boolean" },
+          "evidence": {
+            "type": "array",
+            "items": { "type": "integer", "minimum": 1 },
+            "minItems": 1,
+            "uniqueItems": true
+          }
+        },
+        "required": ["value", "evidence"],
+        "additionalProperties": false
+      }
+    },
+    "required": ["zero_window_occurred"],
+    "additionalProperties": false
+  },
+  "gold": {
+    "zero_window_occurred": { "value": true }
+  },
+  "gold_evidence": {
+    "zero_window_occurred": [22]
+  },
+  "gold_derivation": {
+    "gt_pointers": ["facts.tcp_anomalies[?(@.conv=='X2' && @.kind=='zero_window')]", "frames[?(@.frame==22)]"],
+    "session_binding": {
+      "gt_conv": "X2",
+      "tuple": { "proto": "tcp", "src": "10.0.0.1", "sport": 6002, "dst": "10.0.0.3", "dport": 443 },
+      "expected_conversation_id": "conv:tcp:1",
+      "note": "stream 号按 scapy 写入顺序推断（X1、X2、X3 依次为 tcp 流 0/1/2），判分与题面均以五元组为准绳"
+    },
+    "derivation": "在 ground_truth/edge-cases.gt.json 的 facts.tcp_anomalies 中过滤 conv=='X2' 且 kind=='zero_window'，命中 1 条：{frame:22, detail:'client advertises receive window = 0'} → 发生过，gold=true。帧级互证：frames 中 frame==22 的条目 kind='zero_window'。边界：帧 23 是窗口恢复（note 'window update: win 0 -> 64240'），不是零窗口通告本身，故 gold_evidence 只含 [22]。干扰项：X1/X3 会话无任何 zero_window 异常；X2 自身的乱序/dup_ack/缺段异常与本题无关。",
+    "tolerance_note": "布尔枚举精确比对，无容差"
+  },
+  "reference_solution": {
+    "steps": [
+      { "n": 1, "tool": "traffic_open", "input": "fixtures/edge-cases.pcap", "expect": "确立 capture_id；packet_count=30" },
+      { "n": 2, "tool": "traffic_query", "input": "events，type=tcp_zero_window，会话过滤（10.0.0.1:6002→10.0.0.3:443）", "expect": "命中 1 条事件，evidence 帧 22 → true" },
+      { "n": 3, "tool": "（组答）", "input": "—", "expect": "{zero_window_occurred: {value:true, evidence:[22]}}" }
+    ],
+    "bash_equivalent": "tshark -r fixtures/edge-cases.pcap -Y 'tcp.analysis.zero_window && tcp.stream==1' -T fields -e frame.number  # → 22",
+    "alternative_path": "traffic_evidence([22]) 复核帧级 tcp.window_size==0（FRAMES_FIELDS 含 tcp.window_size）；备选 traffic_timeseries(conv, metric=window) 观察 win 降至 0 的分箱",
+    "factors": { "H": 1, "C": 1, "G": "small（单会话 13 帧）", "X": 1, "N": "high（X2 是唯一含零窗口的会话）" },
+    "difficulty_derivation": "备忘录 §2：open 后单次事件查询即得（H=1）、单一条件（C=1）→ D1；能力轴 S6（异常存在性判定）"
+  },
+  "tags": {
+    "protocols": ["tcp"],
+    "skill": ["S6"],
+    "difficulty": 1,
+    "difficulty_label": "D1",
+    "ir_coverage": "covered",
+    "corpus_layer": "L1",
+    "scenario_pack": "P1"
+  },
+  "provenance": {
+    "source": "llm_draft+human_review",
+    "human_review_status": "待终审（见 bench/slices/v0-questions-review.md 边界判断 #10：S6×D1 是指定会话的异常检测而非开放式发现，是否改标 S1 留终审）",
+    "memo": "Benchmark题型Taxonomy备忘录.md §1/§2"
+  },
+  "canary": {
+    "known_good": {
+      "answer": { "zero_window_occurred": { "value": true, "evidence": [22] } },
+      "expect": { "schema_valid": true, "correctness": true, "evidence_pass": true }
+    },
+    "known_bad": {
+      "answer": { "zero_window_occurred": { "value": true, "evidence": [21] } },
+      "error_form": "wrong_evidence_frame",
+      "emulates": "值判对但引用了无关帧：帧 21 是服务端 100B 数据帧，与零窗口无关（刻意避开帧 23 的灰区——窗口恢复帧属『同会话相关帧』，留等价帧容差表裁决）",
+      "expect": { "schema_valid": true, "correctness": true, "evidence_pass": false }
+    }
+  }
+}

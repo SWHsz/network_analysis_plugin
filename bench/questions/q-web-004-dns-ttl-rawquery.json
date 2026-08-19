@@ -1,0 +1,83 @@
+{
+  "question_id": "q-web-004",
+  "version": 1,
+  "capture": {
+    "fixture": "web-session",
+    "path": "fixtures/web-session.pcap",
+    "gt": "ground_truth/web-session.gt.json"
+  },
+  "type": "scalar_number",
+  "question": "web-session 捕获中，域名 youtube.com 的 DNS 应答记录的 TTL 是多少秒？",
+  "answer_schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "x-kind": "scalar_number",
+    "type": "object",
+    "properties": {
+      "dns_ttl_seconds": {
+        "type": "object",
+        "properties": {
+          "value": { "type": "integer", "minimum": 0 },
+          "evidence": {
+            "type": "array",
+            "items": { "type": "integer", "minimum": 1 },
+            "minItems": 1,
+            "uniqueItems": true
+          }
+        },
+        "required": ["value", "evidence"],
+        "additionalProperties": false
+      }
+    },
+    "required": ["dns_ttl_seconds"],
+    "additionalProperties": false
+  },
+  "gold": {
+    "dns_ttl_seconds": { "value": 120 }
+  },
+  "gold_evidence": {
+    "dns_ttl_seconds": [19]
+  },
+  "gold_derivation": {
+    "gt_pointers": ["facts.dns[?(@.qname=='youtube.com')]", "frames[?(@.frame==19)]"],
+    "derivation": "facts.dns 过滤 qname=='youtube.com' 得 {query_frame:18, response_frame:19, rcode:0, ttl:120} → TTL=120 秒，证据帧=应答帧 19。帧级互证：frames 中 frame==19 的条目 ttl=120、kind='dns_response'、answer='142.250.74.14'。边界：TTL 只在应答帧（19）；查询帧（18）不含 TTL。干扰项：另一条 DNS 记录 nonexistent.example 为 NXDOMAIN（rcode=3，ttl=null），不是本题答案。",
+    "tolerance_note": "计数字段未声明 tolerance_abs，默认零容差"
+  },
+  "reference_solution": {
+    "steps": [
+      { "n": 1, "tool": "traffic_open", "input": "fixtures/web-session.pcap", "expect": "确立 capture_id；packet_count=32" },
+      { "n": 2, "tool": "traffic_raw_query", "input": "fields=[frame.number, dns.resp.ttl], filter='dns.qry.name==\"youtube.com\" && dns.flags.response==1'", "expect": "1 行：帧 19，ttl=120（dns_ttl_seconds 走有界逃生口）" },
+      { "n": 3, "tool": "（组答）", "input": "—", "expect": "{dns_ttl_seconds: {value:120, evidence:[19]}}" }
+    ],
+    "bash_equivalent": "tshark -r fixtures/web-session.pcap -Y 'dns.qry.name==\"youtube.com\" && dns.flags.response==1' -T fields -e frame.number -e dns.resp.ttl  # → 19\t120",
+    "ir_rationale": "ir_coverage=raw_query_only 的依据：docs/event-registry.md 中 dns_response 事件的 attr.* 白名单={dns_id, qname, rcode_num}，不含 TTL；packages/traffic-core/src/frames.ts 的 FRAMES_FIELDS（traffic_evidence 固定字段集）亦无 dns TTL 字段；v0.5 SQL 臂 events 表的 attr 拍平列同样只有白名单字段 → traffic_raw_query 是插件侧唯一路径，bash 臂用 tshark -T fields 等价可达（两臂公平）",
+    "factors": { "H": 1, "C": 1, "G": "small（2 组 DNS 事务）", "X": 1, "N": "high（2/4 DNS 帧为目标）" },
+    "difficulty_derivation": "备忘录 §2：open 后单次 raw_query 直达（H=1）、单条件（C=1）→ D1；能力轴 S1（白名单外字段的单跳提取检索）",
+    "path_note": "若 agent 先经 traffic_query 定位 dns_response 事件（拿不到 ttl）再转 raw_query，则 H=2 仍 ≤D2，不改变本题难度标注（难度按最短参考链推导）"
+  },
+  "tags": {
+    "protocols": ["dns", "udp"],
+    "skill": ["S1"],
+    "difficulty": 1,
+    "difficulty_label": "D1",
+    "ir_coverage": "raw_query_only",
+    "corpus_layer": "L1",
+    "scenario_pack": "P1"
+  },
+  "provenance": {
+    "source": "llm_draft+human_review",
+    "human_review_status": "待终审（见 bench/slices/v0-questions-review.md 边界判断 #8：dns.resp.ttl 字段名待运行时对照 tshark -G fields 验证；#9 场景包归属）",
+    "memo": "Benchmark题型Taxonomy备忘录.md §1/§2/§3"
+  },
+  "canary": {
+    "known_good": {
+      "answer": { "dns_ttl_seconds": { "value": 120, "evidence": [19] } },
+      "expect": { "schema_valid": true, "correctness": true, "evidence_pass": true }
+    },
+    "known_bad": {
+      "answer": { "dns_ttl_seconds": { "value": 120, "evidence": [18] } },
+      "error_form": "wrong_evidence_frame",
+      "emulates": "值对但引用了查询帧 18——查询帧不含应答 TTL，属证据角色错误（query 帧 vs response 帧），非邻近无关帧",
+      "expect": { "schema_valid": true, "correctness": true, "evidence_pass": false }
+    }
+  }
+}
