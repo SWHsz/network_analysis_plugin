@@ -4,6 +4,9 @@ dist/
 .venv*/
 /tmp/
 
+# Stirrup spike 运行产物（transcript/metrics 等本地证据，不入库）
+spikes/stirrup/out/
+
 # 本机私有数据：真实抓包 / 对话记录 / 大数据集（不入库）
 .DS_Store
 .zcode/
@@ -12,3 +15,8 @@ dist/
 /flows-*.csv.gz
 dsh-session-*
 演进计划RFC.md
+*.md
+!README.md
+
+# Mimosa 扫描器本地运行状态（hook-state/history 等，不入库）
+.mimosa/

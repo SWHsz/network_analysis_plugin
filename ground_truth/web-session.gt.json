@@ -1,0 +1,605 @@
+{
+  "capture": "web-session",
+  "detection_basis": "generator_intent",
+  "duration_ms": 1600,
+  "facts": {
+    "conversations": [
+      {
+        "dport": 443,
+        "dst": "142.250.74.14",
+        "frames": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17
+        ],
+        "id": "A",
+        "proto": "tcp",
+        "sport": 53124,
+        "src": "192.168.1.4",
+        "start_ms": 0
+      },
+      {
+        "dport": 53,
+        "dst": "8.8.8.8",
+        "frames": [
+          18,
+          19,
+          20,
+          21
+        ],
+        "id": "C",
+        "proto": "udp",
+        "sport": 53126,
+        "src": "192.168.1.4",
+        "start_ms": 50
+      },
+      {
+        "dport": 80,
+        "dst": "93.184.216.34",
+        "frames": [
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30
+        ],
+        "id": "B",
+        "proto": "tcp",
+        "sport": 53125,
+        "src": "192.168.1.4",
+        "start_ms": 1000
+      }
+    ],
+    "dns": [
+      {
+        "qname": "youtube.com",
+        "query_frame": 18,
+        "rcode": 0,
+        "response_frame": 19,
+        "ttl": 120
+      },
+      {
+        "qname": "nonexistent.example",
+        "query_frame": 20,
+        "rcode": 3,
+        "response_frame": 21,
+        "ttl": null
+      }
+    ],
+    "handshakes": [
+      {
+        "ack_frame": 3,
+        "conv": "A",
+        "handshake_ms": 70,
+        "syn_frame": 1,
+        "synack_frame": 2
+      },
+      {
+        "ack_frame": 24,
+        "conv": "B",
+        "handshake_ms": 70,
+        "syn_frame": 22,
+        "synack_frame": 23
+      }
+    ],
+    "http_transactions": [
+      {
+        "host": "example.com",
+        "method": "GET",
+        "request_frame": 25,
+        "response_frame": 27,
+        "response_frames": [
+          27
+        ],
+        "status": 200,
+        "uri": "/index.html"
+      }
+    ],
+    "retransmissions": [
+      {
+        "conv": "A",
+        "direction": "c2s",
+        "frame": 8,
+        "of_frame": 7
+      },
+      {
+        "conv": "A",
+        "direction": "s2c",
+        "frame": 11,
+        "of_frame": 10
+      },
+      {
+        "conv": "A",
+        "direction": "c2s",
+        "frame": 14,
+        "of_frame": 13
+      },
+      {
+        "conv": "B",
+        "direction": "c2s",
+        "frame": 26,
+        "of_frame": 25
+      }
+    ],
+    "tcp_anomalies": []
+  },
+  "frames": [
+    {
+      "conv": "A",
+      "frame": 1,
+      "isn": 1000,
+      "kind": "syn",
+      "t_ms": 0,
+      "tuple": {
+        "dport": 443,
+        "dst": "142.250.74.14",
+        "proto": "tcp",
+        "sport": 53124,
+        "src": "192.168.1.4"
+      }
+    },
+    {
+      "ack": 1001,
+      "conv": "A",
+      "frame": 2,
+      "isn": 5000,
+      "kind": "synack",
+      "t_ms": 35,
+      "tuple": {
+        "dport": 53124,
+        "dst": "192.168.1.4",
+        "proto": "tcp",
+        "sport": 443,
+        "src": "142.250.74.14"
+      }
+    },
+    {
+      "conv": "A",
+      "frame": 3,
+      "kind": "ack",
+      "note": "handshake completion ack",
+      "t_ms": 70,
+      "tuple": {
+        "dport": 443,
+        "dst": "142.250.74.14",
+        "proto": "tcp",
+        "sport": 53124,
+        "src": "192.168.1.4"
+      }
+    },
+    {
+      "conv": "A",
+      "frame": 4,
+      "kind": "tls_client_hello",
+      "note": "TLS1.2 ClientHello, cipher TLS_AES_128_GCM_SHA256",
+      "t_ms": 75,
+      "tuple": {
+        "dport": 443,
+        "dst": "142.250.74.14",
+        "proto": "tcp",
+        "sport": 53124,
+        "src": "192.168.1.4"
+      }
+    },
+    {
+      "conv": "A",
+      "frame": 5,
+      "kind": "ack",
+      "t_ms": 110,
+      "tuple": {
+        "dport": 443,
+        "dst": "142.250.74.14",
+        "proto": "tcp",
+        "sport": 53124,
+        "src": "192.168.1.4"
+      }
+    },
+    {
+      "conv": "A",
+      "frame": 6,
+      "kind": "tls_server_hello",
+      "note": "TLS1.2 ServerHello",
+      "t_ms": 220,
+      "tuple": {
+        "dport": 53124,
+        "dst": "192.168.1.4",
+        "proto": "tcp",
+        "sport": 443,
+        "src": "142.250.74.14"
+      }
+    },
+    {
+      "conv": "A",
+      "frame": 7,
+      "kind": "data",
+      "note": "client app data 320B",
+      "t_ms": 300,
+      "tuple": {
+        "dport": 443,
+        "dst": "142.250.74.14",
+        "proto": "tcp",
+        "sport": 53124,
+        "src": "192.168.1.4"
+      }
+    },
+    {
+      "conv": "A",
+      "frame": 8,
+      "kind": "retransmission",
+      "of_frame": 7,
+      "t_ms": 340,
+      "tuple": {
+        "dport": 443,
+        "dst": "142.250.74.14",
+        "proto": "tcp",
+        "sport": 53124,
+        "src": "192.168.1.4"
+      }
+    },
+    {
+      "conv": "A",
+      "frame": 9,
+      "kind": "data",
+      "note": "server app data 1440B part 1/2",
+      "t_ms": 400,
+      "tuple": {
+        "dport": 53124,
+        "dst": "192.168.1.4",
+        "proto": "tcp",
+        "sport": 443,
+        "src": "142.250.74.14"
+      }
+    },
+    {
+      "conv": "A",
+      "frame": 10,
+      "kind": "data",
+      "note": "server app data 1440B part 2/2",
+      "t_ms": 410,
+      "tuple": {
+        "dport": 53124,
+        "dst": "192.168.1.4",
+        "proto": "tcp",
+        "sport": 443,
+        "src": "142.250.74.14"
+      }
+    },
+    {
+      "conv": "A",
+      "frame": 11,
+      "kind": "retransmission",
+      "of_frame": 10,
+      "t_ms": 450,
+      "tuple": {
+        "dport": 53124,
+        "dst": "192.168.1.4",
+        "proto": "tcp",
+        "sport": 443,
+        "src": "142.250.74.14"
+      }
+    },
+    {
+      "conv": "A",
+      "frame": 12,
+      "kind": "ack",
+      "note": "cumulative ack of both seg2 parts",
+      "t_ms": 470,
+      "tuple": {
+        "dport": 443,
+        "dst": "142.250.74.14",
+        "proto": "tcp",
+        "sport": 53124,
+        "src": "192.168.1.4"
+      }
+    },
+    {
+      "conv": "A",
+      "frame": 13,
+      "kind": "data",
+      "note": "client app data 320B",
+      "t_ms": 500,
+      "tuple": {
+        "dport": 443,
+        "dst": "142.250.74.14",
+        "proto": "tcp",
+        "sport": 53124,
+        "src": "192.168.1.4"
+      }
+    },
+    {
+      "conv": "A",
+      "frame": 14,
+      "kind": "retransmission",
+      "of_frame": 13,
+      "t_ms": 540,
+      "tuple": {
+        "dport": 443,
+        "dst": "142.250.74.14",
+        "proto": "tcp",
+        "sport": 53124,
+        "src": "192.168.1.4"
+      }
+    },
+    {
+      "conv": "A",
+      "frame": 15,
+      "kind": "ack",
+      "t_ms": 560,
+      "tuple": {
+        "dport": 53124,
+        "dst": "192.168.1.4",
+        "proto": "tcp",
+        "sport": 443,
+        "src": "142.250.74.14"
+      }
+    },
+    {
+      "conv": "A",
+      "frame": 16,
+      "kind": "fin",
+      "t_ms": 600,
+      "tuple": {
+        "dport": 443,
+        "dst": "142.250.74.14",
+        "proto": "tcp",
+        "sport": 53124,
+        "src": "192.168.1.4"
+      }
+    },
+    {
+      "conv": "A",
+      "frame": 17,
+      "kind": "fin",
+      "note": "server FIN closing the session",
+      "t_ms": 620,
+      "tuple": {
+        "dport": 53124,
+        "dst": "192.168.1.4",
+        "proto": "tcp",
+        "sport": 443,
+        "src": "142.250.74.14"
+      }
+    },
+    {
+      "conv": "C",
+      "frame": 18,
+      "kind": "dns_query",
+      "qname": "youtube.com",
+      "qtype": "A",
+      "t_ms": 50,
+      "tuple": {
+        "dport": 53,
+        "dst": "8.8.8.8",
+        "proto": "udp",
+        "sport": 53126,
+        "src": "192.168.1.4"
+      }
+    },
+    {
+      "answer": "142.250.74.14",
+      "conv": "C",
+      "frame": 19,
+      "kind": "dns_response",
+      "qname": "youtube.com",
+      "rcode": 0,
+      "t_ms": 95,
+      "ttl": 120,
+      "tuple": {
+        "dport": 53126,
+        "dst": "192.168.1.4",
+        "proto": "udp",
+        "sport": 53,
+        "src": "8.8.8.8"
+      }
+    },
+    {
+      "conv": "C",
+      "frame": 20,
+      "kind": "dns_query",
+      "qname": "nonexistent.example",
+      "qtype": "A",
+      "t_ms": 200,
+      "tuple": {
+        "dport": 53,
+        "dst": "8.8.8.8",
+        "proto": "udp",
+        "sport": 53126,
+        "src": "192.168.1.4"
+      }
+    },
+    {
+      "conv": "C",
+      "frame": 21,
+      "kind": "dns_response",
+      "note": "NXDOMAIN, no answer records",
+      "qname": "nonexistent.example",
+      "rcode": 3,
+      "t_ms": 260,
+      "ttl": null,
+      "tuple": {
+        "dport": 53126,
+        "dst": "192.168.1.4",
+        "proto": "udp",
+        "sport": 53,
+        "src": "8.8.8.8"
+      }
+    },
+    {
+      "conv": "B",
+      "frame": 22,
+      "isn": 9000,
+      "kind": "syn",
+      "t_ms": 1000,
+      "tuple": {
+        "dport": 80,
+        "dst": "93.184.216.34",
+        "proto": "tcp",
+        "sport": 53125,
+        "src": "192.168.1.4"
+      }
+    },
+    {
+      "ack": 9001,
+      "conv": "B",
+      "frame": 23,
+      "isn": 7000,
+      "kind": "synack",
+      "t_ms": 1035,
+      "tuple": {
+        "dport": 53125,
+        "dst": "192.168.1.4",
+        "proto": "tcp",
+        "sport": 80,
+        "src": "93.184.216.34"
+      }
+    },
+    {
+      "conv": "B",
+      "frame": 24,
+      "kind": "ack",
+      "note": "handshake completion ack",
+      "t_ms": 1070,
+      "tuple": {
+        "dport": 80,
+        "dst": "93.184.216.34",
+        "proto": "tcp",
+        "sport": 53125,
+        "src": "192.168.1.4"
+      }
+    },
+    {
+      "conv": "B",
+      "frame": 25,
+      "host": "example.com",
+      "kind": "http_request",
+      "method": "GET",
+      "t_ms": 1100,
+      "tuple": {
+        "dport": 80,
+        "dst": "93.184.216.34",
+        "proto": "tcp",
+        "sport": 53125,
+        "src": "192.168.1.4"
+      },
+      "uri": "/index.html"
+    },
+    {
+      "conv": "B",
+      "frame": 26,
+      "kind": "retransmission",
+      "of_frame": 25,
+      "t_ms": 1150,
+      "tuple": {
+        "dport": 80,
+        "dst": "93.184.216.34",
+        "proto": "tcp",
+        "sport": 53125,
+        "src": "192.168.1.4"
+      }
+    },
+    {
+      "conv": "B",
+      "frame": 27,
+      "kind": "http_response",
+      "part": 1,
+      "parts": 1,
+      "status": 200,
+      "t_ms": 1300,
+      "tuple": {
+        "dport": 53125,
+        "dst": "192.168.1.4",
+        "proto": "tcp",
+        "sport": 80,
+        "src": "93.184.216.34"
+      }
+    },
+    {
+      "conv": "B",
+      "frame": 28,
+      "kind": "ack",
+      "t_ms": 1340,
+      "tuple": {
+        "dport": 80,
+        "dst": "93.184.216.34",
+        "proto": "tcp",
+        "sport": 53125,
+        "src": "192.168.1.4"
+      }
+    },
+    {
+      "conv": "B",
+      "frame": 29,
+      "kind": "fin",
+      "t_ms": 1400,
+      "tuple": {
+        "dport": 80,
+        "dst": "93.184.216.34",
+        "proto": "tcp",
+        "sport": 53125,
+        "src": "192.168.1.4"
+      }
+    },
+    {
+      "conv": "B",
+      "frame": 30,
+      "kind": "fin",
+      "note": "server FIN closing the session",
+      "t_ms": 1420,
+      "tuple": {
+        "dport": 53125,
+        "dst": "192.168.1.4",
+        "proto": "tcp",
+        "sport": 80,
+        "src": "93.184.216.34"
+      }
+    },
+    {
+      "conv": null,
+      "frame": 31,
+      "kind": "noise",
+      "note": "broadcast UDP to gateway, no conversation",
+      "t_ms": 1500,
+      "tuple": {
+        "dport": 138,
+        "dst": "192.168.1.1",
+        "proto": "udp",
+        "sport": 138,
+        "src": "192.168.1.4"
+      }
+    },
+    {
+      "conv": null,
+      "frame": 32,
+      "kind": "orphan",
+      "note": "one-way UDP, no reply, no conversation",
+      "t_ms": 1600,
+      "tuple": {
+        "dport": 9999,
+        "dst": "10.0.0.9",
+        "proto": "udp",
+        "sport": 40000,
+        "src": "192.168.1.4"
+      }
+    }
+  ],
+  "generator": "generate.py",
+  "packet_count": 32
+}

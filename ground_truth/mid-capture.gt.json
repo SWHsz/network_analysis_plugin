@@ -1,0 +1,102 @@
+{
+  "capture": "mid-capture",
+  "detection_basis": "generator_intent",
+  "duration_ms": 10,
+  "facts": {
+    "conversations": [
+      {
+        "dport": 443,
+        "dst": "93.184.10.20",
+        "frames": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "id": "M",
+        "proto": "tcp",
+        "sport": 52300,
+        "src": "192.168.9.9",
+        "start_ms": 0
+      }
+    ],
+    "dns": [],
+    "handshakes": [],
+    "http_transactions": [],
+    "retransmissions": [],
+    "tcp_anomalies": []
+  },
+  "frames": [
+    {
+      "conv": "M",
+      "frame": 1,
+      "kind": "data",
+      "note": "server-first TLS appdata; capture starts mid-stream, no SYN",
+      "t_ms": 0,
+      "tuple": {
+        "dport": 52300,
+        "dst": "192.168.9.9",
+        "proto": "tcp",
+        "sport": 443,
+        "src": "93.184.10.20"
+      }
+    },
+    {
+      "conv": "M",
+      "frame": 2,
+      "kind": "ack",
+      "t_ms": 2,
+      "tuple": {
+        "dport": 443,
+        "dst": "93.184.10.20",
+        "proto": "tcp",
+        "sport": 52300,
+        "src": "192.168.9.9"
+      }
+    },
+    {
+      "conv": "M",
+      "frame": 3,
+      "kind": "data",
+      "note": "server second segment (seq advanced — NOT a retransmission)",
+      "t_ms": 4,
+      "tuple": {
+        "dport": 52300,
+        "dst": "192.168.9.9",
+        "proto": "tcp",
+        "sport": 443,
+        "src": "93.184.10.20"
+      }
+    },
+    {
+      "conv": "M",
+      "frame": 4,
+      "kind": "data",
+      "note": "client TLS appdata",
+      "t_ms": 8,
+      "tuple": {
+        "dport": 443,
+        "dst": "93.184.10.20",
+        "proto": "tcp",
+        "sport": 52300,
+        "src": "192.168.9.9"
+      }
+    },
+    {
+      "conv": "M",
+      "frame": 5,
+      "kind": "ack",
+      "t_ms": 10,
+      "tuple": {
+        "dport": 52300,
+        "dst": "192.168.9.9",
+        "proto": "tcp",
+        "sport": 443,
+        "src": "93.184.10.20"
+      }
+    }
+  ],
+  "generator": "generate.py",
+  "packet_count": 5
+}

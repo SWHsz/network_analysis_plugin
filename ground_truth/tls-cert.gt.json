@@ -1,0 +1,158 @@
+{
+  "capture": "tls-cert",
+  "detection_basis": "generator_intent",
+  "duration_ms": 60,
+  "facts": {
+    "conversations": [
+      {
+        "dport": 443,
+        "dst": "10.0.0.5",
+        "frames": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "id": "T",
+        "proto": "tcp",
+        "sport": 7001,
+        "src": "10.0.0.1",
+        "start_ms": 0
+      }
+    ],
+    "dns": [],
+    "handshakes": [
+      {
+        "ack_frame": 3,
+        "conv": "T",
+        "handshake_ms": 10,
+        "syn_frame": 1,
+        "synack_frame": 2
+      }
+    ],
+    "http_transactions": [],
+    "retransmissions": [],
+    "tcp_anomalies": []
+  },
+  "frames": [
+    {
+      "conv": "T",
+      "frame": 1,
+      "isn": 41000,
+      "kind": "syn",
+      "t_ms": 0,
+      "tuple": {
+        "dport": 443,
+        "dst": "10.0.0.5",
+        "proto": "tcp",
+        "sport": 7001,
+        "src": "10.0.0.1"
+      }
+    },
+    {
+      "ack": 41001,
+      "conv": "T",
+      "frame": 2,
+      "isn": 42000,
+      "kind": "synack",
+      "t_ms": 5,
+      "tuple": {
+        "dport": 7001,
+        "dst": "10.0.0.1",
+        "proto": "tcp",
+        "sport": 443,
+        "src": "10.0.0.5"
+      }
+    },
+    {
+      "conv": "T",
+      "frame": 3,
+      "kind": "ack",
+      "note": "handshake completion ack",
+      "t_ms": 10,
+      "tuple": {
+        "dport": 443,
+        "dst": "10.0.0.5",
+        "proto": "tcp",
+        "sport": 7001,
+        "src": "10.0.0.1"
+      }
+    },
+    {
+      "conv": "T",
+      "frame": 4,
+      "kind": "tls_client_hello",
+      "note": "TLS1.2 ClientHello",
+      "t_ms": 15,
+      "tuple": {
+        "dport": 443,
+        "dst": "10.0.0.5",
+        "proto": "tcp",
+        "sport": 7001,
+        "src": "10.0.0.1"
+      }
+    },
+    {
+      "conv": "T",
+      "frame": 5,
+      "kind": "tls_server_hello",
+      "note": "TLS1.2 ServerHello",
+      "t_ms": 40,
+      "tuple": {
+        "dport": 7001,
+        "dst": "10.0.0.1",
+        "proto": "tcp",
+        "sport": 443,
+        "src": "10.0.0.5"
+      }
+    },
+    {
+      "conv": "T",
+      "frame": 6,
+      "kind": "tls_certificate",
+      "note": "self-signed DER cert, CN=fixture.example.test, SAN=www/api.fixture.example.test",
+      "t_ms": 45,
+      "tuple": {
+        "dport": 7001,
+        "dst": "10.0.0.1",
+        "proto": "tcp",
+        "sport": 443,
+        "src": "10.0.0.5"
+      }
+    },
+    {
+      "conv": "T",
+      "frame": 7,
+      "kind": "data",
+      "note": "ServerHelloDone",
+      "t_ms": 47,
+      "tuple": {
+        "dport": 7001,
+        "dst": "10.0.0.1",
+        "proto": "tcp",
+        "sport": 443,
+        "src": "10.0.0.5"
+      }
+    },
+    {
+      "conv": "T",
+      "frame": 8,
+      "kind": "ack",
+      "note": "acks ServerHelloDone",
+      "t_ms": 60,
+      "tuple": {
+        "dport": 443,
+        "dst": "10.0.0.5",
+        "proto": "tcp",
+        "sport": 7001,
+        "src": "10.0.0.1"
+      }
+    }
+  ],
+  "generator": "generate.py",
+  "packet_count": 8
+}

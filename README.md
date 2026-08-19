@@ -28,9 +28,10 @@ PCAP ──确定性索引/抽取──▶ Traffic Observation IR ──受约�
 packages/
 ├── traffic-core/     # 纯 TS 库：指纹/轻索引/IR/事件抽取/Query/Backend（不依赖 harness）
 └── dsh-plugin/       # DeepSeek Harness 插件：10 个 defineTool 的薄胶水
-fixtures/             # 确定性测试 pcap（web-session / mid-capture / edge-cases）
+fixtures/             # 确定性测试 pcap（web-session / mid-capture / edge-cases / tls-cert）
+ground_truth/         # 生成器导出的 ground truth（*.gt.json，detection_basis: generator_intent）
 docs/                 # 设计文档（见下）与样例规范
-scripts/              # generate-samples / verify-pinned-download / dsh-runtime-smoke / context-report
+scripts/              # generate-samples / verify-pinned-download / dsh-runtime-smoke / context-report / validate_gt
 ```
 
 ## 工具面（DSH）
@@ -85,10 +86,28 @@ node scripts/generate-samples.mjs
 # 端到端验证 pin 下载链路（下载 ~150MB + 解包，需要几分钟）
 node scripts/verify-pinned-download.mjs
 
-# 重建测试 fixture（需 scapy）
-python3 -m venv /tmp/scapy-venv && /tmp/scapy-venv/bin/pip install scapy
+# 重建测试 fixture + ground truth（需 scapy；已验证 scapy==2.7.0 输出字节级可复现）
+python3 -m venv /tmp/scapy-venv && /tmp/scapy-venv/bin/pip install scapy==2.7.0
 /tmp/scapy-venv/bin/python fixtures/generate.py
+# ground truth 导出：generate.py 只输出 stdout，由重定向落盘（脚本自身不写 JSON 文件）
+/tmp/scapy-venv/bin/python fixtures/generate.py --emit-gt web-session > ground_truth/web-session.gt.json
+/tmp/scapy-venv/bin/python fixtures/generate.py --emit-gt mid-capture > ground_truth/mid-capture.gt.json
+/tmp/scapy-venv/bin/python fixtures/generate.py --emit-gt edge-cases > ground_truth/edge-cases.gt.json
+/tmp/scapy-venv/bin/python fixtures/generate.py --emit-gt tls-cert > ground_truth/tls-cert.gt.json
+# 约束：重新生成后 4 个 pcap 必须与已提交版本 sha256 一致；ground_truth/*.gt.json 是纯增量导出
+
+# 校验 ground truth：schema/一致性（纯 stdlib）；--spotcheck 用 scapy 读回 pcap 做物理验证
+python3 scripts/validate_gt.py
+/tmp/scapy-venv/bin/python scripts/validate_gt.py --spotcheck 5
 ```
+
+**ground truth 语义（RFC-002 §4.1）**：`ground_truth/*.gt.json` 的 gold 帧集来自
+`fixtures/generate.py` 生成时刻的构造意图（`detection_basis: generator_intent`），
+不是事后用 tshark 反推——避免"用被测系统的同款解析器产 gold"的循环论证。
+帧号 = wrpcap 写入顺序（与 tshark 的 frame.number 一致）；facts 含会话表、握手三元组、
+重传（含 of_frame 回链）、DNS 问答（qname/rcode/ttl）、HTTP 事务、TCP 异常
+（乱序/缺失段/dup_ack/零窗口）；逐帧 intent 上下文与全部语义裁定见
+`fixtures/generate.py` 头部注释。
 
 ### 在 DSH 中启用（已在真实环境验证）
 
