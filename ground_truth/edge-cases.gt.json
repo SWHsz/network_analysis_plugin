@@ -5,6 +5,7 @@
   "facts": {
     "conversations": [
       {
+        "bytes": 658,
         "dport": 80,
         "dst": "10.0.0.2",
         "frames": [
@@ -26,6 +27,7 @@
         "start_ms": 0
       },
       {
+        "bytes": 1102,
         "dport": 443,
         "dst": "10.0.0.3",
         "frames": [
@@ -50,6 +52,7 @@
         "start_ms": 100
       },
       {
+        "bytes": 578,
         "dport": 8080,
         "dst": "10.0.0.4",
         "frames": [

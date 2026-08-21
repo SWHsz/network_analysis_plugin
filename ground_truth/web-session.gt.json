@@ -5,6 +5,7 @@
   "facts": {
     "conversations": [
       {
+        "bytes": 6575,
         "dport": 443,
         "dst": "142.250.74.14",
         "frames": [
@@ -33,6 +34,7 @@
         "start_ms": 0
       },
       {
+        "bytes": 327,
         "dport": 53,
         "dst": "8.8.8.8",
         "frames": [
@@ -48,6 +50,7 @@
         "start_ms": 50
       },
       {
+        "bytes": 672,
         "dport": 80,
         "dst": "93.184.216.34",
         "frames": [
@@ -70,6 +73,7 @@
     ],
     "dns": [
       {
+        "address": "142.250.74.14",
         "qname": "youtube.com",
         "query_frame": 18,
         "rcode": 0,
@@ -77,6 +81,7 @@
         "ttl": 120
       },
       {
+        "address": null,
         "qname": "nonexistent.example",
         "query_frame": 20,
         "rcode": 3,

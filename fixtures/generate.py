@@ -40,8 +40,12 @@ wrpcap 之外，本脚本同步导出 ground_truth/<fixture>.gt.json。gold 语�
     快速重传，edge X2 的 segA）时为 null，note 说明，seq 为期望 seq；
   * handshake 三元组经 conv 标签互相关联，附 isn/ack 上下文：
     syn.isn + 1 == synack.ack，synack.isn + 1 == 完成_ack.ack；
-  * dns_query 带 qname/qtype；dns_response 带 qname/rcode/ttl
-    （NXDOMAIN 无应答记录，ttl=null）；
+  * dns_query 带 qname/qtype；dns_response 带 qname/rcode/ttl/address
+    （NXDOMAIN 无应答记录，ttl=null、address=null；A 记录的 address 即生成器
+    写入 rdata 的应答地址——S4 关联题据此可从 gt 推导 DNS→后续会话的 pivot）；
+  * conversations[].bytes = 该会话全部帧的线上字节数之和（Ethernet 起算，
+    **含重传帧**），与插件 ConversationMetrics.bytes_total（tshark conv 表
+    双向字节和）同口径；
   * facts.tcp_anomalies 只收 out_of_order / missing_segment / dup_ack /
     zero_window；重传单列在 facts.retransmissions，不进 anomalies；
   * out_of_order 附着规则：早到段（缺口未合时先到）role=early，迟到合口
@@ -95,7 +99,8 @@ def make_add(sink):
         pkt.time = t_ms / 1000.0
         sink.append(pkt)
         log.append({"frame": len(sink), "t_ms": t_ms,
-                    "tuple": _tuple_of(pkt), "intent": intent})
+                    "tuple": _tuple_of(pkt), "intent": intent,
+                    "wire_len": len(bytes(pkt))})
         return len(sink)
 
     return add, log
@@ -485,6 +490,8 @@ def build_gt(capture, log, registry, extra_anomalies=()):
             "dst": meta["dst"], "dport": meta["dport"],
             "start_ms": pairs[0][1] - t0,
             "frames": [f for f, _ in pairs],
+            "bytes": sum(r["wire_len"] for r in log
+                         if (r["intent"] or {}).get("conv") == label),
         })
 
     handshakes, pending = [], {}
@@ -531,6 +538,7 @@ def build_gt(capture, log, registry, extra_anomalies=()):
                 "qname": it["qname"],
                 "rcode": it["rcode"],
                 "ttl": it.get("ttl"),
+                "address": it.get("answer"),
             })
 
     http, http_cur = [], {}
