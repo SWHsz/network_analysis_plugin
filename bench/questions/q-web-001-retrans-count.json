@@ -16,32 +16,58 @@
       "retransmission_count": {
         "type": "object",
         "properties": {
-          "value": { "type": "integer", "minimum": 0 },
+          "value": {
+            "type": "integer",
+            "minimum": 0
+          },
           "evidence": {
             "type": "array",
-            "items": { "type": "integer", "minimum": 1 },
+            "items": {
+              "type": "integer",
+              "minimum": 1
+            },
             "minItems": 1,
             "uniqueItems": true
           }
         },
-        "required": ["value", "evidence"],
+        "required": [
+          "value",
+          "evidence"
+        ],
         "additionalProperties": false
       }
     },
-    "required": ["retransmission_count"],
+    "required": [
+      "retransmission_count"
+    ],
     "additionalProperties": false
   },
   "gold": {
-    "retransmission_count": { "value": 3 }
+    "retransmission_count": {
+      "value": 3
+    }
   },
   "gold_evidence": {
-    "retransmission_count": [8, 11, 14]
+    "retransmission_count": [
+      8,
+      11,
+      14
+    ]
   },
   "gold_derivation": {
-    "gt_pointers": ["facts.retransmissions[?(@.conv=='A')]", "facts.conversations[?(@.id=='A')]"],
+    "gt_pointers": [
+      "facts.retransmissions[?(@.conv=='A')]",
+      "facts.conversations[?(@.id=='A')]"
+    ],
     "session_binding": {
       "gt_conv": "A",
-      "tuple": { "proto": "tcp", "src": "192.168.1.4", "sport": 53124, "dst": "142.250.74.14", "dport": 443 },
+      "tuple": {
+        "proto": "tcp",
+        "src": "192.168.1.4",
+        "sport": 53124,
+        "dst": "142.250.74.14",
+        "dport": 443
+      },
       "expected_conversation_id": "conv:tcp:0",
       "note": "stream 号按 scapy 写入顺序推断（A 是第一条 TCP 流），判分与题面均以五元组为准绳，不依赖该推断"
     },
@@ -50,18 +76,43 @@
   },
   "reference_solution": {
     "steps": [
-      { "n": 1, "tool": "traffic_open", "input": "fixtures/web-session.pcap", "expect": "确立 capture_id；packet_count=32" },
-      { "n": 2, "tool": "traffic_inspect", "input": "conversation_id=conv:tcp:0（按五元组 192.168.1.4:53124→142.250.74.14:443 定位）", "expect": "metrics.retransmission_count=3；重传汇总的 evidence 帧为 8/11/14" },
-      { "n": 3, "tool": "（组答）", "input": "—", "expect": "{retransmission_count: {value:3, evidence:[8,11,14]}}" }
+      {
+        "n": 1,
+        "tool": "traffic_open",
+        "input": "fixtures/web-session.pcap",
+        "expect": "确立 capture_id；packet_count=32"
+      },
+      {
+        "n": 2,
+        "tool": "traffic_inspect",
+        "input": "conversation_id=conv:tcp:0（按五元组 192.168.1.4:53124→142.250.74.14:443 定位）",
+        "expect": "metrics.retransmission_count=3；重传汇总的 evidence 帧为 8/11/14"
+      },
+      {
+        "n": 3,
+        "tool": "（组答）",
+        "input": "—",
+        "expect": "{retransmission_count: {value:3, evidence:[8,11,14]}}"
+      }
     ],
     "bash_equivalent": "tshark -r fixtures/web-session.pcap -Y 'tcp.stream==0 && tcp.analysis.retransmission' -T fields -e frame.number  # → 8,11,14 共 3 行",
     "alternative_path": "traffic_query 查 events type=tcp_retransmission 且过滤该会话后计数——该路径为会话级事件聚合（H=2），不影响本题 D1 标注（难度按最短参考链推导）",
-    "factors": { "H": 1, "C": 0, "G": "small（单会话 17 帧）", "X": 1, "N": "high（3/17 帧为目标）" },
+    "factors": {
+      "H": 1,
+      "C": 0,
+      "G": "small（单会话 17 帧）",
+      "X": 1,
+      "N": "high（3/17 帧为目标）"
+    },
     "difficulty_derivation": "备忘录 §2：open 后单次下钻即得（H=1）、无条件组合（C≤1）→ D1；能力轴 S2（会话级重传计数是聚合统计的最小形态）"
   },
   "tags": {
-    "protocols": ["tcp"],
-    "skill": ["S2"],
+    "protocols": [
+      "tcp"
+    ],
+    "skill": [
+      "S2"
+    ],
     "difficulty": 1,
     "difficulty_label": "D1",
     "ir_coverage": "covered",
@@ -70,19 +121,45 @@
   },
   "provenance": {
     "source": "llm_draft+human_review",
-    "human_review_status": "待终审（见 bench/slices/v0-questions-review.md）",
+    "human_review_status": "已终审 2026-08-21（裁决见 bench/slices/v0-questions-review.md §6）",
     "memo": "Benchmark题型Taxonomy备忘录.md §1/§2"
   },
   "canary": {
     "known_good": {
-      "answer": { "retransmission_count": { "value": 3, "evidence": [8, 11, 14] } },
-      "expect": { "schema_valid": true, "correctness": true, "evidence_pass": true }
+      "answer": {
+        "retransmission_count": {
+          "value": 3,
+          "evidence": [
+            8,
+            11,
+            14
+          ]
+        }
+      },
+      "expect": {
+        "schema_valid": true,
+        "correctness": true,
+        "evidence_pass": true
+      }
     },
     "known_bad": {
-      "answer": { "retransmission_count": { "value": 4, "evidence": [8, 11, 14] } },
+      "answer": {
+        "retransmission_count": {
+          "value": 4,
+          "evidence": [
+            8,
+            11,
+            14
+          ]
+        }
+      },
       "error_form": "wrong_value",
       "emulates": "把 conv B 的重传帧 26 也计入本会话（off-by-one 计数）：值错而证据帧全对，用于隔离判分器的数值比较路径",
-      "expect": { "schema_valid": true, "correctness": false, "evidence_pass": true }
+      "expect": {
+        "schema_valid": true,
+        "correctness": false,
+        "evidence_pass": true
+      }
     }
   }
 }

@@ -114,6 +114,19 @@ function emptyScore(path: string, elementKey: string | null): EvidenceFieldScore
 }
 
 function finalize(score: EvidenceFieldScore, cited: number[], gold: number[], packetCount: number, index: FrameIndex): void {
+  // 空集/不可知 gold（S9，备忘录 §7 注册定义）：诚实空引用 = 有效支撑
+  // （precision:=1、recall:=1）；引用了任何帧则 precision=0 判否。
+  // 覆盖率口径不变：无非空有效证据不计入 coverage 分子。
+  if (gold.length === 0) {
+    score.citedCount = cited.length;
+    score.precision = cited.length === 0 ? 1 : 0;
+    score.recall = 1;
+    score.structurallyValid = false;
+    score.breakdown = classifyCited(cited, gold, packetCount, index);
+    score.pass = cited.length === 0;
+    score.needsHumanReview = false;
+    return;
+  }
   score.citedCount = cited.length;
   const validCited = cited.every((f) => Number.isInteger(f) && f >= 1 && f <= packetCount);
   score.structurallyValid = cited.length > 0 && validCited;

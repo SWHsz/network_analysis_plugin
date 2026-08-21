@@ -1,0 +1,113 @@
+{
+  "question_id": "q-edge-002",
+  "version": 1,
+  "capture": {
+    "fixture": "edge-cases",
+    "path": "fixtures/edge-cases.pcap",
+    "gt": "ground_truth/edge-cases.gt.json"
+  },
+  "type": "set",
+  "question": "列出 edge-cases 捕获中发生过 DNS 查询或 DNS 应答的会话（以五元组作答，顺序不计）。若不存在这样的会话，返回空数组。",
+  "answer_schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "x-kind": "set",
+    "x-match": "unordered",
+    "x-element-key": "{proto}|{src}:{sport}>{dst}:{dport}",
+    "type": "object",
+    "properties": {
+      "dns_sessions": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "value": { "$ref": "#/$defs/session_tuple" },
+            "evidence": {
+              "type": "array",
+              "items": { "type": "integer", "minimum": 1 },
+              "minItems": 1,
+              "uniqueItems": true
+            }
+          },
+          "required": ["value", "evidence"],
+          "additionalProperties": false
+        }
+      }
+    },
+    "required": ["dns_sessions"],
+    "additionalProperties": false,
+    "$defs": {
+      "session_tuple": {
+        "type": "object",
+        "properties": {
+          "proto": { "enum": ["tcp", "udp"] },
+          "src": { "type": "string" },
+          "sport": { "type": "integer", "minimum": 0, "maximum": 65535 },
+          "dst": { "type": "string" },
+          "dport": { "type": "integer", "minimum": 0, "maximum": 65535 }
+        },
+        "required": ["proto", "src", "sport", "dst", "dport"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "gold": {
+    "dns_sessions": { "value": [] }
+  },
+  "gold_evidence": {
+    "dns_sessions": {}
+  },
+  "gold_derivation": {
+    "gt_pointers": [
+      "facts.dns（空数组）",
+      "frames[?(@.kind=='dns_query' || @.kind=='dns_response')]（不存在）",
+      "facts.conversations[?(@.proto=='udp')]（不存在）"
+    ],
+    "derivation": "facts.dns 为空数组，且全部 30 帧的 kind 词表 {syn, synack, ack, http_request, http_response, fin, out_of_order, dup_ack, retransmission, data, zero_window} 中无任何 DNS 形态；三个会话 X1/X2/X3 均为 TCP。生成器未构造任何 DNS 流量——gold = 空集。干扰项：X3 的 dport=8080 可能诱导『非常见端口上有 DNS』的编造；HTTP 事务（帧 4/6/7）与 DNS 无关。",
+    "canonical_key_format": "gold_evidence 键为规范化五元组 {proto}|{src}:{sport}>{dst}:{dport}；本题 gold 为空集故键集为空",
+    "tolerance_note": "无序集合精确比对，无容差；空集 gold 适用备忘录 §7-M3 特例"
+  },
+  "reference_solution": {
+    "steps": [
+      { "n": 1, "tool": "traffic_open", "input": "fixtures/edge-cases.pcap", "expect": "确立 capture_id；packet_count=30" },
+      { "n": 2, "tool": "traffic_query", "input": "{scope:'event', where:[{field:'type',op:'eq',value:'dns_query'}]}", "expect": "0 行（dns_response 同样为 0 行）" },
+      { "n": 3, "tool": "（组答）", "input": "—", "expect": "{dns_sessions: []}——诚实空集" }
+    ],
+    "bash_equivalent": "tshark -r fixtures/edge-cases.pcap -Y 'dns' -T fields -e frame.number  # 空输出 ⇒ 无 DNS 流量",
+    "alternative_path": "traffic_overview 的 protocol distribution 无 dns 条目即可佐证",
+    "factors": { "H": 2, "C": 1, "G": "small", "X": 1, "N": "low" },
+    "difficulty_derivation": "备忘录 §2：H=2、C=1 → D2；能力轴 S9（零结果诚实）——假前提题防『答案永远非空』先验"
+  },
+  "tags": {
+    "protocols": ["udp", "tcp"],
+    "skill": ["S9"],
+    "difficulty": 2,
+    "difficulty_label": "D2",
+    "ir_coverage": "covered",
+    "corpus_layer": "L1",
+    "scenario_pack": "P2"
+  },
+  "provenance": {
+    "source": "llm_draft+human_review",
+    "human_review_status": "待终审（S9 首批起草题：空集 gold 表达、题面是否泄漏『答案是空』的暗示）",
+    "memo": "Benchmark题型Taxonomy备忘录.md §1-S9/§7（空集 gold 特例）"
+  },
+  "canary": {
+    "known_good": {
+      "answer": {
+        "dns_sessions": []
+      },
+      "expect": { "schema_valid": true, "correctness": true, "evidence_pass": true },
+      "note": "诚实空集：验证空集 gold 特例与 M4 不判幻觉"
+    },
+    "known_bad": {
+      "answer": {
+        "dns_sessions": [
+          { "value": { "proto": "tcp", "src": "10.0.0.1", "sport": 6003, "dst": "10.0.0.4", "dport": 8080 }, "evidence": [24] }
+        ]
+      },
+      "error_form": "wrong_value",
+      "emulates": "把普通 TCP 会话（X3, dport 8080）当 DNS 会话顶替空集——『正确答案永远非空』先验导致的 S9 幻觉（M4 应计 hallucination）",
+      "expect": { "schema_valid": true, "correctness": false, "evidence_pass": false }
+    }
+  }
+}

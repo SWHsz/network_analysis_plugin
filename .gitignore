@@ -19,6 +19,7 @@ bench/out/runs/
 /flows-*.csv.gz
 dsh-session-*
 演进计划RFC.md
+dataset_anoymized
 *.md
 !README.md
 

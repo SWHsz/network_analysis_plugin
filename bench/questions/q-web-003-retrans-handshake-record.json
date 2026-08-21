@@ -16,48 +16,91 @@
       "retransmission_count": {
         "type": "object",
         "properties": {
-          "value": { "type": "integer", "minimum": 0 },
+          "value": {
+            "type": "integer",
+            "minimum": 0
+          },
           "evidence": {
             "type": "array",
-            "items": { "type": "integer", "minimum": 1 },
+            "items": {
+              "type": "integer",
+              "minimum": 1
+            },
             "minItems": 1,
             "uniqueItems": true
           }
         },
-        "required": ["value", "evidence"],
+        "required": [
+          "value",
+          "evidence"
+        ],
         "additionalProperties": false
       },
       "tcp_handshake_ms": {
         "type": "object",
         "properties": {
-          "value": { "type": "number", "minimum": 0 },
+          "value": {
+            "type": "number",
+            "minimum": 0
+          },
           "evidence": {
             "type": "array",
-            "items": { "type": "integer", "minimum": 1 },
+            "items": {
+              "type": "integer",
+              "minimum": 1
+            },
             "minItems": 1,
             "uniqueItems": true
           }
         },
-        "required": ["value", "evidence"],
+        "required": [
+          "value",
+          "evidence"
+        ],
         "additionalProperties": false
       }
     },
-    "required": ["retransmission_count", "tcp_handshake_ms"],
+    "required": [
+      "retransmission_count",
+      "tcp_handshake_ms"
+    ],
     "additionalProperties": false
   },
   "gold": {
-    "retransmission_count": { "value": 3 },
-    "tcp_handshake_ms": { "value": 70.0, "tolerance_abs": 2.0 }
+    "retransmission_count": {
+      "value": 3
+    },
+    "tcp_handshake_ms": {
+      "value": 70.0,
+      "tolerance_abs": 2.0
+    }
   },
   "gold_evidence": {
-    "retransmission_count": [8, 11, 14],
-    "tcp_handshake_ms": [1, 2, 3]
+    "retransmission_count": [
+      8,
+      11,
+      14
+    ],
+    "tcp_handshake_ms": [
+      1,
+      2,
+      3
+    ]
   },
   "gold_derivation": {
-    "gt_pointers": ["facts.retransmissions[?(@.conv=='A')]", "facts.handshakes[?(@.conv=='A')]"],
+    "gt_pointers": [
+      "facts.retransmissions[?(@.conv=='A')]",
+      "facts.handshakes[?(@.conv=='A')]"
+    ],
     "session_binding": {
       "gt_conv": "A",
-      "tuple": { "proto": "tcp", "src": "192.168.1.4", "sport": 53124, "dst": "142.250.74.14", "dport": 443 },
+      "tuple": {
+        "proto": "tcp",
+        "src": "192.168.1.4",
+        "sport": 53124,
+        "dst": "142.250.74.14",
+        "dport": 443
+      },
       "expected_conversation_id": "conv:tcp:0",
       "note": "与 q-web-001 同一会话"
     },
@@ -66,18 +109,44 @@
   },
   "reference_solution": {
     "steps": [
-      { "n": 1, "tool": "traffic_open", "input": "fixtures/web-session.pcap", "expect": "确立 capture_id；packet_count=32" },
-      { "n": 2, "tool": "traffic_inspect", "input": "conversation_id=conv:tcp:0（按五元组定位）", "expect": "同一次下钻读出 metrics.retransmission_count=3（evidence 帧 8/11/14）与 metrics.tcp_handshake_ms=70（握手三元组帧 1/2/3）" },
-      { "n": 3, "tool": "（组答）", "input": "—", "expect": "{retransmission_count:{value:3,evidence:[8,11,14]}, tcp_handshake_ms:{value:70.0,evidence:[1,2,3]}}" }
+      {
+        "n": 1,
+        "tool": "traffic_open",
+        "input": "fixtures/web-session.pcap",
+        "expect": "确立 capture_id；packet_count=32"
+      },
+      {
+        "n": 2,
+        "tool": "traffic_inspect",
+        "input": "conversation_id=conv:tcp:0（按五元组定位）",
+        "expect": "同一次下钻读出 metrics.retransmission_count=3（evidence 帧 8/11/14）与 metrics.tcp_handshake_ms=70（握手三元组帧 1/2/3）"
+      },
+      {
+        "n": 3,
+        "tool": "（组答）",
+        "input": "—",
+        "expect": "{retransmission_count:{value:3,evidence:[8,11,14]}, tcp_handshake_ms:{value:70.0,evidence:[1,2,3]}}"
+      }
     ],
     "bash_equivalent": "tshark -r fixtures/web-session.pcap -Y 'tcp.stream==0 && (tcp.analysis.retransmission || tcp.flags.syn==1 || (tcp.flags.ack==1 && tcp.len==0))' -T fields -e frame.number -e frame.time_epoch  # 重传 3 行；握手耗时取 SYN 与完成 ACK 的时间差",
     "alternative_path": "traffic_query 分别查 tcp_retransmission 事件与读 ConversationMetrics.tcp_handshake_ms（H=2，两条子链）",
-    "factors": { "H": 2, "C": 2, "G": "small", "X": 1, "N": "high" },
+    "factors": {
+      "H": 2,
+      "C": 2,
+      "G": "small",
+      "X": 1,
+      "N": "high"
+    },
     "difficulty_derivation": "备忘录 §2：H=2、C=2（两个事实字段）→ D2；能力轴 S2（重传计数）+ S3（握手时延）"
   },
   "tags": {
-    "protocols": ["tcp"],
-    "skill": ["S2", "S3"],
+    "protocols": [
+      "tcp"
+    ],
+    "skill": [
+      "S2",
+      "S3"
+    ],
     "difficulty": 2,
     "difficulty_label": "D2",
     "ir_coverage": "covered",
@@ -86,26 +155,55 @@
   },
   "provenance": {
     "source": "llm_draft+human_review",
-    "human_review_status": "待终审（见 bench/slices/v0-questions-review.md 边界判断 #5：握手耗时口径 SYN→完成 ACK=70ms，SYN→SYNACK=35ms 为另一口径）",
+    "human_review_status": "已终审 2026-08-21：确认 SYN→完成 ACK=70ms 为标准口径（裁决 #5）；见 v0-questions-review.md §6",
     "memo": "Benchmark题型Taxonomy备忘录.md §1/§2"
   },
   "canary": {
     "known_good": {
       "answer": {
-        "retransmission_count": { "value": 3, "evidence": [8, 11, 14] },
-        "tcp_handshake_ms": { "value": 70.1, "evidence": [1, 2, 3] }
+        "retransmission_count": {
+          "value": 3,
+          "evidence": [
+            8,
+            11,
+            14
+          ]
+        },
+        "tcp_handshake_ms": {
+          "value": 70.1,
+          "evidence": [
+            1,
+            2,
+            3
+          ]
+        }
       },
-      "expect": { "schema_valid": true, "correctness": true, "evidence_pass": true },
+      "expect": {
+        "schema_valid": true,
+        "correctness": true,
+        "evidence_pass": true
+      },
       "note": "tcp_handshake_ms=70.1 落在 ±2.0 容差内：验证容差比较路径"
     },
     "known_bad": {
       "answer": {
         "retransmission_count": 3,
-        "tcp_handshake_ms": { "value": 70.1, "evidence": [1, 2, 3] }
+        "tcp_handshake_ms": {
+          "value": 70.1,
+          "evidence": [
+            1,
+            2,
+            3
+          ]
+        }
       },
       "error_form": "format_error",
       "emulates": "retransmission_count 写成裸整数而非 {value, evidence} 节点：违反 answer_contract 的节点二元组结构，应记 format_error（RFC-002 §2.2 单独统计，不入错误率也不赦免）",
-      "expect": { "schema_valid": false, "correctness": false, "evidence_pass": false }
+      "expect": {
+        "schema_valid": false,
+        "correctness": false,
+        "evidence_pass": false
+      }
     }
   }
 }

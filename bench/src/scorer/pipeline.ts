@@ -82,7 +82,8 @@ function verdictOf(run: {
   return {
     schema_valid: run.schemaValid,
     correctness: run.correctness?.correct ?? false,
-    evidence_pass: (run.evidence?.fields.length ?? 0) > 0 && (run.evidence?.fields.every((f) => f.pass) ?? false),
+    // 无待判证据字段（如空集 gold 的诚实空答）时空真
+    evidence_pass: run.evidence?.fields.every((f) => f.pass) ?? false,
   };
 }
 
@@ -120,7 +121,7 @@ export function scoreAnswerObject(q: Question, gt: GroundTruth, answer: Record<s
     verdict: {
       schema_valid: true,
       correctness: correctness.correct,
-      evidence_pass: evidence.fields.length > 0 && evidence.fields.every((f) => f.pass),
+      evidence_pass: evidence.fields.every((f) => f.pass),
     },
     detail: {
       questionId: q.question_id,

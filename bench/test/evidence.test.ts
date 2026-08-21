@@ -81,4 +81,22 @@ describe("scoreEvidence", () => {
     const r = scoreEvidence(q, gt, { retr: node(3, [8]), hs_ms: node(70, []) });
     expect(r.coverage).toBeCloseTo(0.5);
   });
+
+  it("空集 gold（S9 注册定义）：诚实空引用=有效支撑，引用任何帧判否", () => {
+    const qz = makeQuestion({
+      gold: { arp: { value: [] } },
+      gold_evidence: { arp: [] },
+      answer_schema: { type: "object", properties: { arp: { type: "object" } }, required: ["arp"] },
+    });
+    const honest = scoreEvidence(qz, gt, { arp: node([], []) });
+    expect(honest.fields[0]!.pass).toBe(true);
+    expect(honest.fields[0]!.precision).toBe(1);
+    expect(honest.fields[0]!.recall).toBe(1);
+    // 覆盖率口径不变：无非空有效证据不计入分子
+    expect(honest.coverage).toBe(0);
+
+    const asserted = scoreEvidence(qz, gt, { arp: node([{ proto: "arp" }], [1]) });
+    expect(asserted.fields[0]!.pass).toBe(false);
+    expect(asserted.fields[0]!.precision).toBe(0);
+  });
 });

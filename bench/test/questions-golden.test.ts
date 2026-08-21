@@ -11,8 +11,8 @@ import { fenced } from "./helpers.js";
 const questions = loadQuestionsDir();
 
 describe("bench/questions 题库", () => {
-  it("切片期恰为 5 题，覆盖五种答案形态与三种 canary 错误形态", () => {
-    expect(questions.length).toBe(5);
+  it("切片 5 题 + S9 首批 2 题，覆盖五种答案形态与三种 canary 错误形态", () => {
+    expect(questions.length).toBe(7);
     const forms = new Set(questions.map((q) => q.type));
     expect(forms.has("scalar_number")).toBe(true);
     expect(forms.has("scalar_enum")).toBe(true);
@@ -20,14 +20,17 @@ describe("bench/questions 题库", () => {
     expect(forms.has("record")).toBe(true);
     const errorForms = new Set(questions.map((q) => q.canary.known_bad.error_form));
     expect(errorForms.size).toBeGreaterThanOrEqual(3); // 值错/证据帧错/格式错
+    // S9 占比 ≥10%（备忘录 §6 生产纪律）
+    const s9 = questions.filter((q) => q.tags.skill.includes("S9"));
+    expect(s9.length / questions.length).toBeGreaterThanOrEqual(0.1);
   });
 
-  it("canary 元评测 10/10（验收 b）", () => {
+  it("canary 元评测 14/14（验收 b 扩展）", () => {
     const r = metaEvalAll(questions);
     const failed = r.checks.filter((c) => !c.match);
     expect(failed, JSON.stringify(failed.map((c) => [c.questionId, c.side, c.expect, c.actual]))).toEqual([]);
-    expect(r.totalGood).toBe(5);
-    expect(r.totalBad).toBe(5);
+    expect(r.totalGood).toBe(7);
+    expect(r.totalBad).toBe(7);
     expect(r.accCorrect).toBe(1);
     expect(r.accWrong).toBe(1);
   });

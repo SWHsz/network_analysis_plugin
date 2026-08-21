@@ -17,7 +17,8 @@ import {
 } from "./question-schema.mjs";
 
 const questionsDir = path.join(REPO_ROOT, "bench", "questions");
-const EXPECTED_QUESTION_COUNT = 5; // RFC-002 §7 垂直切片：5 题 × 2 canary = 10 个判分校验点
+// 切片 5 题（2026-08-19）+ S9 首批 2 题（2026-08-21，q-mid-001/q-edge-002，待人审）
+const EXPECTED_QUESTION_COUNT = 7;
 
 function main() {
   const files = fs.readdirSync(questionsDir).filter(f => f.endsWith(".json")).sort();

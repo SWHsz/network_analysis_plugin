@@ -1,11 +1,12 @@
 /**
- * 切片联跑 CLI（Prompt 5 验收入口）：q-web-001（重传计数）两臂各跑一次。
+ * 切片联跑 CLI（Prompt 5 验收入口）：q-web-001（重传计数）两臂各跑 N 次。
  *
- *   pnpm --filter bench slice-q1          # 半自动：终答提取后暂停等人工确认（清单 1.1）
- *   pnpm --filter bench slice-q1 -- --yes # 跳过交互确认（操作员已复核场景）
+ *   pnpm --filter bench slice-q1                    # 半自动，每臂 1 次
+ *   pnpm --filter bench slice-q1 -- --runs 3 --yes  # 每臂 3 次，跳过交互确认
  *
+ * 多次运行口径（RFC-002 §5.2/§10-S2）：报告多数表决正确率 + 逐次分布；token 取均值。
  * 产物：bench/out/runs/slice-q1/{bash-v0.1,ast-v0.4}/{armresult,transcript,messages,
- * interface}.json + answerRaw.txt + slice-summary.json（含两臂 interfaceTokens 差异）。
+ * interface}.json + answerRaw.txt + runs.json + slice-summary.json。
  */
 import { mkdir, writeFile } from "node:fs/promises";
 import readline from "node:readline/promises";
@@ -14,7 +15,7 @@ import { ChatCompletionsClient } from "@stirrup/stirrup/clients/openai";
 import { REPO_ROOT } from "../paths.js";
 import { extractFinalAnswer, validateAgainstContract } from "../scorer/answer-contract.js";
 import { loadGroundTruth, loadQuestionByName } from "../scorer/question.js";
-import { scoreRun } from "../scorer/pipeline.js";
+import { scoreRun, type RunClassification } from "../scorer/pipeline.js";
 import { assembleReport, type ReportRun } from "../scorer/report.js";
 import { BashArm } from "./bash-arm.js";
 import { AstArm } from "./ast-tools.js";
@@ -25,8 +26,24 @@ import type { ArmResult, Budget } from "./types.js";
 const QUESTION_FILE = "q-web-001-retrans-count.json";
 const BUDGET: Budget = { maxTurns: 8, maxTokens: 4000, timeoutMs: 180_000 };
 
+interface ArmOutput {
+  result: ArmResult;
+  classification: RunClassification;
+}
+
+function majorityVote(classifications: RunClassification[]): { correct: boolean; detail: string } {
+  const correctCount = classifications.filter((c) => c === "correct").length;
+  return {
+    correct: correctCount > classifications.length / 2,
+    detail: `${correctCount}/${classifications.length} correct (${classifications.join(",")})`,
+  };
+}
+
 async function main(): Promise<number> {
   const assumeYes = process.argv.includes("--yes");
+  const runsIdx = process.argv.indexOf("--runs");
+  const runsPerQuestion = runsIdx >= 0 ? Math.max(1, Number(process.argv[runsIdx + 1]) || 1) : 1;
+
   const q = loadQuestionByName(QUESTION_FILE);
   const gt = loadGroundTruth(q);
   const captureAbsPath = path.join(REPO_ROOT, "fixtures", `${q.capture.fixture}.pcap`);
@@ -42,184 +59,207 @@ async function main(): Promise<number> {
   const key = await loadDeepseekKey();
   const proxy = await startRecordingProxy("https://api.deepseek.com");
   const client = new ChatCompletionsClient({ model: MODEL, apiKey: key, baseURL: proxy.baseURL });
-  console.log(`[slice-q1] model=${MODEL} budget=${JSON.stringify(BUDGET)} question=${q.question_id}`);
+  console.log(`[slice-q1] model=${MODEL} budget=${JSON.stringify(BUDGET)} question=${q.question_id} runs=${runsPerQuestion}`);
 
-  const results: ArmResult[] = [];
+  const armOutputs = new Map<string, ArmOutput[]>();
   try {
     for (const arm of [new BashArm(captureAbsPath), new AstArm(captureAbsPath)]) {
-      console.log(`\n===== ${arm.name} =====`);
-      const capStart = captureCount();
-      const outcome = await runArmOnce({ arm, task, budget: BUDGET, client });
-      const runCaptures = capturesFrom(capStart);
+      const outputs: ArmOutput[] = [];
+      for (let i = 1; i <= runsPerQuestion; i++) {
+        console.log(`\n===== ${arm.name} run ${i}/${runsPerQuestion} =====`);
+        const capStart = captureCount();
+        const outcome = await runArmOnce({ arm, task, budget: BUDGET, client });
+        const runCaptures = capturesFrom(capStart);
 
-      const extraction = extractFinalAnswer(outcome.answerRaw);
-      const contract = validateAgainstContract(q.answer_schema, extraction);
-      const result: ArmResult = {
-        arm: arm.name,
-        questionId: q.question_id,
-        answerRaw: outcome.answerRaw,
-        answer: "answer" in contract ? (contract.answer as Record<string, unknown>) : undefined,
-        formatError: "formatError" in contract ? contract.formatError : undefined,
-        transcript: outcome.records,
-        metrics: {
-          llmCalls: outcome.llmCalls,
-          inputTokens: outcome.inputTokens,
-          outputTokens: outcome.outputTokens,
-          toolRenderChars: outcome.records.reduce((a, b) => a + b.resultChars, 0),
-          interfaceTokens: interfaceTokensOf(runCaptures),
-          wallMs: outcome.wallMs,
-          // EVALUATION 附带条件 c：aborted 或未调 finish 都算预算耗尽
-          budgetExhausted: outcome.aborted !== null || !outcome.finishCalled,
-        },
-        aborted: outcome.aborted,
-      };
-      results.push(result);
+        const extraction = extractFinalAnswer(outcome.answerRaw);
+        const contract = validateAgainstContract(q.answer_schema, extraction);
+        const result: ArmResult = {
+          arm: arm.name,
+          questionId: q.question_id,
+          answerRaw: outcome.answerRaw,
+          answer: "answer" in contract ? (contract.answer as Record<string, unknown>) : undefined,
+          formatError: "formatError" in contract ? contract.formatError : undefined,
+          transcript: outcome.records,
+          metrics: {
+            llmCalls: outcome.llmCalls,
+            inputTokens: outcome.inputTokens,
+            outputTokens: outcome.outputTokens,
+            toolRenderChars: outcome.records.reduce((a, b) => a + b.resultChars, 0),
+            interfaceTokens: interfaceTokensOf(runCaptures),
+            wallMs: outcome.wallMs,
+            // EVALUATION 附带条件 c：aborted 或未调 finish 都算预算耗尽
+            budgetExhausted: outcome.aborted !== null || !outcome.finishCalled,
+          },
+          aborted: outcome.aborted,
+        };
+        const scored = scoreRun(q, gt, outcome.answerRaw, `${arm.name}#${i}`);
+        outputs.push({ result, classification: scored.classification });
 
-      if (arm.name === "bash-v0.1") {
-        bashOut = { result, outcome, runCaptures };
-        await writeBashOutputs();
-      } else {
-        astOut = { result, outcome, runCaptures };
-        await writeAstOutputs();
+        for (const rec of outcome.records) {
+          console.log(`  [tool] #${rec.seq} ${rec.name} ok=${rec.ok} ${rec.durationMs}ms chars=${rec.resultChars}`);
+        }
+        console.log(
+          `  llmCalls=${outcome.llmCalls} in=${outcome.inputTokens} out=${outcome.outputTokens} wall=${outcome.wallMs}ms ` +
+            `interfaceTokens≈${result.metrics.interfaceTokens} exhausted=${result.metrics.budgetExhausted}${outcome.aborted ? ` aborted(${outcome.aborted})` : ""}`,
+        );
+        console.log(
+          `  提取结果：${extraction.status === "ok" ? JSON.stringify(extraction.value) : `format_error(${extraction.reason})`} → ${scored.classification}`,
+        );
       }
-
-      for (const rec of outcome.records) {
-        console.log(`  [tool] #${rec.seq} ${rec.name} ok=${rec.ok} ${rec.durationMs}ms chars=${rec.resultChars}`);
-      }
-      console.log(
-        `  llmCalls=${outcome.llmCalls} in=${outcome.inputTokens} out=${outcome.outputTokens} wall=${outcome.wallMs}ms ` +
-          `interfaceTokens≈${result.metrics.interfaceTokens} exhausted=${result.metrics.budgetExhausted}${outcome.aborted ? ` aborted(${outcome.aborted})` : ""}`,
-      );
-      console.log(`  提取结果：${extraction.status === "ok" ? JSON.stringify(extraction.value) : `format_error(${extraction.reason})`}`);
+      armOutputs.set(arm.name, outputs);
     }
   } finally {
     proxy.close();
   }
 
-  // ---- 半自动边界：终答提取后暂停，人工确认后再判分（人工清单 1.1） ----
+  // ---- 半自动边界：终答提取后暂停，人工确认后再判分落盘（人工清单 1.1） ----
   if (!assumeYes) {
     const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-    const answer = await rl.question("\n以上为两臂终答提取结果。确认无误并继续判分？(y/n) ");
+    const answer = await rl.question("\n以上为两臂全部运行的提取结果。确认无误并继续判分落盘？(y/n) ");
     rl.close();
     if (answer.trim().toLowerCase() !== "y") {
-      console.log("已暂停：transcript 已落盘，未判分。请复核后重跑或手动判分。");
+      console.log("已暂停：未判分未落盘。请复核后重跑。");
       return 0;
     }
   }
 
-  // ---- 判分 + 汇总 ----
-  const scored = results.map((r) => ({
-    result: r,
-    run: scoreRun(q, gt, r.answerRaw, r.arm),
-  }));
-  for (const s of scored) {
-    console.log(
-      `[score] ${s.result.arm}: ${s.run.classification}` +
-        (s.run.correctness ? ` fields=${JSON.stringify(s.run.correctness.fields.map((f) => [f.path, f.pass]))}` : "") +
-        (s.run.formatError ? ` (${s.run.formatError})` : ""),
-    );
-  }
+  // ---- 落盘 + 判分汇总 ----
+  bashOuts = armOutputs.get("bash-v0.1") ?? [];
+  astOuts = armOutputs.get("ast-v0.4") ?? [];
+  await writeBashOutputs();
+  await writeAstOutputs();
 
-  const reportRuns: ReportRun[] = results.map((r, i) => {
-    const s = scored[i]!;
+  const summaryArms = [...armOutputs.entries()].map(([name, outs]) => {
+    const vote = majorityVote(outs.map((o) => o.classification));
+    const mean = (xs: number[]): number => (xs.length === 0 ? 0 : xs.reduce((a, b) => a + b, 0) / xs.length);
+    const interfaceTotal = mean(outs.map((o) => o.result.metrics.interfaceTokens * o.result.metrics.llmCalls));
+    const inputMean = mean(outs.map((o) => o.result.metrics.inputTokens));
     return {
-      questionId: q.question_id,
-      runIndex: i + 1,
-      question: { tags: q.tags },
-      classification: s.run.classification,
-      schemaValid: s.run.schemaValid,
-      evidence: s.run.evidence
-        ? {
-            coverage: s.run.evidence.coverage,
-            macroPrecision: s.run.evidence.macroPrecision,
-            macroRecall: s.run.evidence.macroRecall,
-            allFieldsPass: s.run.evidence.fields.every((f) => f.pass),
-            needsHumanReviewFields: s.run.evidence.fields.filter((f) => f.needsHumanReview).map((f) => f.path),
-          }
-        : undefined,
-      hallucination: s.run.hallucination,
-      metrics: r.metrics,
+      arm: name,
+      majority_correct: vote.correct,
+      vote_detail: vote.detail,
+      runs: outs.map((o, i) => ({
+        run_index: i + 1,
+        classification: o.classification,
+        format_error: o.result.formatError ?? null,
+        llm_calls: o.result.metrics.llmCalls,
+        input_tokens: o.result.metrics.inputTokens,
+        output_tokens: o.result.metrics.outputTokens,
+        tool_render_chars: o.result.metrics.toolRenderChars,
+        interface_tokens_per_request: o.result.metrics.interfaceTokens,
+        interface_share_of_input:
+          o.result.metrics.inputTokens > 0
+            ? Number(((o.result.metrics.interfaceTokens * o.result.metrics.llmCalls) / o.result.metrics.inputTokens).toFixed(3))
+            : null,
+        wall_ms: o.result.metrics.wallMs,
+        budget_exhausted: o.result.metrics.budgetExhausted,
+      })),
+      means: {
+        input_tokens: Math.round(inputMean),
+        output_tokens: Math.round(mean(outs.map((o) => o.result.metrics.outputTokens))),
+        llm_calls: Number(mean(outs.map((o) => o.result.metrics.llmCalls)).toFixed(1)),
+        wall_ms: Math.round(mean(outs.map((o) => o.result.metrics.wallMs))),
+        interface_share_of_input: inputMean > 0 ? Number((interfaceTotal / inputMean).toFixed(3)) : null,
+      },
+      report: assembleReport({
+        arm: name,
+        model: MODEL,
+        date: new Date().toISOString().slice(0, 10),
+        runsPerQuestion,
+        runs: outs.map(
+          (o, i): ReportRun => ({
+            questionId: q.question_id,
+            runIndex: i + 1,
+            question: { tags: q.tags },
+            classification: o.classification,
+            schemaValid: o.result.answer !== undefined || o.result.formatError === undefined,
+            metrics: o.result.metrics,
+          }),
+        ),
+      }),
     };
   });
 
-  const bash = results[0]!;
-  const ast = results[1]!;
   summaryJson = JSON.stringify(
-    {
-      date: new Date().toISOString(),
-      model: MODEL,
-      question_id: q.question_id,
-      budget: BUDGET,
-      arms: results.map((r) => ({ ...r, transcript: undefined })),
-      interface_tokens: {
-        bash_v01: bash.metrics.interfaceTokens,
-        ast_v04: ast.metrics.interfaceTokens,
-        delta: ast.metrics.interfaceTokens - bash.metrics.interfaceTokens,
-        note: "chars/4 启发式，记录代理实测首请求 system+tools 载荷（RFC-002 §10-I3 控制变量）",
-      },
-      reports: {
-        bash: assembleReport({ arm: bash.arm, model: MODEL, date: new Date().toISOString().slice(0, 10), runsPerQuestion: 1, runs: [reportRuns[0]!] }),
-        ast: assembleReport({ arm: ast.arm, model: MODEL, date: new Date().toISOString().slice(0, 10), runsPerQuestion: 1, runs: [reportRuns[1]!] }),
-      },
-    },
+    { date: new Date().toISOString(), model: MODEL, question_id: q.question_id, budget: BUDGET, runs_per_question: runsPerQuestion, arms: summaryArms },
     null,
     2,
   );
   await writeSliceSummary();
 
-  console.log(
-    `\ninterfaceTokens：bash-v0.1≈${bash.metrics.interfaceTokens} vs ast-v0.4≈${ast.metrics.interfaceTokens}（Δ=${ast.metrics.interfaceTokens - bash.metrics.interfaceTokens}）`,
-  );
+  for (const a of summaryArms) {
+    console.log(
+      `[majority] ${a.arm}: ${a.majority_correct ? "correct" : "wrong"} (${a.vote_detail})  ` +
+        `mean in=${a.means.input_tokens} out=${a.means.output_tokens} turns=${a.means.llm_calls} interfaceShare=${a.means.interface_share_of_input}`,
+    );
+  }
+  const bash = summaryArms.find((a) => a.arm === "bash-v0.1");
+  const ast = summaryArms.find((a) => a.arm === "ast-v0.4");
+  if (bash && ast) {
+    console.log(
+      `\ninterfaceTokens/request：bash≈${bash.runs[0]?.interface_tokens_per_request} vs ast≈${ast.runs[0]?.interface_tokens_per_request}` +
+        `；输入 token 中接口占比均值：bash ${(100 * (bash.means.interface_share_of_input ?? 0)).toFixed(1)}% vs ast ${(100 * (ast.means.interface_share_of_input ?? 0)).toFixed(1)}%`,
+    );
+  }
   console.log("产物：bench/out/runs/slice-q1/{bash-v0.1,ast-v0.4}/ 与 slice-summary.json");
   return 0;
 }
 
 // ---- 运行状态与落盘（Mimosa 已验证形态：模块状态取数 + 零参数函数 + 全字面量路径） ----
 
-interface ArmOutput {
-  result: ArmResult;
-  outcome: Awaited<ReturnType<typeof runArmOnce>>;
-  runCaptures: ReturnType<typeof capturesFrom>;
-}
-
-let bashOut: ArmOutput | null = null;
-let astOut: ArmOutput | null = null;
+let bashOuts: ArmOutput[] = [];
+let astOuts: ArmOutput[] = [];
 let summaryJson = "";
 
-function armResultJson(o: ArmOutput): string {
-  const { transcript, ...rest } = o.result;
-  return JSON.stringify({ ...rest, transcript }, null, 2);
+function lastOf<T>(xs: T[]): T | undefined {
+  return xs[xs.length - 1];
 }
 
-async function writeArmOutputs(dir: string, o: ArmOutput): Promise<void> {
-  await mkdir(dir, { recursive: true });
-  await writeFile(path.join(dir, "armresult.json"), armResultJson(o));
-  await writeFile(path.join(dir, "transcript.json"), JSON.stringify({ records: o.result.transcript }, null, 2));
-  await writeFile(path.join(dir, "messages.json"), JSON.stringify(o.outcome.messageHistory, null, 2));
-  await writeFile(path.join(dir, "answerRaw.txt"), o.result.answerRaw);
-  await writeFile(
-    path.join(dir, "interface.json"),
-    JSON.stringify(
-      {
-        estTokensFirstRequest: o.runCaptures[0]?.estTokens ?? 0,
-        perRequest: o.runCaptures.map((c) => ({ systemChars: c.systemChars, toolsChars: c.toolsChars, estTokens: c.estTokens })),
-        systemText: o.runCaptures[0]?.systemText ?? "",
-        toolsJson: JSON.parse(o.runCaptures[0]?.toolsJson || "[]"),
-      },
-      null,
-      2,
-    ),
+/** 纯数据函数：单次运行的落盘内容（不触碰 fs） */
+function armResultJson(o: ArmOutput): string {
+  return JSON.stringify(o.result, null, 2);
+}
+
+function transcriptJson(o: ArmOutput): string {
+  return JSON.stringify({ records: o.result.transcript }, null, 2);
+}
+
+function runsJson(outs: ArmOutput[]): string {
+  return JSON.stringify(
+    outs.map((o, i) => ({
+      run_index: i + 1,
+      classification: o.classification,
+      answerRaw: o.result.answerRaw,
+      answer: o.result.answer ?? null,
+      format_error: o.result.formatError ?? null,
+      metrics: o.result.metrics,
+      aborted: o.result.aborted,
+    })),
+    null,
+    2,
   );
 }
 
 async function writeBashOutputs(): Promise<void> {
-  if (!bashOut) throw new Error("writeBashOutputs: 尚无 bash 臂运行结果");
-  await writeArmOutputs(path.join(REPO_ROOT, "bench", "out", "runs", "slice-q1", "bash-v0.1"), bashOut);
+  const last = lastOf(bashOuts);
+  if (!last) throw new Error("writeBashOutputs: 尚无 bash 臂运行结果");
+  const dir = path.join(REPO_ROOT, "bench", "out", "runs", "slice-q1", "bash-v0.1");
+  await mkdir(dir, { recursive: true });
+  await writeFile(path.join(dir, "armresult.json"), armResultJson(last));
+  await writeFile(path.join(dir, "transcript.json"), transcriptJson(last));
+  await writeFile(path.join(dir, "answerRaw.txt"), last.result.answerRaw);
+  await writeFile(path.join(dir, "runs.json"), runsJson(bashOuts));
 }
 
 async function writeAstOutputs(): Promise<void> {
-  if (!astOut) throw new Error("writeAstOutputs: 尚无 ast 臂运行结果");
-  await writeArmOutputs(path.join(REPO_ROOT, "bench", "out", "runs", "slice-q1", "ast-v0.4"), astOut);
+  const last = lastOf(astOuts);
+  if (!last) throw new Error("writeAstOutputs: 尚无 ast 臂运行结果");
+  const dir = path.join(REPO_ROOT, "bench", "out", "runs", "slice-q1", "ast-v0.4");
+  await mkdir(dir, { recursive: true });
+  await writeFile(path.join(dir, "armresult.json"), armResultJson(last));
+  await writeFile(path.join(dir, "transcript.json"), transcriptJson(last));
+  await writeFile(path.join(dir, "answerRaw.txt"), last.result.answerRaw);
+  await writeFile(path.join(dir, "runs.json"), runsJson(astOuts));
 }
 
 async function writeSliceSummary(): Promise<void> {

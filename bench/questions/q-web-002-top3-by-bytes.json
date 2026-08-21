@@ -22,32 +22,65 @@
         "items": {
           "type": "object",
           "properties": {
-            "value": { "$ref": "#/$defs/session_tuple" },
+            "value": {
+              "$ref": "#/$defs/session_tuple"
+            },
             "evidence": {
               "type": "array",
-              "items": { "type": "integer", "minimum": 1 },
+              "items": {
+                "type": "integer",
+                "minimum": 1
+              },
               "minItems": 1,
               "uniqueItems": true
             }
           },
-          "required": ["value", "evidence"],
+          "required": [
+            "value",
+            "evidence"
+          ],
           "additionalProperties": false
         }
       }
     },
-    "required": ["top3_sessions"],
+    "required": [
+      "top3_sessions"
+    ],
     "additionalProperties": false,
     "$defs": {
       "session_tuple": {
         "type": "object",
         "properties": {
-          "proto": { "enum": ["tcp", "udp"] },
-          "src": { "type": "string" },
-          "sport": { "type": "integer", "minimum": 0, "maximum": 65535 },
-          "dst": { "type": "string" },
-          "dport": { "type": "integer", "minimum": 0, "maximum": 65535 }
+          "proto": {
+            "enum": [
+              "tcp",
+              "udp"
+            ]
+          },
+          "src": {
+            "type": "string"
+          },
+          "sport": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65535
+          },
+          "dst": {
+            "type": "string"
+          },
+          "dport": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65535
+          }
         },
-        "required": ["proto", "src", "sport", "dst", "dport"],
+        "required": [
+          "proto",
+          "src",
+          "sport",
+          "dst",
+          "dport"
+        ],
         "additionalProperties": false
       }
     }
@@ -55,25 +88,109 @@
   "gold": {
     "top3_sessions": {
       "value": [
-        { "proto": "tcp", "src": "192.168.1.4", "sport": 53124, "dst": "142.250.74.14", "dport": 443 },
-        { "proto": "tcp", "src": "192.168.1.4", "sport": 53125, "dst": "93.184.216.34", "dport": 80 },
-        { "proto": "udp", "src": "192.168.1.4", "sport": 53126, "dst": "8.8.8.8", "dport": 53 }
+        {
+          "proto": "tcp",
+          "src": "192.168.1.4",
+          "sport": 53124,
+          "dst": "142.250.74.14",
+          "dport": 443
+        },
+        {
+          "proto": "tcp",
+          "src": "192.168.1.4",
+          "sport": 53125,
+          "dst": "93.184.216.34",
+          "dport": 80
+        },
+        {
+          "proto": "udp",
+          "src": "192.168.1.4",
+          "sport": 53126,
+          "dst": "8.8.8.8",
+          "dport": 53
+        }
       ]
     }
   },
   "gold_evidence": {
     "top3_sessions": {
-      "tcp|192.168.1.4:53124>142.250.74.14:443": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17],
-      "tcp|192.168.1.4:53125>93.184.216.34:80": [22, 23, 24, 25, 26, 27, 28, 29, 30],
-      "udp|192.168.1.4:53126>8.8.8.8:53": [18, 19, 20, 21]
+      "tcp|192.168.1.4:53124>142.250.74.14:443": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17
+      ],
+      "tcp|192.168.1.4:53125>93.184.216.34:80": [
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30
+      ],
+      "udp|192.168.1.4:53126>8.8.8.8:53": [
+        18,
+        19,
+        20,
+        21
+      ]
     }
   },
   "gold_derivation": {
-    "gt_pointers": ["facts.conversations", "frames[?(@.conv==null)]"],
+    "gt_pointers": [
+      "facts.conversations",
+      "frames[?(@.conv==null)]"
+    ],
     "session_binding": [
-      { "gt_conv": "A", "tuple": { "proto": "tcp", "src": "192.168.1.4", "sport": 53124, "dst": "142.250.74.14", "dport": 443 }, "expected_conversation_id": "conv:tcp:0" },
-      { "gt_conv": "B", "tuple": { "proto": "tcp", "src": "192.168.1.4", "sport": 53125, "dst": "93.184.216.34", "dport": 80 }, "expected_conversation_id": "conv:tcp:1" },
-      { "gt_conv": "C", "tuple": { "proto": "udp", "src": "192.168.1.4", "sport": 53126, "dst": "8.8.8.8", "dport": 53 }, "expected_conversation_id": "conv:udp:0" }
+      {
+        "gt_conv": "A",
+        "tuple": {
+          "proto": "tcp",
+          "src": "192.168.1.4",
+          "sport": 53124,
+          "dst": "142.250.74.14",
+          "dport": 443
+        },
+        "expected_conversation_id": "conv:tcp:0"
+      },
+      {
+        "gt_conv": "B",
+        "tuple": {
+          "proto": "tcp",
+          "src": "192.168.1.4",
+          "sport": 53125,
+          "dst": "93.184.216.34",
+          "dport": 80
+        },
+        "expected_conversation_id": "conv:tcp:1"
+      },
+      {
+        "gt_conv": "C",
+        "tuple": {
+          "proto": "udp",
+          "src": "192.168.1.4",
+          "sport": 53126,
+          "dst": "8.8.8.8",
+          "dport": 53
+        },
+        "expected_conversation_id": "conv:udp:0"
+      }
     ],
     "derivation": "facts.conversations 恰有 3 个会话（A/B/C，五元组取自各条目的 src/sport/dst/dport/proto）。从前 3 名里选 3 个 = 全集 {A,B,C}，在 x-match=unordered 口径下与字节排序无关。字节量佐证（非排序依据）：A 的 4 个数据帧 note 标注 320+1440+1440+320=3520B 应用载荷，为捕获中流量最大的会话；帧 31（广播 UDP，conv=null）与帧 32（单向无应答 UDP，conv=null）在 gt 中无会话归属，不构成双向会话，不参与排名。证据帧集取 gt.conversations[].frames 全集，使部分引用（如只引数据帧）precision=1、recall<1 仍判为有效支撑（RFC-002 §6.2）。",
     "canonical_key_format": "gold_evidence 的键为规范化五元组 {proto}|{src}:{sport}>{dst}:{dport}，与 answer_schema 的 x-element-key 一致；判分前对 answer 元素按同规则规范化",
@@ -81,18 +198,44 @@
   },
   "reference_solution": {
     "steps": [
-      { "n": 1, "tool": "traffic_open", "input": "fixtures/web-session.pcap", "expect": "确立 capture_id；packet_count=32" },
-      { "n": 2, "tool": "traffic_overview", "input": "—", "expect": "会话列表 3 条（Conversation.bytes 含双向字节计数），另有单包 UDP 流不构成双向会话" },
-      { "n": 3, "tool": "（组答）", "input": "按 bytes 总和降序取前 3", "expect": "{A, B, C} 三个五元组 + 各自代表性帧作为 evidence" }
+      {
+        "n": 1,
+        "tool": "traffic_open",
+        "input": "fixtures/web-session.pcap",
+        "expect": "确立 capture_id；packet_count=32"
+      },
+      {
+        "n": 2,
+        "tool": "traffic_overview",
+        "input": "—",
+        "expect": "会话列表 3 条（Conversation.bytes 含双向字节计数），另有单包 UDP 流不构成双向会话"
+      },
+      {
+        "n": 3,
+        "tool": "（组答）",
+        "input": "按 bytes 总和降序取前 3",
+        "expect": "{A, B, C} 三个五元组 + 各自代表性帧作为 evidence"
+      }
     ],
     "bash_equivalent": "tshark -r fixtures/web-session.pcap -q -z conv,tcp -z conv,udp  # 双向表仅 3 条会话；广播/单向流须按『双向会话』定义排除",
     "alternative_path": "traffic_query(AST) 投影 conversation 的 bytes 字段后排序；SQL 臂 traffic_sql('SELECT ... FROM conversations ORDER BY bytes_total DESC LIMIT 3')",
-    "factors": { "H": 2, "C": 1, "G": "会话级 top-N 聚合（3 会话）", "X": 1, "N": "low（2/32 帧为噪声，需正确排除）" },
+    "factors": {
+      "H": 2,
+      "C": 1,
+      "G": "会话级 top-N 聚合（3 会话）",
+      "X": 1,
+      "N": "low（2/32 帧为噪声，需正确排除）"
+    },
     "difficulty_derivation": "备忘录 §2：H=2 且会话级 top-N 聚合 → D2；能力轴 S2（聚合统计）"
   },
   "tags": {
-    "protocols": ["tcp", "udp"],
-    "skill": ["S2"],
+    "protocols": [
+      "tcp",
+      "udp"
+    ],
+    "skill": [
+      "S2"
+    ],
     "difficulty": 2,
     "difficulty_label": "D2",
     "ir_coverage": "covered",
@@ -101,32 +244,115 @@
   },
   "provenance": {
     "source": "llm_draft+human_review",
-    "human_review_status": "待终审（见 bench/slices/v0-questions-review.md 边界判断 #1–#4：universe=3 排序不敏感、gt 无 bytes 字段、重传字节口径、gold_evidence 全帧集取舍）",
+    "human_review_status": "已终审 2026-08-21：保留 unordered 现状（裁决 #1–#4）；见 v0-questions-review.md §6",
     "memo": "Benchmark题型Taxonomy备忘录.md §1/§2"
   },
   "canary": {
     "known_good": {
       "answer": {
         "top3_sessions": [
-          { "value": { "proto": "tcp", "src": "192.168.1.4", "sport": 53125, "dst": "93.184.216.34", "dport": 80 }, "evidence": [25, 27] },
-          { "value": { "proto": "udp", "src": "192.168.1.4", "sport": 53126, "dst": "8.8.8.8", "dport": 53 }, "evidence": [18, 19] },
-          { "value": { "proto": "tcp", "src": "192.168.1.4", "sport": 53124, "dst": "142.250.74.14", "dport": 443 }, "evidence": [7, 9, 10, 13] }
+          {
+            "value": {
+              "proto": "tcp",
+              "src": "192.168.1.4",
+              "sport": 53125,
+              "dst": "93.184.216.34",
+              "dport": 80
+            },
+            "evidence": [
+              25,
+              27
+            ]
+          },
+          {
+            "value": {
+              "proto": "udp",
+              "src": "192.168.1.4",
+              "sport": 53126,
+              "dst": "8.8.8.8",
+              "dport": 53
+            },
+            "evidence": [
+              18,
+              19
+            ]
+          },
+          {
+            "value": {
+              "proto": "tcp",
+              "src": "192.168.1.4",
+              "sport": 53124,
+              "dst": "142.250.74.14",
+              "dport": 443
+            },
+            "evidence": [
+              7,
+              9,
+              10,
+              13
+            ]
+          }
         ]
       },
-      "expect": { "schema_valid": true, "correctness": true, "evidence_pass": true },
+      "expect": {
+        "schema_valid": true,
+        "correctness": true,
+        "evidence_pass": true
+      },
       "note": "元素顺序打乱 + 证据为数据帧子集：验证 unordered 比对与『precision=1 且 recall>0 即有效支撑』口径"
     },
     "known_bad": {
       "answer": {
         "top3_sessions": [
-          { "value": { "proto": "tcp", "src": "192.168.1.4", "sport": 53124, "dst": "142.250.74.14", "dport": 443 }, "evidence": [7, 9, 10, 13] },
-          { "value": { "proto": "tcp", "src": "192.168.1.4", "sport": 53125, "dst": "93.184.216.34", "dport": 80 }, "evidence": [25, 27] },
-          { "value": { "proto": "udp", "src": "192.168.1.4", "sport": 40000, "dst": "10.0.0.9", "dport": 9999 }, "evidence": [32] }
+          {
+            "value": {
+              "proto": "tcp",
+              "src": "192.168.1.4",
+              "sport": 53124,
+              "dst": "142.250.74.14",
+              "dport": 443
+            },
+            "evidence": [
+              7,
+              9,
+              10,
+              13
+            ]
+          },
+          {
+            "value": {
+              "proto": "tcp",
+              "src": "192.168.1.4",
+              "sport": 53125,
+              "dst": "93.184.216.34",
+              "dport": 80
+            },
+            "evidence": [
+              25,
+              27
+            ]
+          },
+          {
+            "value": {
+              "proto": "udp",
+              "src": "192.168.1.4",
+              "sport": 40000,
+              "dst": "10.0.0.9",
+              "dport": 9999
+            },
+            "evidence": [
+              32
+            ]
+          }
         ]
       },
       "error_form": "wrong_value",
       "emulates": "把 -z conv,udp 里出现的单向无应答流（帧 32，orphan UDP）当作会话，顶替了 DNS 会话 C：集合混入非会话元素，且其证据帧不属于任何 gold 帧集",
-      "expect": { "schema_valid": true, "correctness": false, "evidence_pass": false }
+      "expect": {
+        "schema_valid": true,
+        "correctness": false,
+        "evidence_pass": false
+      }
     }
   }
 }

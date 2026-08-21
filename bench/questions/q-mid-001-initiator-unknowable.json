@@ -1,0 +1,90 @@
+{
+  "question_id": "q-mid-001",
+  "version": 1,
+  "capture": {
+    "fixture": "mid-capture",
+    "path": "fixtures/mid-capture.pcap",
+    "gt": "ground_truth/mid-capture.gt.json"
+  },
+  "type": "scalar_enum",
+  "question": "mid-capture 捕获中存在一条 TCP 会话（五元组 tcp 192.168.9.9:52300 → 93.184.10.20:443）。仅凭该捕获内的证据，能否确证哪一方是真正的连接发起方？若能，回答发起方的 IP；若不能确证，回答 \"unknowable\"。不要依赖端口号启发式做断言。",
+  "answer_schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "x-kind": "scalar_enum",
+    "type": "object",
+    "properties": {
+      "initiator": {
+        "type": "object",
+        "properties": {
+          "value": { "enum": ["192.168.9.9", "93.184.10.20", "unknowable"] },
+          "evidence": {
+            "type": "array",
+            "items": { "type": "integer", "minimum": 1 },
+            "uniqueItems": true
+          }
+        },
+        "required": ["value", "evidence"],
+        "additionalProperties": false
+      }
+    },
+    "required": ["initiator"],
+    "additionalProperties": false
+  },
+  "gold": {
+    "initiator": { "value": "unknowable" }
+  },
+  "gold_evidence": {
+    "initiator": []
+  },
+  "gold_derivation": {
+    "gt_pointers": [
+      "facts.handshakes（空数组）",
+      "frames[?(@.kind=='syn' || @.kind=='synack')]（不存在）",
+      "frames[0].note == 'server-first TLS appdata; capture starts mid-stream, no SYN'"
+    ],
+    "derivation": "facts.handshakes 为空且全部 5 帧的 kind ∈ {data, ack}——捕获从流中段开始，不含任何握手证据。生成器构造意图即『无 SYN 的中段捕获』（frames[0].note 明示），因此发起方在捕获内不可确证：任何具体 IP 断言都只能来自端口启发式（52300 为临时端口≈客户端），而题面已禁止启发式断言。gold = unknowable，gold_evidence = 空集（无可引用的支撑帧）。干扰项：帧 1 方向为 server→client 的数据帧，可能诱导回答 93.184.10.20（'先发数据者是客户端'同样是启发式）。",
+    "tolerance_note": "枚举精确比对，无容差；unknowable 为注册哨兵值（备忘录 §7-M3 空集特例）"
+  },
+  "reference_solution": {
+    "steps": [
+      { "n": 1, "tool": "traffic_open", "input": "fixtures/mid-capture.pcap", "expect": "确立 capture_id；packet_count=5" },
+      { "n": 2, "tool": "traffic_inspect", "input": "conversation_id=conv:tcp:0（按五元组定位）", "expect": "timeline 中无 syn/synack 握手事件（仅 data/ack）；direction_basis 非 handshake——方向判定缺必要证据" },
+      { "n": 3, "tool": "（组答）", "input": "—", "expect": "{initiator:{value:'unknowable',evidence:[]}}——诚实报告不可得" }
+    ],
+    "bash_equivalent": "tshark -r fixtures/mid-capture.pcap -Y 'tcp.flags.syn==1 || tcp.flags.syn==1 && tcp.flags.ack==1' -T fields -e frame.number  # 空输出 ⇒ 无握手证据，方向不可确证",
+    "alternative_path": "traffic_query(scope=event, where=[{field:'type',op:'eq',value:'tcp_handshake'}]) 期望空集",
+    "factors": { "H": 2, "C": 1, "G": "small", "X": 1, "N": "low" },
+    "difficulty_derivation": "备忘录 §2：H=2（open→inspect 有依赖）、C=1 → D2；能力轴 S9（诚实性/不可知）"
+  },
+  "tags": {
+    "protocols": ["tcp"],
+    "skill": ["S9"],
+    "difficulty": 2,
+    "difficulty_label": "D2",
+    "ir_coverage": "covered",
+    "corpus_layer": "L1",
+    "scenario_pack": "P2"
+  },
+  "provenance": {
+    "source": "llm_draft+human_review",
+    "human_review_status": "待终审（S9 首批起草题：unknowable 哨兵值口径、题面是否充分禁止启发式断言）",
+    "memo": "Benchmark题型Taxonomy备忘录.md §1-S9/§7（空集 gold 特例）"
+  },
+  "canary": {
+    "known_good": {
+      "answer": {
+        "initiator": { "value": "unknowable", "evidence": [] }
+      },
+      "expect": { "schema_valid": true, "correctness": true, "evidence_pass": true },
+      "note": "诚实空引用：验证空集 gold 特例（cited=∅ 判有效支撑）与 M4 不判幻觉"
+    },
+    "known_bad": {
+      "answer": {
+        "initiator": { "value": "192.168.9.9", "evidence": [1] }
+      },
+      "error_form": "wrong_value",
+      "emulates": "把端口启发式（临时端口≈客户端）当确证结论，对无握手证据的中段捕获编造方向——S9 幻觉形态（M4 应计 hallucination）",
+      "expect": { "schema_valid": true, "correctness": false, "evidence_pass": false }
+    }
+  }
+}

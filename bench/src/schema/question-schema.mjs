@@ -181,12 +181,16 @@ function normalizeScalar(v) {
 }
 
 function evidencePR(cited, gold) {
+  // 空集/不可知 gold（备忘录 §7-M3 注册定义，2026-08-21 锁定）：诚实空引用=有效支撑
+  if (gold.length === 0) {
+    return { precision: cited.length === 0 ? 1 : 0, recall: 1, pass: cited.length === 0 };
+  }
   const c = new Set(cited);
   const g = new Set(gold);
   let inter = 0;
   for (const f of c) if (g.has(f)) inter++;
   const precision = c.size === 0 ? 0 : inter / c.size;
-  const recall = g.size === 0 ? 0 : inter / g.size;
+  const recall = inter / g.size;
   return { precision, recall, pass: precision === 1 && recall > 0 };
 }
 
@@ -350,8 +354,17 @@ export function validateEnvelope(q, gt) {
   // 证据帧范围（对 gold_evidence；gt 已加载时才检查）
   if (gt) {
     const n = gt.packet_count;
-    const checkFrames = (frames, where) => {
-      if (!Array.isArray(frames) || frames.length === 0) { push(`${where}: 帧集应为非空数组`); return; }
+    // S9 空 gold（空集/unknowable）豁免非空帧集要求
+    const assertsNothing = (f) => {
+      const node = q.gold?.[f];
+      return !!node && (
+        (Array.isArray(node.value) && node.value.length === 0) ||
+        node.value === "unknowable" ||
+        node.unknowable === true
+      );
+    };
+    const checkFrames = (frames, where, allowEmpty = false) => {
+      if (!Array.isArray(frames) || (!allowEmpty && frames.length === 0)) { push(`${where}: 帧集应为非空数组`); return; }
       for (const fr of frames) {
         if (!Number.isInteger(fr) || fr < 1 || fr > n) push(`${where}: 帧号 ${fr} 越界（应 ∈ [1,${n}]）`);
       }
@@ -360,7 +373,7 @@ export function validateEnvelope(q, gt) {
       if (q.type === "set") {
         for (const [k, frames] of Object.entries(val)) checkFrames(frames, `gold_evidence.${f}[${k}]`);
       } else {
-        checkFrames(val, `gold_evidence.${f}`);
+        checkFrames(val, `gold_evidence.${f}`, assertsNothing(f));
       }
     }
   }

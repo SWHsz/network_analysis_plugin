@@ -6,11 +6,12 @@
  */
 import path from "node:path";
 import { REPO_ROOT } from "../paths.js";
+import type { ToolCallRecord } from "./types.js";
 import { AstArm } from "./ast-tools.js";
 
 async function main(): Promise<void> {
   const capture = path.join(REPO_ROOT, "fixtures", "web-session.pcap");
-  const records = [];
+  const records: ToolCallRecord[] = [];
   const astArm = new AstArm(capture);
   const tools = new Map(astArm.buildTools(records).map((t) => [t.name, t]));
   const call = async (name: string, params: unknown): Promise<unknown> => {
