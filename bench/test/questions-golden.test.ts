@@ -11,8 +11,8 @@ import { fenced } from "./helpers.js";
 const questions = loadQuestionsDir();
 
 describe("bench/questions 题库", () => {
-  it("切片 5 题 + S9 首批 2 题，覆盖五种答案形态与三种 canary 错误形态", () => {
-    expect(questions.length).toBe(7);
+  it("切片 5 题 + S9 两题 + D3 关联链一题，覆盖五种答案形态与三种 canary 错误形态", () => {
+    expect(questions.length).toBe(8);
     const forms = new Set(questions.map((q) => q.type));
     expect(forms.has("scalar_number")).toBe(true);
     expect(forms.has("scalar_enum")).toBe(true);
@@ -25,12 +25,12 @@ describe("bench/questions 题库", () => {
     expect(s9.length / questions.length).toBeGreaterThanOrEqual(0.1);
   });
 
-  it("canary 元评测 14/14（验收 b 扩展）", () => {
+  it("canary 元评测 16/16（验收 b 扩展）", () => {
     const r = metaEvalAll(questions);
     const failed = r.checks.filter((c) => !c.match);
     expect(failed, JSON.stringify(failed.map((c) => [c.questionId, c.side, c.expect, c.actual]))).toEqual([]);
-    expect(r.totalGood).toBe(7);
-    expect(r.totalBad).toBe(7);
+    expect(r.totalGood).toBe(8);
+    expect(r.totalBad).toBe(8);
     expect(r.accCorrect).toBe(1);
     expect(r.accWrong).toBe(1);
   });

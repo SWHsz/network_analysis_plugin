@@ -52,6 +52,19 @@ describe("scalar_enum / scalar_string", () => {
     });
     expect(scoreCorrectness(qs, { qname: node("  youtube.com ") }).correct).toBe(true);
   });
+
+  it("对象值标量（如五元组）走 deepEqual 比对（q-web-005 路径）", () => {
+    const tuple = { proto: "tcp", src: "192.168.1.4", sport: 53124, dst: "142.250.74.14", dport: 443 };
+    const q = makeQuestion({
+      answer_schema: { type: "object", properties: { sess: { type: "object" } }, required: ["sess"] },
+      gold: { sess: { value: tuple } },
+      gold_evidence: { sess: [1] },
+    });
+    // 键序不同仍相等
+    const reordered = { dport: 443, dst: tuple.dst, sport: tuple.sport, src: tuple.src, proto: "tcp" };
+    expect(scoreCorrectness(q, { sess: node(reordered) }).correct).toBe(true);
+    expect(scoreCorrectness(q, { sess: node({ ...tuple, dport: 444 }) }).correct).toBe(false);
+  });
 });
 
 const TUPLE = (sport: number, proto = "tcp") => ({ proto, src: "192.168.1.4", sport, dst: "10.0.0.1", dport: 443 });

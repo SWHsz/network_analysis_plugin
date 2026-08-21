@@ -17,6 +17,7 @@
  * （number→数值容差、boolean/string→规范化精确、array→set）。
  */
 import { canonicalElementKey } from "./elements.js";
+import { deepEqual } from "./schema.js";
 import type { JsonSchema } from "./schema.js";
 import type { Question } from "./question.js";
 
@@ -112,8 +113,8 @@ function scoreScalar(path: string, kind: string, goldValue: unknown, goldNode: {
     if (!out.pass) out.detail = `|${a} - ${goldValue}| > tol ${tol}`;
     return;
   }
-  // scalar_enum / scalar_string：规范化后精确
-  out.pass = normalizeScalar(a) === normalizeScalar(goldValue);
+  // scalar_enum / scalar_string：规范化后精确（对象值如五元组走 deepEqual）
+  out.pass = deepEqual(normalizeScalar(a), normalizeScalar(goldValue));
   if (!out.pass) out.detail = `${JSON.stringify(a)} != gold ${JSON.stringify(goldValue)}`;
 }
 

@@ -1,0 +1,133 @@
+{
+  "question_id": "q-web-005",
+  "version": 1,
+  "capture": {
+    "fixture": "web-session",
+    "path": "fixtures/web-session.pcap",
+    "gt": "ground_truth/web-session.gt.json"
+  },
+  "type": "record",
+  "question": "跨层关联两问：1) dns_answer_ip——youtube.com 的 DNS 应答给出的 IPv4 地址是什么？2) followup_session——在该捕获中，以这个地址作为通信对端目标（目标 IP）的 TCP 会话是哪一条，给出其完整规范化五元组。",
+  "answer_schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "x-kind": "record",
+    "type": "object",
+    "properties": {
+      "dns_answer_ip": {
+        "type": "object",
+        "properties": {
+          "value": { "type": "string" },
+          "evidence": {
+            "type": "array",
+            "items": { "type": "integer", "minimum": 1 },
+            "minItems": 1,
+            "uniqueItems": true
+          }
+        },
+        "required": ["value", "evidence"],
+        "additionalProperties": false
+      },
+      "followup_session": {
+        "type": "object",
+        "properties": {
+          "value": { "$ref": "#/$defs/session_tuple" },
+          "evidence": {
+            "type": "array",
+            "items": { "type": "integer", "minimum": 1 },
+            "minItems": 1,
+            "uniqueItems": true
+          }
+        },
+        "required": ["value", "evidence"],
+        "additionalProperties": false
+      }
+    },
+    "required": ["dns_answer_ip", "followup_session"],
+    "additionalProperties": false,
+    "$defs": {
+      "session_tuple": {
+        "type": "object",
+        "properties": {
+          "proto": { "enum": ["tcp", "udp"] },
+          "src": { "type": "string" },
+          "sport": { "type": "integer", "minimum": 0, "maximum": 65535 },
+          "dst": { "type": "string" },
+          "dport": { "type": "integer", "minimum": 0, "maximum": 65535 }
+        },
+        "required": ["proto", "src", "sport", "dst", "dport"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "gold": {
+    "dns_answer_ip": { "value": "142.250.74.14" },
+    "followup_session": {
+      "value": { "proto": "tcp", "src": "192.168.1.4", "sport": 53124, "dst": "142.250.74.14", "dport": 443 }
+    }
+  },
+  "gold_evidence": {
+    "dns_answer_ip": [19],
+    "followup_session": [1]
+  },
+  "gold_derivation": {
+    "gt_pointers": [
+      "facts.dns[?(@.qname=='youtube.com')].address",
+      "facts.conversations[?(@.dst==address && @.proto=='tcp')]"
+    ],
+    "derivation": "第一跳：facts.dns 过滤 qname=='youtube.com' 得 address='142.250.74.14'（gt 新增字段，生成器写入 rdata 的构造意图），证据帧 = response_frame 19。第二跳（pivot）：facts.conversations 过滤 proto=='tcp' 且 dst==address → 唯一命中会话 A（tcp 192.168.1.4:53124→142.250.74.14:443），五元组取自该条目；证据帧 = 该会话的 syn 帧 1（建立即指向对端）。关联跨度 X=2（DNS 层→TCP/TLS 层）。干扰项：8.8.8.8 是 DNS 解析器而非应答地址（角色混淆）；conv B 的 dst=93.184.216.34、噪声/孤立 UDP 与该地址无关。",
+    "canonical_key_format": "followup_session 的 value 为规范化五元组对象（与 x-element-key 同一规范形），判分按 deepEqual 比对",
+    "tolerance_note": "字符串精确比对（大小写规范化）；五元组 deepEqual 精确比对，无容差"
+  },
+  "reference_solution": {
+    "steps": [
+      { "n": 1, "tool": "traffic_open", "input": "fixtures/web-session.pcap", "expect": "确立 capture_id；packet_count=32" },
+      { "n": 2, "tool": "traffic_raw_query", "input": "{fields:['dns.a'], display_filter:'dns.flags.response==1 && dns.qry.name==\"youtube.com\"'}", "expect": "142.250.74.14（attr.* 白名单无 DNS 应答地址，逃生口是插件侧唯一路径）" },
+      { "n": 3, "tool": "traffic_query", "input": "{scope:'conversation', where:[{field:'responder_ip',op:'eq',value:'142.250.74.14'}]}", "expect": "唯一命中 conv:tcp:0（192.168.1.4:53124→142.250.74.14:443）" },
+      { "n": 4, "tool": "（组答）", "input": "—", "expect": "{dns_answer_ip:{value:'142.250.74.14',evidence:[19]}, followup_session:{value:{...A 五元组},evidence:[1]}}" }
+    ],
+    "bash_equivalent": "tshark -r fixtures/web-session.pcap -Y 'dns.flags.response==1 && dns.qry.name==\"youtube.com\"' -T fields -e dns.a  # → 142.250.74.14；再 tshark -Y 'ip.dst==142.250.74.14 && tcp.flags.syn==1' -T fields -e ip.src -e tcp.srcport -e ip.dst -e tcp.dstport",
+    "alternative_path": "traffic_evidence(frames=[19]) 读不到应答地址（固定字段集无 dns.a）——本题刻意切在 raw_query_only 口径上",
+    "ir_rationale": "第一跳的关键字段 DNS 应答地址不在 IR 覆盖内：dns_response 的 attr.* 白名单仅 {dns_id,qname,rcode_num}，FRAMES_FIELDS 固定字段集有 dns_qname 但无应答 IP（已对照 docs/event-registry.md 与 packages/traffic-core/src/frames.ts 核实）；traffic_raw_query(fields=['dns.a']) 是插件侧唯一路径。第二跳（responder_ip 定位会话）属 covered。整题判定 raw_query_only。",
+    "factors": { "H": 3, "C": 2, "G": "small", "X": 2, "N": "low" },
+    "difficulty_derivation": "备忘录 §2：H=3（open→raw_query→query 有依赖链）且 X=2（DNS 层→TCP 层 pivot）→ D3；能力轴 S4（关联透视）"
+  },
+  "tags": {
+    "protocols": ["dns", "tcp"],
+    "skill": ["S4"],
+    "difficulty": 3,
+    "difficulty_label": "D3",
+    "ir_coverage": "raw_query_only",
+    "corpus_layer": "L1",
+    "scenario_pack": "P1"
+  },
+  "provenance": {
+    "source": "llm_draft+human_review",
+    "human_review_status": "待终审（AI 起草稿：ir_rationale 依赖 attr 白名单无 dns.a 的核实结论；题面是否泄漏第二跳答案结构）",
+    "memo": "Benchmark题型Taxonomy备忘录.md §1-S4/§2"
+  },
+  "canary": {
+    "known_good": {
+      "answer": {
+        "dns_answer_ip": { "value": "142.250.74.14", "evidence": [19] },
+        "followup_session": {
+          "value": { "proto": "tcp", "src": "192.168.1.4", "sport": 53124, "dst": "142.250.74.14", "dport": 443 },
+          "evidence": [1]
+        }
+      },
+      "expect": { "schema_valid": true, "correctness": true, "evidence_pass": true },
+      "note": "全字段对 + 各自帧证据；验证五元组对象的 deepEqual 比对路径"
+    },
+    "known_bad": {
+      "answer": {
+        "dns_answer_ip": { "value": "8.8.8.8", "evidence": [18] },
+        "followup_session": {
+          "value": { "proto": "udp", "src": "192.168.1.4", "sport": 53126, "dst": "8.8.8.8", "dport": 53 },
+          "evidence": [20]
+        }
+      },
+      "error_form": "wrong_value",
+      "emulates": "把 DNS 解析器 8.8.8.8 当作 youtube.com 的应答地址（角色混淆），并把查询会话本身当作后续会话——pivot 方向反了；两字段均值错且证据帧错位",
+      "expect": { "schema_valid": true, "correctness": false, "evidence_pass": false }
+    }
+  }
+}

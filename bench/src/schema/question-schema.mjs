@@ -218,7 +218,8 @@ export function scoreCorrectness(question, answer) {
       const tol = typeof g.tolerance_abs === "number" ? g.tolerance_abs : 0;
       results[field] = typeof a.value === "number" && Math.abs(a.value - g.value) <= tol;
     } else {
-      results[field] = normalizeScalar(a.value) === normalizeScalar(g.value);
+      // 对象值（如五元组）走 deepEqual；字符串规范化后精确
+      results[field] = deepEqual(normalizeScalar(a.value), normalizeScalar(g.value));
     }
   }
   return results;
