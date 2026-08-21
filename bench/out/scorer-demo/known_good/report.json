@@ -1,0 +1,129 @@
+{
+  "arm": "canary:known_good",
+  "model": "canary-reference",
+  "date": "2026-08-21",
+  "runs_per_question": 1,
+  "M1_correctness": {
+    "overall": 1,
+    "by_axis_difficulty": {
+      "S6×D1": {
+        "total": 1,
+        "correct": 1
+      },
+      "S2×D1": {
+        "total": 1,
+        "correct": 1
+      },
+      "S2×D2": {
+        "total": 1,
+        "correct": 1
+      },
+      "S2+S3×D2": {
+        "total": 1,
+        "correct": 1
+      },
+      "S1×D1": {
+        "total": 1,
+        "correct": 1
+      }
+    },
+    "by_scenario_pack": {
+      "P1": {
+        "total": 5,
+        "correct": 5
+      }
+    },
+    "by_ir_coverage": {
+      "covered": {
+        "total": 4,
+        "correct": 4
+      },
+      "raw_query_only": {
+        "total": 1,
+        "correct": 1
+      }
+    },
+    "by_corpus_layer": {
+      "L1": {
+        "total": 5,
+        "correct": 5
+      }
+    }
+  },
+  "M2_cost": {
+    "tokens_per_correct": null,
+    "usd_per_correct": null,
+    "wall_ms_per_correct": null
+  },
+  "M3_evidence": {
+    "coverage": 1,
+    "precision": 1,
+    "recall": 0.863834422657952
+  },
+  "M4_hallucination_rate": null,
+  "diagnostics": {
+    "format_error_rate": 0,
+    "error_mode_dist": {
+      "correct": 5,
+      "wrong": 0,
+      "format_error": 0,
+      "budget_exhausted": 0
+    },
+    "turns_per_question": null,
+    "budget_exhausted_rate": null,
+    "interface_tokens": null
+  },
+  "diagnosis_subset": null,
+  "per_run": [
+    {
+      "question_id": "q-edge-001",
+      "run_index": 1,
+      "classification": "correct",
+      "schema_valid": true,
+      "evidence_pass": true,
+      "needs_human_review_fields": [],
+      "hallucinated": null,
+      "budget_exhausted": null
+    },
+    {
+      "question_id": "q-web-001",
+      "run_index": 2,
+      "classification": "correct",
+      "schema_valid": true,
+      "evidence_pass": true,
+      "needs_human_review_fields": [],
+      "hallucinated": null,
+      "budget_exhausted": null
+    },
+    {
+      "question_id": "q-web-002",
+      "run_index": 3,
+      "classification": "correct",
+      "schema_valid": true,
+      "evidence_pass": true,
+      "needs_human_review_fields": [],
+      "hallucinated": null,
+      "budget_exhausted": null
+    },
+    {
+      "question_id": "q-web-003",
+      "run_index": 4,
+      "classification": "correct",
+      "schema_valid": true,
+      "evidence_pass": true,
+      "needs_human_review_fields": [],
+      "hallucinated": null,
+      "budget_exhausted": null
+    },
+    {
+      "question_id": "q-web-004",
+      "run_index": 5,
+      "classification": "correct",
+      "schema_valid": true,
+      "evidence_pass": true,
+      "needs_human_review_fields": [],
+      "hallucinated": null,
+      "budget_exhausted": null
+    }
+  ]
+}

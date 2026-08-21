@@ -7,6 +7,10 @@ dist/
 # Stirrup spike 运行产物（transcript/metrics 等本地证据，不入库）
 spikes/stirrup/out/
 
+# bench runner 的 LLM 运行转录（本地证据，体积大且含对话内容，不入库；
+# 确定性判分产物 bench/out/scorer-demo/ 仍入库）
+bench/out/runs/
+
 # 本机私有数据：真实抓包 / 对话记录 / 大数据集（不入库）
 .DS_Store
 .zcode/

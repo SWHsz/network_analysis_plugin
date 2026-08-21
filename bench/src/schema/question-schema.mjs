@@ -2,6 +2,9 @@
 // 用途：垂直切片期的题目/金丝雀自校验（canary 元评测，RFC-002 §6.3）。
 // 零依赖：仅 node:* 内置模块。
 //
+// 注：Prompt 3 之后判分正典实现移至 bench/src/scorer/（TS，含 set(ordered)/
+// top_k_prefix/tolerance_rel/等价帧细分/M4 支持）；本文件的信封校验仍是出题期入口。
+//
 // 判分口径（与 RFC-002 §6.1/§6.2、备忘录 §7 对齐）：
 //   scalar_number : |ans - gold| <= tolerance_abs ?? 0
 //   scalar_enum   : 精确比对（字符串大小写规范化）
