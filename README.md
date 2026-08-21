@@ -1,6 +1,6 @@
 # traffic-analysis-plugin
 
-帮助大模型（DSH / zcode 等 harness 中的 agent）**理解 pcap/pcapng 网络抓包文件**的插件。
+帮助大模型（DSH / zcode 等 harness 中的 agent）**理解 pcap/pcapng 网络抓包文件**的插件，附一套可复现的 pcap 问答基准 harness（`bench/`）。
 
 核心边界：
 
@@ -11,27 +11,28 @@
 PCAP ──确定性索引/抽取──▶ Traffic Observation IR ──受约束 Query──▶ 有界 Observation ──▶ LLM 下钻推理 ──▶ Packet-level Evidence
 ```
 
-## 能力总览（v0.5，围绕三大目的 + 有界 SQL）
+## 能力总览（v0.5）
 
 | 目的 | 机制 |
 |---|---|
-| **省上下文** | 紧凑默认投影、12k 渲染预算（砍行不砍列）、`traffic_timeseries` 服务端分箱聚合替代全量帧转储；实测同等分析深度比 v0.1 的 bash 路径省 ~23x（`scripts/context-report.mjs`） |
-| **结构化输入** | 5 族 11 种事件（tcp.analysis 家族 + HTTP 事务 + TLS 握手属性 version/cipher/sni）、metrics v3（rtt/吞吐/缺失段/payload/tls_app 字节）、attr.* 按类型校验的查询白名单、**frame scope** 按白名单字段过滤帧 |
+| **省上下文** | 紧凑默认投影、12k 渲染预算（砍行不砍列）、`traffic_timeseries` 服务端分箱聚合替代全量帧转储；实测同等分析深度比裸 bash 路径省 ~23x（`scripts/context-report.mjs`） |
+| **结构化输入** | 6 族 12 种事件（tcp.analysis 家族 + DNS/TLS 属性 + HTTP 事务 + tls_certificate）、metrics v3（rtt/吞吐/缺失段/payload/tls_app 字节）、attr.* 按类型校验的查询白名单、frame scope 按白名单字段过滤帧 |
 | **可检验证据** | `traffic_evidence` 返回固定字段集的帧级原始记录（≤200 帧/次）供模型复核 claim；全部观测携带 frame 级 evidence + audit（backend 版本、query_hash、render_chars） |
 | **长尾不锁死** | `traffic_raw_query(display_filter, fields, limit)` 有界逃生口：字段经 tshark 词表校验（附最近似候选）、结构化 argv（无 shell）、有界输出、调用进 audit——覆盖 IR 未预设的查询空间 |
-| **有界 SQL（v0.5，S1 增配）** | `traffic_sql`/`traffic_schema`：DuckDB-in-Parquet 只读查询层——宽表/attr 拍平/frame_refs 证据侧表/事务 view；语句与函数白名单（文件/系统副作用全拒）、行预算、超时 interrupt；现有 JSON 链路与 8 工具零改动（RFC-001 P7） |
-| **协议深化（v0.4）** | `tls_certificate` 事件（CN/SAN，TLS≤1.2）、QUIC stream 模型（Conversation→Stream，`scope:"stream"`）、`traffic_http_timeline` HTTP 事务瀑布；升级路线由 `scripts/promotion-report.mjs` 从真实会话的 raw_query 频次数据驱动 |
+| **有界 SQL** | `traffic_sql`/`traffic_schema`：DuckDB-in-Parquet 只读查询层——宽表/attr 拍平/frame_refs 证据侧表/事务 view；语句与函数白名单（文件/系统副作用全拒）、行预算、超时 interrupt；与 JSON 查询链路并存 |
+| **协议深化** | `tls_certificate` 事件（CN/SAN，TLS≤1.2）、QUIC stream 模型（Conversation→Stream，`scope:"stream"`）、`traffic_http_timeline` HTTP 事务瀑布 |
 
 ## 仓库结构
 
 ```text
 packages/
-├── traffic-core/     # 纯 TS 库：指纹/轻索引/IR/事件抽取/Query/Backend（不依赖 harness）
+├── traffic-core/     # 纯 TS 库：指纹/轻索引/IR/事件抽取/Query/SQL/Backend（不依赖 harness）
 └── dsh-plugin/       # DeepSeek Harness 插件：10 个 defineTool 的薄胶水
 fixtures/             # 确定性测试 pcap（web-session / mid-capture / edge-cases / tls-cert）
 ground_truth/         # 生成器导出的 ground truth（*.gt.json，detection_basis: generator_intent）
-docs/                 # 设计文档（见下）与样例规范
-scripts/              # generate-samples / verify-pinned-download / dsh-runtime-smoke / context-report / validate_gt
+bench/                # pcap-QA 基准 harness：题库/确定性判分器/两臂 runner/模板派生器
+docs/                 # 设计文档与样例规范
+scripts/              # generate-samples / verify-pinned-download / dsh-runtime-smoke / context-report / promotion-report / validate_gt
 ```
 
 ## 工具面（DSH）
@@ -46,8 +47,8 @@ scripts/              # generate-samples / verify-pinned-download / dsh-runtime-
 | `traffic_timeseries(capture_id, conv, metric, bin_ms)` | bytes/packets/window/rtt/tls_bytes 双向分箱，bin∈[10,5000]ms，>500 箱自动加宽 |
 | `traffic_raw_query(capture_id, fields, filter, limit)` | 有界逃生口：tshark display filter + 词表校验字段，IR 未覆盖的长尾查询 |
 | `traffic_http_timeline(capture_id, conversation_id?)` | HTTP 事务瀑布（配对 + ASCII 时间线，仅明文 HTTP） |
-| `traffic_sql(capture_id, sql, limit?)` | 有界只读 SQL（DuckDB）：白名单校验 + 行预算 + 证据约定（S1） |
-| `traffic_schema(capture_id)` | SQL 目录：表/列/null 语义/证据可用性/行数（S1） |
+| `traffic_sql(capture_id, sql, limit?)` | 有界只读 SQL（DuckDB）：白名单校验 + 行预算 + 证据约定 |
+| `traffic_schema(capture_id)` | SQL 目录：表/列/null 语义/证据可用性/行数 |
 
 典型 agent loop：`open → overview → query(conversation) → inspect → query(event) → evidence 复核`；
 时序分析用 `timeseries`；HTTP 页面加载看 `http_timeline`；QUIC 用 `scope:"stream"`；
@@ -55,6 +56,48 @@ IR 没有的字段走 `raw_query`。十三轮完整转录见 `docs/samples/`。
 
 `execute` 返回完整规范值（含 audit/provenance），DSH 的 `output.render` 输出有界表格文本
 （`{returned,total,offset,truncated}` 信封 + 聚合 frame 列表上限 100）。
+
+## Bench：pcap-QA 基准 harness
+
+`bench/` 回答一个问题：**怎么可复现地评测一个 LLM agent 分析 pcap 的能力**——判分全程确定性，不依赖 LLM judge。
+
+三个核心机制：
+
+1. **答案契约**。每道题声明 answer schema；被测 agent 的终答必须是符合 schema 的
+   JSON（唯一 ```json fenced block），且每个事实字段自带 `evidence: [帧号]`。
+   结构化让 claim 天然可枚举：正确率是查表比对（数值容差/枚举精确/集合三种匹配模式/
+   record 逐字段），不是自由文本打分。
+2. **gold 来自构造意图**。`ground_truth/*.gt.json` 由 `fixtures/generate.py` 在生成
+   pcap 的同时导出（`detection_basis: generator_intent`）——"第 N 帧是重传"在生成时刻
+   即为真值，不用被测系统的同款解析器反推 gold，避免循环论证。
+3. **判分器先被 benchmark**。每题预置 known_good/known_bad canary 对（覆盖值错/
+   证据帧错/格式错三种错误形态），判分器实跑结果必须与题目声明完全一致，
+   任一不一致即阻塞——判分器自身有回归门禁。
+
+目录与命令：
+
+```text
+bench/questions/        # 手写/起草题（信封校验 + canary 元评测全绿才入库）
+bench/questions-auto/   # 模板派生批量题（provenance=generator，抽审后入库）
+bench/src/scorer/       # 终答提取 → 契约校验 → 正确率/证据/幻觉判定 → §6.5 报告
+bench/src/runner/       # 两臂 runner：共享最小 agent loop，唯一变量是工具面
+bench/src/deriver/      # 模板派生器：gt facts → 批量题（含 canary 机械生成）
+```
+
+```sh
+pnpm --filter bench test          # 判分器单测
+node bench/src/schema/validate-questions.mjs   # 全库校验（手写 + 批量稿）
+pnpm --filter bench canary        # canary 元评测 CLI（不一致即非零退出）
+pnpm --filter bench derive        # gt → 批量题
+pnpm --filter bench slice-q1      # 两臂各跑一次示例题（需 LLM API key）
+pnpm --filter bench spike-sql     # SQL 查询层连通性验证
+```
+
+runner 说明：bash 臂（单 shell 工具）与 ast 臂（插件八工具）共享同一个基于
+[Stirrup](https://github.com/ArtificialAnalysis/StirrupJS)（锁 1.0.7）的最小 agent loop，
+同模型、同题面、同预算，便于归因工具面差异；每次工具调用的参数/耗时/渲染字符数落盘
+transcript，接口注入 token 经本地记录代理实测。切片期保留"终答提取后人工确认再判分"
+的半自动断点。
 
 ## Backend（tshark）策略
 
@@ -75,10 +118,10 @@ IR 没有的字段走 `raw_query`。十三轮完整转录见 `docs/samples/`。
 ```sh
 pnpm install
 pnpm build          # traffic-core → dsh-plugin（拓扑序）
-pnpm test           # vitest：解析器/查询引擎单测 + 真实 tshark 集成（无 tshark 自动 skip）
+pnpm test           # vitest：解析器/查询引擎单测 + 真实 tshark 集成（无 tshark 自动 skip）+ bench 判分器单测
 pnpm typecheck
 pnpm smoke          # 用真实 @deepseek-ai/{cordis,schemastery,dsh-tools} 加载插件并执行十工具全链路（含 DuckDB SQL）
-node scripts/context-report.mjs 23.pcap   # v0.2 vs v0.1(bash) 上下文开销对照
+node scripts/context-report.mjs 23.pcap   # 结构化路径 vs 裸 bash 的上下文开销对照
 node scripts/promotion-report.mjs .       # 挖会话 raw_query 频次 → IR 升级路线图
 
 # 生成/更新样例规范（docs/samples/）
@@ -101,12 +144,11 @@ python3 scripts/validate_gt.py
 /tmp/scapy-venv/bin/python scripts/validate_gt.py --spotcheck 5
 ```
 
-**ground truth 语义（RFC-002 §4.1）**：`ground_truth/*.gt.json` 的 gold 帧集来自
-`fixtures/generate.py` 生成时刻的构造意图（`detection_basis: generator_intent`），
-不是事后用 tshark 反推——避免"用被测系统的同款解析器产 gold"的循环论证。
-帧号 = wrpcap 写入顺序（与 tshark 的 frame.number 一致）；facts 含会话表、握手三元组、
-重传（含 of_frame 回链）、DNS 问答（qname/rcode/ttl）、HTTP 事务、TCP 异常
-（乱序/缺失段/dup_ack/零窗口）；逐帧 intent 上下文与全部语义裁定见
+**ground truth 语义**：`ground_truth/*.gt.json` 的 gold 帧集来自 `fixtures/generate.py`
+生成时刻的构造意图（`detection_basis: generator_intent`），不是事后用 tshark 反推。
+帧号 = wrpcap 写入顺序（与 tshark 的 frame.number 一致）；facts 含会话表（含 bytes 线字节数）、
+握手三元组、重传（含 of_frame 回链）、DNS 问答（qname/rcode/ttl/address）、HTTP 事务、
+TCP 异常（乱序/缺失段/dup_ack/零窗口）；逐帧 intent 上下文与全部语义裁定见
 `fixtures/generate.py` 头部注释。
 
 ### 在 DSH 中启用（已在真实环境验证）
@@ -161,10 +203,10 @@ dsh --profile web --dump-config   # 应出现 "# == dsh-traffic-analysis-plugin"
 |---|---|
 | `docs/ir-schema.md` | IR 对象（Capture/Conversation/Event）、detection 语义、缓存新鲜度 |
 | `docs/query-dsl.md` | AST 形状、字段白名单、null 语义、结果信封 |
-| `docs/event-registry.md` | 3 族 5 种事件、抽取管线、扩展指南 |
-| `docs/samples/` | 六轮 agent loop 的定稿样例（样例即规范） |
+| `docs/event-registry.md` | 6 族 12 种事件、抽取管线、扩展指南 |
+| `docs/samples/` | 十三轮 agent loop 的定稿样例（样例即规范） |
 
-## 明确不做（下一版候选，按 RFC-001 判决驱动）
+## 明确不做（下一版候选）
 
-zcode MCP 胶水、tshark 二进制 npm 子包、QUIC/HTTP2 stream 层、跨 conversation
+zcode MCP 胶水、tshark 二进制 npm 子包、HTTP2 stream 层、跨 conversation
 事务配对、OR 条件与任意表达式。
