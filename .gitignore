@@ -20,6 +20,7 @@ bench/out/runs/
 dsh-session-*
 演进计划RFC.md
 dataset_anoymized
+dataset
 *.md
 !README.md
 
