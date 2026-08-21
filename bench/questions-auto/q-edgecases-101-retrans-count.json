@@ -1,0 +1,144 @@
+{
+  "question_id": "q-edgecases-101",
+  "version": 1,
+  "capture": {
+    "fixture": "edge-cases",
+    "path": "fixtures/edge-cases.pcap",
+    "gt": "ground_truth/edge-cases.gt.json"
+  },
+  "type": "record",
+  "question": "会话（五元组 tcp 10.0.0.1:6002 → 10.0.0.3:443）发生了多少次 TCP 重传？",
+  "answer_schema": {
+    "x-kind": "record",
+    "type": "object",
+    "properties": {
+      "retransmission_count": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "value",
+          "evidence"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "required": [
+      "retransmission_count"
+    ],
+    "additionalProperties": false
+  },
+  "gold": {
+    "retransmission_count": {
+      "value": 1
+    }
+  },
+  "gold_evidence": {
+    "retransmission_count": [
+      19
+    ]
+  },
+  "gold_derivation": {
+    "gt_pointers": [
+      "facts.retransmissions[?(@.conv=='X2')]"
+    ],
+    "derivation": "facts.retransmissions 过滤 conv=='X2' 得 1 条（帧 19）；证据帧 = 各重传帧。",
+    "tolerance_note": "计数字段未声明容差 = 零容差（备忘录 §7 注册定义）"
+  },
+  "reference_solution": {
+    "steps": [
+      {
+        "n": 1,
+        "tool": "traffic_open",
+        "input": "fixtures/edge-cases.pcap",
+        "expect": "确立 capture_id；packet_count=30"
+      },
+      {
+        "n": 2,
+        "tool": "traffic_query",
+        "input": "{scope:'event', where:[{field:'type',op:'eq',value:'tcp_retransmission'}]}",
+        "expect": "X2 名下 1 行"
+      },
+      {
+        "n": 3,
+        "tool": "（组答）",
+        "input": "—",
+        "expect": "retransmission_count=1"
+      }
+    ],
+    "bash_equivalent": "tshark -r fixtures/edge-cases.pcap -Y 'tcp.analysis.retransmission' -T fields -e frame.number",
+    "factors": {
+      "H": 2,
+      "C": 1,
+      "G": "small",
+      "X": 1,
+      "N": "low"
+    },
+    "difficulty_derivation": "备忘录 §2：模板题固定口径 → D1；能力轴 S2"
+  },
+  "tags": {
+    "protocols": [
+      "tcp"
+    ],
+    "skill": [
+      "S2"
+    ],
+    "difficulty": 1,
+    "difficulty_label": "D1",
+    "ir_coverage": "covered",
+    "corpus_layer": "L1",
+    "scenario_pack": "P2"
+  },
+  "provenance": {
+    "source": "generator",
+    "note": "模板派生批量稿；人工抽审后入库"
+  },
+  "canary": {
+    "known_good": {
+      "answer": {
+        "retransmission_count": {
+          "value": 1,
+          "evidence": [
+            19
+          ]
+        }
+      },
+      "expect": {
+        "schema_valid": true,
+        "correctness": true,
+        "evidence_pass": true
+      },
+      "note": "gold 合成答案（机械派生）"
+    },
+    "known_bad": {
+      "answer": {
+        "retransmission_count": {
+          "value": 2,
+          "evidence": [
+            19
+          ]
+        }
+      },
+      "error_form": "wrong_value",
+      "emulates": "值错形态：数值越容差偏移 / 枚举取反 / 字符串污染 / 五元组端口扰动",
+      "expect": {
+        "schema_valid": true,
+        "correctness": false,
+        "evidence_pass": true
+      }
+    }
+  }
+}

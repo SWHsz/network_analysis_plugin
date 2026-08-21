@@ -8,7 +8,9 @@
     "typecheck": "tsc --noEmit",
     "canary": "tsx src/scorer/cli.ts canary",
     "demo-reports": "tsx src/scorer/cli.ts demo-reports",
-    "slice-q1": "tsx src/runner/run-slice-q1.ts"
+    "slice-q1": "tsx src/runner/run-slice-q1.ts",
+    "derive": "tsx src/deriver/cli.ts",
+    "spike-sql": "tsx src/runner/spike-sql.ts"
   },
   "dependencies": {
     "traffic-core": "workspace:*"

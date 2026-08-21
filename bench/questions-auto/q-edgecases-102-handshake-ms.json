@@ -1,0 +1,149 @@
+{
+  "question_id": "q-edgecases-102",
+  "version": 1,
+  "capture": {
+    "fixture": "edge-cases",
+    "path": "fixtures/edge-cases.pcap",
+    "gt": "ground_truth/edge-cases.gt.json"
+  },
+  "type": "scalar_number",
+  "question": "会话（五元组 tcp 10.0.0.1:6002 → 10.0.0.3:443）的 TCP 三次握手总耗时是多少毫秒？（客户端 SYN 到握手完成 ACK）",
+  "answer_schema": {
+    "x-kind": "scalar_number",
+    "type": "object",
+    "properties": {
+      "tcp_handshake_ms": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "number",
+            "minimum": 0
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "value",
+          "evidence"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "required": [
+      "tcp_handshake_ms"
+    ],
+    "additionalProperties": false
+  },
+  "gold": {
+    "tcp_handshake_ms": {
+      "value": 8,
+      "tolerance_abs": 2
+    }
+  },
+  "gold_evidence": {
+    "tcp_handshake_ms": [
+      11,
+      12,
+      13
+    ]
+  },
+  "gold_derivation": {
+    "gt_pointers": [
+      "facts.handshakes[?(@.conv=='X2')]"
+    ],
+    "derivation": "facts.handshakes 过滤 conv=='X2' 得 handshake_ms=8（syn 帧 11 / synack 帧 12 / 完成帧 13）；证据帧 = 握手三元组。",
+    "tolerance_note": "时延类指标 tolerance_abs=2.0（备忘录 §7）"
+  },
+  "reference_solution": {
+    "steps": [
+      {
+        "n": 1,
+        "tool": "traffic_open",
+        "input": "fixtures/edge-cases.pcap",
+        "expect": "确立 capture_id"
+      },
+      {
+        "n": 2,
+        "tool": "traffic_inspect",
+        "input": "按五元组定位会话",
+        "expect": "metrics.tcp_handshake_ms=8"
+      },
+      {
+        "n": 3,
+        "tool": "（组答）",
+        "input": "—",
+        "expect": "tcp_handshake_ms=8(±2.0)"
+      }
+    ],
+    "bash_equivalent": "tshark -r fixtures/edge-cases.pcap -Y 'tcp.flags.syn==1 || (tcp.flags.ack==1 && tcp.len==0)' -T fields -e frame.number -e frame.time_epoch",
+    "factors": {
+      "H": 2,
+      "C": 1,
+      "G": "small",
+      "X": 1,
+      "N": "low"
+    },
+    "difficulty_derivation": "备忘录 §2：模板题固定口径 → D1；能力轴 S3"
+  },
+  "tags": {
+    "protocols": [
+      "tcp"
+    ],
+    "skill": [
+      "S3"
+    ],
+    "difficulty": 1,
+    "difficulty_label": "D1",
+    "ir_coverage": "covered",
+    "corpus_layer": "L1",
+    "scenario_pack": "P2"
+  },
+  "provenance": {
+    "source": "generator",
+    "note": "模板派生批量稿；人工抽审后入库"
+  },
+  "canary": {
+    "known_good": {
+      "answer": {
+        "tcp_handshake_ms": {
+          "value": 8,
+          "evidence": [
+            11,
+            12,
+            13
+          ]
+        }
+      },
+      "expect": {
+        "schema_valid": true,
+        "correctness": true,
+        "evidence_pass": true
+      },
+      "note": "gold 合成答案（机械派生）"
+    },
+    "known_bad": {
+      "answer": {
+        "tcp_handshake_ms": {
+          "value": 8,
+          "evidence": [
+            1
+          ]
+        }
+      },
+      "error_form": "wrong_evidence_frame",
+      "emulates": "证据帧错形态：值正确但引用了 gold 帧集之外的帧",
+      "expect": {
+        "schema_valid": true,
+        "correctness": true,
+        "evidence_pass": false
+      }
+    }
+  }
+}

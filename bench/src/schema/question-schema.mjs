@@ -206,16 +206,37 @@ export function scoreCorrectness(question, answer) {
   const results = {};
   if (question.type === "set") {
     const f = setFieldOf(question);
-    const goldKeys = question.gold[f].value.map(canonicalTupleKey).sort();
-    const ansKeys = answer[f].map(n => canonicalTupleKey(n.value)).sort();
-    results[f] = JSON.stringify(goldKeys) === JSON.stringify(ansKeys);
+    const mode = (question.answer_schema && question.answer_schema["x-match"]) || "unordered";
+    const goldKeys = question.gold[f].value.map(canonicalTupleKey);
+    const ansNodes = answer ? answer[f] : undefined;
+    if (!Array.isArray(ansNodes)) { results[f] = false; return results; }
+    const ansKeys = ansNodes.map(n => canonicalTupleKey(n ? n.value : null));
+    if (mode === "ordered") {
+      // 有序：序列完全一致（工程化期补齐，原切片版仅实现 unordered）
+      results[f] = JSON.stringify(ansKeys) === JSON.stringify(goldKeys);
+      return results;
+    }
+    if (mode === "top_k_prefix") {
+      // 前缀重合：全中且数量恰为 k 才算对（部分分由证据层落盘供分析）
+      const k = goldKeys.length;
+      const prefix = ansKeys.slice(0, k);
+      const goldSet = new Set(goldKeys);
+      let overlap = 0;
+      for (const key of new Set(prefix)) if (goldSet.has(key)) overlap++;
+      results[f] = overlap === k && ansKeys.length === k;
+      return results;
+    }
+    // unordered（默认）：集合相等
+    results[f] = JSON.stringify([...ansKeys].sort()) === JSON.stringify([...goldKeys].sort());
     return results;
   }
   for (const [field, g] of Object.entries(question.gold)) {
     const a = answer[field];
     if (a === null || typeof a !== "object" || Array.isArray(a)) { results[field] = false; continue; }
     if (typeof g.value === "number") {
-      const tol = typeof g.tolerance_abs === "number" ? g.tolerance_abs : 0;
+      const tolAbs = typeof g.tolerance_abs === "number" ? g.tolerance_abs : 0;
+      const tolRel = typeof g.tolerance_rel === "number" ? Math.abs(g.tolerance_rel * g.value) : 0;
+      const tol = Math.max(tolAbs, tolRel);
       results[field] = typeof a.value === "number" && Math.abs(a.value - g.value) <= tol;
     } else {
       // 对象值（如五元组）走 deepEqual；字符串规范化后精确
@@ -355,12 +376,13 @@ export function validateEnvelope(q, gt) {
   // 证据帧范围（对 gold_evidence；gt 已加载时才检查）
   if (gt) {
     const n = gt.packet_count;
-    // S9 空 gold（空集/unknowable）豁免非空帧集要求
+    // 否定性/空 gold（空集、unknowable、布尔 false=「未发生」）豁免非空帧集要求
     const assertsNothing = (f) => {
       const node = q.gold?.[f];
       return !!node && (
         (Array.isArray(node.value) && node.value.length === 0) ||
         node.value === "unknowable" ||
+        node.value === false ||
         node.unknowable === true
       );
     };

@@ -103,6 +103,31 @@ function main() {
   console.log(totalFailures === 0
     ? `\n全部通过：${summaries.length} 题 + ${totalCanaries} canary（acc_correct=1.0, acc_wrong=1.0，RFC-002 §6.3）`
     : `\n失败 ${totalFailures} 项`);
+
+  // ---- 批量稿目录（模板派生器产物）：同口径校验但不计入切片题数断言 ----
+  const autoDir = path.join(REPO_ROOT, "bench", "questions-auto");
+  if (fs.existsSync(autoDir)) {
+    const autoFiles = fs.readdirSync(autoDir).filter(f => f.endsWith(".json")).sort();
+    let autoFailures = 0;
+    for (const f of autoFiles) {
+      const q = JSON.parse(fs.readFileSync(path.join(autoDir, f), "utf8"));
+      const gt2 = loadGt(q.capture?.gt);
+      const failures = [];
+      if (!gt2) failures.push(`无法加载 gt：${q.capture?.gt}`);
+      failures.push(...validateEnvelope(q, gt2));
+      failures.push(...metaEvalCanary(q).map(m => `[${q.question_id}] canary 元评测不一致：${m}`));
+      if (failures.length === 0) {
+        console.log(`[auto] PASS ${f}`);
+      } else {
+        autoFailures += failures.length;
+        console.log(`[auto] FAIL ${f}`);
+        for (const msg of failures) console.log(`    ✗ ${msg}`);
+      }
+    }
+    console.log(`\n批量稿（bench/questions-auto）：${autoFiles.length} 题，失败 ${autoFailures} 项`);
+    totalFailures += autoFailures;
+  }
+
   process.exit(totalFailures === 0 ? 0 : 1);
 }
 

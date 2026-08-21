@@ -1,0 +1,151 @@
+{
+  "question_id": "q-websession-101",
+  "version": 1,
+  "capture": {
+    "fixture": "web-session",
+    "path": "fixtures/web-session.pcap",
+    "gt": "ground_truth/web-session.gt.json"
+  },
+  "type": "scalar_number",
+  "question": "会话（五元组 tcp 192.168.1.4:53125 → 93.184.216.34:80）的 TCP 三次握手总耗时是多少毫秒？（客户端 SYN 到握手完成 ACK）",
+  "answer_schema": {
+    "x-kind": "scalar_number",
+    "type": "object",
+    "properties": {
+      "tcp_handshake_ms": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "number",
+            "minimum": 0
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "value",
+          "evidence"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "required": [
+      "tcp_handshake_ms"
+    ],
+    "additionalProperties": false
+  },
+  "gold": {
+    "tcp_handshake_ms": {
+      "value": 70,
+      "tolerance_abs": 2
+    }
+  },
+  "gold_evidence": {
+    "tcp_handshake_ms": [
+      22,
+      23,
+      24
+    ]
+  },
+  "gold_derivation": {
+    "gt_pointers": [
+      "facts.handshakes[?(@.conv=='B')]"
+    ],
+    "derivation": "facts.handshakes 过滤 conv=='B' 得 handshake_ms=70（syn 帧 22 / synack 帧 23 / 完成帧 24）；证据帧 = 握手三元组。",
+    "tolerance_note": "时延类指标 tolerance_abs=2.0（备忘录 §7）"
+  },
+  "reference_solution": {
+    "steps": [
+      {
+        "n": 1,
+        "tool": "traffic_open",
+        "input": "fixtures/web-session.pcap",
+        "expect": "确立 capture_id"
+      },
+      {
+        "n": 2,
+        "tool": "traffic_inspect",
+        "input": "按五元组定位会话",
+        "expect": "metrics.tcp_handshake_ms=70"
+      },
+      {
+        "n": 3,
+        "tool": "（组答）",
+        "input": "—",
+        "expect": "tcp_handshake_ms=70(±2.0)"
+      }
+    ],
+    "bash_equivalent": "tshark -r fixtures/web-session.pcap -Y 'tcp.flags.syn==1 || (tcp.flags.ack==1 && tcp.len==0)' -T fields -e frame.number -e frame.time_epoch",
+    "factors": {
+      "H": 2,
+      "C": 1,
+      "G": "small",
+      "X": 1,
+      "N": "low"
+    },
+    "difficulty_derivation": "备忘录 §2：模板题固定口径 → D1；能力轴 S3"
+  },
+  "tags": {
+    "protocols": [
+      "tcp"
+    ],
+    "skill": [
+      "S3"
+    ],
+    "difficulty": 1,
+    "difficulty_label": "D1",
+    "ir_coverage": "covered",
+    "corpus_layer": "L1",
+    "scenario_pack": "P1"
+  },
+  "provenance": {
+    "source": "generator",
+    "note": "模板派生批量稿；人工抽审后入库"
+  },
+  "canary": {
+    "known_good": {
+      "answer": {
+        "tcp_handshake_ms": {
+          "value": 70,
+          "evidence": [
+            22,
+            23,
+            24
+          ]
+        }
+      },
+      "expect": {
+        "schema_valid": true,
+        "correctness": true,
+        "evidence_pass": true
+      },
+      "note": "gold 合成答案（机械派生）"
+    },
+    "known_bad": {
+      "answer": {
+        "tcp_handshake_ms": {
+          "value": 74,
+          "evidence": [
+            22,
+            23,
+            24
+          ]
+        }
+      },
+      "error_form": "wrong_value",
+      "emulates": "值错形态：数值越容差偏移 / 枚举取反 / 字符串污染 / 五元组端口扰动",
+      "expect": {
+        "schema_valid": true,
+        "correctness": false,
+        "evidence_pass": true
+      }
+    }
+  }
+}

@@ -1,0 +1,362 @@
+{
+  "question_id": "q-websession-101",
+  "version": 1,
+  "capture": {
+    "fixture": "web-session",
+    "path": "fixtures/web-session.pcap",
+    "gt": "ground_truth/web-session.gt.json"
+  },
+  "type": "set",
+  "question": "列出本捕获中按传输总字节数（含重传帧）降序排名前 3 的双向会话，以规范化五元组作答，顺序必须与排名一致。",
+  "answer_schema": {
+    "x-kind": "set",
+    "x-match": "ordered",
+    "x-element-key": "{proto}|{src}:{sport}>{dst}:{dport}",
+    "type": "object",
+    "properties": {
+      "top3_sessions": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "value": {
+              "$ref": "#/$defs/session_tuple"
+            },
+            "evidence": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "minItems": 1,
+              "uniqueItems": true
+            }
+          },
+          "required": [
+            "value",
+            "evidence"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "required": [
+      "top3_sessions"
+    ],
+    "additionalProperties": false,
+    "$defs": {
+      "session_tuple": {
+        "type": "object",
+        "properties": {
+          "proto": {
+            "enum": [
+              "tcp",
+              "udp"
+            ]
+          },
+          "src": {
+            "type": "string"
+          },
+          "sport": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65535
+          },
+          "dst": {
+            "type": "string"
+          },
+          "dport": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65535
+          }
+        },
+        "required": [
+          "proto",
+          "src",
+          "sport",
+          "dst",
+          "dport"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "gold": {
+    "top3_sessions": {
+      "value": [
+        {
+          "proto": "tcp",
+          "src": "192.168.1.4",
+          "sport": 53124,
+          "dst": "142.250.74.14",
+          "dport": 443
+        },
+        {
+          "proto": "tcp",
+          "src": "192.168.1.4",
+          "sport": 53125,
+          "dst": "93.184.216.34",
+          "dport": 80
+        },
+        {
+          "proto": "udp",
+          "src": "192.168.1.4",
+          "sport": 53126,
+          "dst": "8.8.8.8",
+          "dport": 53
+        }
+      ]
+    }
+  },
+  "gold_evidence": {
+    "top3_sessions": {
+      "tcp|192.168.1.4:53124>142.250.74.14:443": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17
+      ],
+      "tcp|192.168.1.4:53125>93.184.216.34:80": [
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30
+      ],
+      "udp|192.168.1.4:53126>8.8.8.8:53": [
+        18,
+        19,
+        20,
+        21
+      ]
+    }
+  },
+  "gold_derivation": {
+    "gt_pointers": [
+      "facts.conversations[].bytes",
+      "facts.conversations[].frames"
+    ],
+    "derivation": "facts.conversations 按 bytes 降序取前 3：A(6575B) > B(672B) > C(327B)；ordered 口径下名次即答案的一部分。conv=null 的单向流不构成双向会话，不参与排名。",
+    "tolerance_note": "有序集合精确比对，无容差"
+  },
+  "reference_solution": {
+    "steps": [
+      {
+        "n": 1,
+        "tool": "traffic_open",
+        "input": "fixtures/web-session.pcap",
+        "expect": "确立 capture_id"
+      },
+      {
+        "n": 2,
+        "tool": "traffic_overview",
+        "input": "—",
+        "expect": "会话列表含 bytes 计数"
+      },
+      {
+        "n": 3,
+        "tool": "（组答）",
+        "input": "按 bytes 降序前 3",
+        "expect": "A > B > C"
+      }
+    ],
+    "bash_equivalent": "tshark -r fixtures/web-session.pcap -q -z conv,tcp -z conv,udp",
+    "factors": {
+      "H": 2,
+      "C": 1,
+      "G": "会话级 top-N 排序",
+      "X": 1,
+      "N": "low"
+    },
+    "difficulty_derivation": "备忘录 §2：模板题固定口径 → D2；能力轴 S2"
+  },
+  "tags": {
+    "protocols": [
+      "tcp",
+      "udp"
+    ],
+    "skill": [
+      "S2"
+    ],
+    "difficulty": 2,
+    "difficulty_label": "D2",
+    "ir_coverage": "covered",
+    "corpus_layer": "L1",
+    "scenario_pack": "P1"
+  },
+  "provenance": {
+    "source": "generator",
+    "note": "模板派生批量稿；人工抽审后入库"
+  },
+  "canary": {
+    "known_good": {
+      "answer": {
+        "top3_sessions": [
+          {
+            "value": {
+              "proto": "tcp",
+              "src": "192.168.1.4",
+              "sport": 53124,
+              "dst": "142.250.74.14",
+              "dport": 443
+            },
+            "evidence": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15,
+              16,
+              17
+            ]
+          },
+          {
+            "value": {
+              "proto": "tcp",
+              "src": "192.168.1.4",
+              "sport": 53125,
+              "dst": "93.184.216.34",
+              "dport": 80
+            },
+            "evidence": [
+              22,
+              23,
+              24,
+              25,
+              26,
+              27,
+              28,
+              29,
+              30
+            ]
+          },
+          {
+            "value": {
+              "proto": "udp",
+              "src": "192.168.1.4",
+              "sport": 53126,
+              "dst": "8.8.8.8",
+              "dport": 53
+            },
+            "evidence": [
+              18,
+              19,
+              20,
+              21
+            ]
+          }
+        ]
+      },
+      "expect": {
+        "schema_valid": true,
+        "correctness": true,
+        "evidence_pass": true
+      },
+      "note": "gold 合成答案（机械派生）"
+    },
+    "known_bad": {
+      "answer": {
+        "top3_sessions": [
+          {
+            "value": {
+              "proto": "tcp",
+              "src": "192.168.1.4",
+              "sport": 53125,
+              "dst": "93.184.216.34",
+              "dport": 80
+            },
+            "evidence": [
+              22,
+              23,
+              24,
+              25,
+              26,
+              27,
+              28,
+              29,
+              30
+            ]
+          },
+          {
+            "value": {
+              "proto": "tcp",
+              "src": "192.168.1.4",
+              "sport": 53124,
+              "dst": "142.250.74.14",
+              "dport": 443
+            },
+            "evidence": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15,
+              16,
+              17
+            ]
+          },
+          {
+            "value": {
+              "proto": "udp",
+              "src": "192.168.1.4",
+              "sport": 53126,
+              "dst": "8.8.8.8",
+              "dport": 53
+            },
+            "evidence": [
+              18,
+              19,
+              20,
+              21
+            ]
+          }
+        ]
+      },
+      "error_form": "wrong_value",
+      "emulates": "值错形态（ordered）：成员集合正确但名次交换",
+      "expect": {
+        "schema_valid": true,
+        "correctness": false,
+        "evidence_pass": true
+      }
+    }
+  }
+}

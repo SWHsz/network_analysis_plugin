@@ -1,0 +1,134 @@
+{
+  "question_id": "q-edgecases-103",
+  "version": 1,
+  "capture": {
+    "fixture": "edge-cases",
+    "path": "fixtures/edge-cases.pcap",
+    "gt": "ground_truth/edge-cases.gt.json"
+  },
+  "type": "scalar_enum",
+  "question": "会话（五元组 tcp 10.0.0.1:6003 → 10.0.0.4:8080）中是否发生过 TCP 零窗口通告？",
+  "answer_schema": {
+    "x-kind": "scalar_enum",
+    "type": "object",
+    "properties": {
+      "zero_window_seen": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "boolean"
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "minItems": 0,
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "value",
+          "evidence"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "required": [
+      "zero_window_seen"
+    ],
+    "additionalProperties": false
+  },
+  "gold": {
+    "zero_window_seen": {
+      "value": false
+    }
+  },
+  "gold_evidence": {
+    "zero_window_seen": []
+  },
+  "gold_derivation": {
+    "gt_pointers": [
+      "facts.tcp_anomalies[?(@.conv=='X3' && @.kind=='zero_window')]"
+    ],
+    "derivation": "facts.tcp_anomalies 过滤 conv=='X3' 且 kind=='zero_window' → 0 条。true 实例证据帧 = 通告帧；false 实例为否定性断言，证据帧集为空（备忘录 §7 空集特例同型）。",
+    "tolerance_note": "枚举精确比对，无容差"
+  },
+  "reference_solution": {
+    "steps": [
+      {
+        "n": 1,
+        "tool": "traffic_open",
+        "input": "fixtures/edge-cases.pcap",
+        "expect": "确立 capture_id"
+      },
+      {
+        "n": 2,
+        "tool": "traffic_query",
+        "input": "{scope:'event', where:[{field:'type',op:'eq',value:'tcp_zero_window'}]}",
+        "expect": "0 行"
+      },
+      {
+        "n": 3,
+        "tool": "（组答）",
+        "input": "—",
+        "expect": "false"
+      }
+    ],
+    "bash_equivalent": "tshark -r fixtures/edge-cases.pcap -Y 'tcp.window_size==0 && tcp.flags.ack==1' -T fields -e frame.number",
+    "factors": {
+      "H": 2,
+      "C": 1,
+      "G": "small",
+      "X": 1,
+      "N": "low"
+    },
+    "difficulty_derivation": "备忘录 §2：模板题固定口径 → D1；能力轴 S6"
+  },
+  "tags": {
+    "protocols": [
+      "tcp"
+    ],
+    "skill": [
+      "S6"
+    ],
+    "difficulty": 1,
+    "difficulty_label": "D1",
+    "ir_coverage": "covered",
+    "corpus_layer": "L1",
+    "scenario_pack": "P2"
+  },
+  "provenance": {
+    "source": "generator",
+    "note": "模板派生批量稿；人工抽审后入库"
+  },
+  "canary": {
+    "known_good": {
+      "answer": {
+        "zero_window_seen": {
+          "value": false,
+          "evidence": []
+        }
+      },
+      "expect": {
+        "schema_valid": true,
+        "correctness": true,
+        "evidence_pass": true
+      },
+      "note": "gold 合成答案（机械派生）"
+    },
+    "known_bad": {
+      "answer": {
+        "zero_window_seen": false
+      },
+      "error_form": "format_error",
+      "emulates": "首字段写成裸值而非 {value,evidence} 节点：违反答案契约的格式错误形态",
+      "expect": {
+        "schema_valid": false,
+        "correctness": false,
+        "evidence_pass": false
+      }
+    }
+  }
+}
