@@ -1,0 +1,161 @@
+{
+  "generated_at": "2026-08-24T16:28:58.700Z",
+  "budget": {
+    "maxTurns": 8,
+    "maxTokens": 4000,
+    "timeoutMs": 180000
+  },
+  "unit_note": "interface 计量为 chars/4 估计 tokens（与 E1 同口径）；render 为渲染 chars",
+  "models": {
+    "deepseek-v4-flash": {
+      "bash": {
+        "correct": "5/5",
+        "avg_turns": 5,
+        "avg_input_tokens": 18319,
+        "interface_tokens_est_per_request": 621,
+        "render_chars_avg": 7264,
+        "outcome_breakdown": {
+          "forensic_correct": 14,
+          "forensic_wrong": 0,
+          "protocol_noncompliance": 1,
+          "budget_exhausted": 0
+        },
+        "F6_protocol": 1,
+        "budget_exhausted": 0
+      },
+      "ast": {
+        "correct": "5/5",
+        "avg_turns": 6,
+        "avg_input_tokens": 22791,
+        "interface_tokens_est_per_request": 1750,
+        "render_chars_avg": 5458,
+        "outcome_breakdown": {
+          "forensic_correct": 14,
+          "forensic_wrong": 0,
+          "protocol_noncompliance": 0,
+          "budget_exhausted": 1
+        },
+        "F6_protocol": 0,
+        "budget_exhausted": 1
+      }
+    },
+    "deepseek-v4-pro": {
+      "bash": {
+        "correct": "1/5",
+        "avg_turns": 5,
+        "avg_input_tokens": 14367,
+        "interface_tokens_est_per_request": 621,
+        "render_chars_avg": 4420,
+        "outcome_breakdown": {
+          "forensic_correct": 3,
+          "forensic_wrong": 0,
+          "protocol_noncompliance": 12,
+          "budget_exhausted": 0
+        },
+        "F6_protocol": 12,
+        "budget_exhausted": 0
+      },
+      "ast": {
+        "correct": "1/5",
+        "avg_turns": 7,
+        "avg_input_tokens": 26555,
+        "interface_tokens_est_per_request": 1750,
+        "render_chars_avg": 5422,
+        "outcome_breakdown": {
+          "forensic_correct": 5,
+          "forensic_wrong": 0,
+          "protocol_noncompliance": 4,
+          "budget_exhausted": 6
+        },
+        "F6_protocol": 4,
+        "budget_exhausted": 6
+      }
+    },
+    "glm-5.3": {
+      "bash": {
+        "correct": "5/5",
+        "avg_turns": 5,
+        "avg_input_tokens": 12569,
+        "interface_tokens_est_per_request": 621,
+        "render_chars_avg": 4839,
+        "outcome_breakdown": {
+          "forensic_correct": 14,
+          "forensic_wrong": 0,
+          "protocol_noncompliance": 1,
+          "budget_exhausted": 0
+        },
+        "F6_protocol": 1,
+        "budget_exhausted": 0
+      },
+      "ast": {
+        "correct": "4/5",
+        "avg_turns": 7,
+        "avg_input_tokens": 21170,
+        "interface_tokens_est_per_request": 1750,
+        "render_chars_avg": 5599,
+        "outcome_breakdown": {
+          "forensic_correct": 12,
+          "forensic_wrong": 0,
+          "protocol_noncompliance": 0,
+          "budget_exhausted": 3
+        },
+        "F6_protocol": 0,
+        "budget_exhausted": 3
+      }
+    },
+    "kimi-k3": {
+      "bash": {
+        "correct": "5/5",
+        "avg_turns": 4,
+        "avg_input_tokens": 9790,
+        "interface_tokens_est_per_request": 621,
+        "render_chars_avg": 5211,
+        "outcome_breakdown": {
+          "forensic_correct": 15,
+          "forensic_wrong": 0,
+          "protocol_noncompliance": 0,
+          "budget_exhausted": 0
+        },
+        "F6_protocol": 0,
+        "budget_exhausted": 0
+      },
+      "ast": {
+        "correct": "1/5",
+        "avg_turns": 8,
+        "avg_input_tokens": 21370,
+        "interface_tokens_est_per_request": 1750,
+        "render_chars_avg": 2138,
+        "outcome_breakdown": {
+          "forensic_correct": 2,
+          "forensic_wrong": 0,
+          "protocol_noncompliance": 0,
+          "budget_exhausted": 13
+        },
+        "F6_protocol": 0,
+        "budget_exhausted": 13
+      }
+    }
+  },
+  "findings": {
+    "interface_tax_range": "2.82× - 2.82×",
+    "interface_tax_by_model": {
+      "deepseek-v4-flash": 2.82,
+      "deepseek-v4-pro": 2.82,
+      "glm-5.3": 2.82,
+      "kimi-k3": 2.82
+    },
+    "f6_rate_by_model": [
+      "deepseek-v4-flash: protocol_noncompliance 1/30 runs，budget_exhausted 1/30 runs",
+      "deepseek-v4-pro: protocol_noncompliance 16/30 runs，budget_exhausted 6/30 runs",
+      "glm-5.3: protocol_noncompliance 1/30 runs，budget_exhausted 3/30 runs",
+      "kimi-k3: protocol_noncompliance 0/30 runs，budget_exhausted 13/30 runs"
+    ],
+    "ceiling_broken": "deepseek-v4-pro/bash 1/5; deepseek-v4-pro/ast 1/5; glm-5.3/ast 4/5; kimi-k3/ast 1/5",
+    "turns_by_model": [
+      "deepseek-v4-flash: bash 5 / ast 6 轮",
+      "deepseek-v4-pro: bash 5 / ast 7 轮",
+      "glm-5.3: bash 5 / ast 7 轮",
+      "kimi-k3: bash 4 / ast 8 轮"
+    ]
+  }
+}

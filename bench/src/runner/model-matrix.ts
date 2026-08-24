@@ -100,11 +100,17 @@ async function main(): Promise<number> {
   const broken: string[] = [];
   const modelNames = Object.keys(models);
   for (const name of modelNames) {
-    const m = models[name] as { bash?: { correct: string; F6_protocol: number; budget_exhausted: number; avg_turns: number | null }; ast?: { correct: string; F6_protocol: number; budget_exhausted: number; avg_turns: number | null } };
-    const total = (x?: { correct: string }): number => Number((x?.correct ?? "0/0").split("/")[1] ?? 0);
-    const runs = total(m.bash) + total(m.ast);
-    const f6 = (m.bash?.F6_protocol ?? 0) + (m.ast?.F6_protocol ?? 0);
-    f6Rates.push(`${name}: ${f6}/${runs} protocol_noncompliance（另 budget_exhausted ${(m.bash?.budget_exhausted ?? 0) + (m.ast?.budget_exhausted ?? 0)}）`);
+    const m = models[name] as {
+      bash?: { correct: string; outcome_breakdown: Record<string, number>; avg_turns: number | null };
+      ast?: { correct: string; outcome_breakdown: Record<string, number>; avg_turns: number | null };
+    };
+    // 分母 = run 数（各臂 outcome_breakdown 四桶之和），分子 = run 级失败数
+    const runsOf = (x?: { outcome_breakdown: Record<string, number> }): number =>
+      Object.values(x?.outcome_breakdown ?? {}).reduce((a, b) => a + b, 0);
+    const runs = runsOf(m.bash) + runsOf(m.ast);
+    const f6 = (m.bash?.outcome_breakdown.protocol_noncompliance ?? 0) + (m.ast?.outcome_breakdown.protocol_noncompliance ?? 0);
+    const budget = (m.bash?.outcome_breakdown.budget_exhausted ?? 0) + (m.ast?.outcome_breakdown.budget_exhausted ?? 0);
+    f6Rates.push(`${name}: protocol_noncompliance ${f6}/${runs} runs，budget_exhausted ${budget}/${runs} runs`);
     turnsRows.push(`${name}: bash ${m.bash?.avg_turns ?? "?"} / ast ${m.ast?.avg_turns ?? "?"} 轮`);
     if (m.bash && m.bash.correct !== `5/5` && m.bash.correct !== "0/0") broken.push(`${name}/bash ${m.bash.correct}`);
     if (m.ast && m.ast.correct !== `5/5` && m.ast.correct !== "0/0") broken.push(`${name}/ast ${m.ast.correct}`);
