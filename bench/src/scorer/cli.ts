@@ -54,7 +54,7 @@ async function cmdDemoReports(): Promise<number> {
           ? "format_error"
           : scored.verdict.correctness
             ? "correct"
-            : "wrong";
+            : "wrong_answer";
       return {
         questionId: q.question_id,
         runIndex: i + 1,

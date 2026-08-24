@@ -1,29 +1,66 @@
 /**
- * LLM 接线：DeepSeek 凭证（只读内存，绝不落盘）+ 本地记录代理。
+ * LLM 接线：provider 路由（DeepSeek 直连 / opengo 转发）+ 本地记录代理。
  *
  * 记录代理是 EVALUATION.md 附带条件 (b) 的落地：固化进 runner，持续计量
- * 每次请求实际下发的 system prompt + tools JSON（interfaceTokens 的 ground truth）。
+ * 每次请求实际下发的 system prompt + tools JSON（interface 载荷的 ground truth）。
+ * 计量口径：chars 为原始事实，tokens 为 chars/4 估计（与 E1 一致，跨模型不作
+ * tokenizer 精确对齐——口径一致性优先于绝对精度）。
  */
 import http from "node:http";
 import { readFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
-export const MODEL = "deepseek-v4-flash";
+export const DEFAULT_MODEL = "deepseek-v4-flash";
 
-export async function loadDeepseekKey(): Promise<string> {
+/** 兼容旧脚本（run-slice-q1.ts）的模型常量 */
+export const MODEL = DEFAULT_MODEL;
+
+export interface ProviderConfig {
+  name: string;
+  upstream: string;
+  keyEnvName: string;
+}
+
+/** provider 注册表：deepseek-* 走官方直连（与 E1 基线同路径），其余默认 opengo 转发 */
+export const PROVIDERS: Record<string, ProviderConfig> = {
+  deepseek: { name: "deepseek", upstream: "https://api.deepseek.com", keyEnvName: "DEEPSEEK_API_KEY" },
+  opengo: { name: "opengo", upstream: "https://opencode.ai/zen/go", keyEnvName: "OPENCODE_GO_MYSELF_API_KEY" },
+};
+
+/** 模型 → provider 解析（可用 --provider 显式覆盖） */
+export function resolveProvider(model: string, override?: string): ProviderConfig {
+  if (override) {
+    const p = PROVIDERS[override];
+    if (!p) throw new Error(`未知 provider：${override}（可用：${Object.keys(PROVIDERS).join("/")}）`);
+    return p;
+  }
+  return model.startsWith("deepseek-") ? PROVIDERS.deepseek! : PROVIDERS.opengo!;
+}
+
+async function readCredential(keyEnvName: string): Promise<string> {
   const credPath = path.join(os.homedir(), ".dsh", ".credentials.yaml");
   const raw = await readFile(credPath, "utf8");
-  const m = raw.match(/^\s*DEEPSEEK_API_KEY:\s*["']?([^"'\r\n]+?)["']?\s*$/m);
+  const m = raw.match(new RegExp(`^\\s*${keyEnvName}:\\s*["']?([^"'\\r\\n]+?)["']?\\s*$`, "m"));
   const key = m?.[1];
-  if (!key) throw new Error(`DEEPSEEK_API_KEY not found in ${credPath}`);
+  if (!key) throw new Error(`${keyEnvName} not found in ${credPath}`);
   return key;
+}
+
+/** 兼容旧入口：DeepSeek key */
+export async function loadDeepseekKey(): Promise<string> {
+  return readCredential("DEEPSEEK_API_KEY");
+}
+
+export async function loadApiKey(provider: ProviderConfig): Promise<string> {
+  return readCredential(provider.keyEnvName);
 }
 
 export interface InterfaceCapture {
   systemChars: number;
   toolsChars: number;
-  estTokens: number; // chars/4 启发式（与 spike 同口径）
+  /** chars/4 估计（与 E1 同口径；跨模型不做 tokenizer 精确对齐） */
+  estTokens: number;
   systemText: string;
   toolsJson: string;
 }
@@ -39,9 +76,18 @@ export function captureCount(): number {
   return captures.length;
 }
 
-/** 单次运行的 interfaceTokens：取该 run 首个请求的 (system+tools) chars/4 */
+/** 单次运行的 interface 计量：取该 run 首个请求的 (system+tools) 载荷 */
 export function interfaceTokensOf(runCaptures: InterfaceCapture[]): number {
   return runCaptures.length > 0 ? runCaptures[0]!.estTokens : 0;
+}
+
+export function interfaceCharsOf(runCaptures: InterfaceCapture[]): { systemChars: number; toolsChars: number; totalChars: number } {
+  const first = runCaptures[0];
+  return {
+    systemChars: first?.systemChars ?? 0,
+    toolsChars: first?.toolsChars ?? 0,
+    totalChars: (first?.systemChars ?? 0) + (first?.toolsChars ?? 0),
+  };
 }
 
 export function startRecordingProxy(upstream: string): Promise<{ baseURL: string; close: () => void }> {

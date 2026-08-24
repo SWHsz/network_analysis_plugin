@@ -99,6 +99,18 @@ runner 说明：bash 臂（单 shell 工具）与 ast 臂（插件八工具）�
 transcript，接口注入 token 经本地记录代理实测。切片期保留"终答提取后人工确认再判分"
 的半自动断点。
 
+**遥测分账口径**：每轮上下文注入拆为两部分——`ρ_interface`（工具定义/接口描述，
+记录代理逐请求实测，固定开销）与 `ρ_render`（工具返回内容投影，随查询可变）。
+计量单位：chars 为原始事实，tokens 为 chars/4 估计（不做 tokenizer 精确对齐，
+保证跨模型可比）。汇总见各 slice-summary 的 `rho_decomposition` 与 `interface_tax` 块。
+
+**失败分类**：`format_error` 细分为 F6 协议不合规子类（`no_finish_call` 纯文本收尾 /
+`finish_payload_invalid` payload 坏 / `no_tool_exploration` 零探索），`max_turns_exhausted`
+单列；结果四分桶 `forensic_correct / forensic_wrong / protocol_noncompliance /
+budget_exhausted`，完成率报双口径（`completion_rate_excluding_F6` 为去除协议失败的主口径）。
+多模型批次经 `--model` 路由（DeepSeek 直连或 opengo 转发），产物按模型分目录，
+`bench/out/model-matrix.json` 聚合跨模型对比。
+
 ## Backend（tshark）策略
 
 解析顺序：**config 显式路径 → 已下载的 pin 版本（4.4.18）→ system tshark →（都没有时）首次运行自动下载 pin 版**。

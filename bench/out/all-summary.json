@@ -17,7 +17,14 @@
         "avg_turns": 5.7,
         "avg_tool_render_chars": 6430,
         "avg_interface_tokens": 621,
-        "interface_share_of_input": 0.18
+        "interface_share_of_input": 0.18,
+        "outcome_breakdown": {
+          "forensic_correct": 3,
+          "forensic_wrong": 0,
+          "protocol_noncompliance": 0,
+          "budget_exhausted": 0
+        },
+        "completion_rate_excluding_F6": "3/3"
       },
       "ast": {
         "majority_correct": true,
@@ -26,7 +33,14 @@
         "avg_turns": 5.3,
         "avg_tool_render_chars": 3686,
         "avg_interface_tokens": 1750,
-        "interface_share_of_input": 0.551
+        "interface_share_of_input": 0.551,
+        "outcome_breakdown": {
+          "forensic_correct": 3,
+          "forensic_wrong": 0,
+          "protocol_noncompliance": 0,
+          "budget_exhausted": 0
+        },
+        "completion_rate_excluding_F6": "3/3"
       }
     },
     {
@@ -38,7 +52,14 @@
         "avg_turns": 4.7,
         "avg_tool_render_chars": 6308,
         "avg_interface_tokens": 621,
-        "interface_share_of_input": 0.186
+        "interface_share_of_input": 0.186,
+        "outcome_breakdown": {
+          "forensic_correct": 3,
+          "forensic_wrong": 0,
+          "protocol_noncompliance": 0,
+          "budget_exhausted": 0
+        },
+        "completion_rate_excluding_F6": "3/3"
       },
       "ast": {
         "majority_correct": true,
@@ -47,7 +68,14 @@
         "avg_turns": 7,
         "avg_tool_render_chars": 10289,
         "avg_interface_tokens": 1750,
-        "interface_share_of_input": 0.375
+        "interface_share_of_input": 0.375,
+        "outcome_breakdown": {
+          "forensic_correct": 2,
+          "forensic_wrong": 0,
+          "protocol_noncompliance": 0,
+          "budget_exhausted": 1
+        },
+        "completion_rate_excluding_F6": "2/2"
       }
     },
     {
@@ -59,7 +87,14 @@
         "avg_turns": 4.7,
         "avg_tool_render_chars": 11439,
         "avg_interface_tokens": 621,
-        "interface_share_of_input": 0.154
+        "interface_share_of_input": 0.154,
+        "outcome_breakdown": {
+          "forensic_correct": 2,
+          "forensic_wrong": 0,
+          "protocol_noncompliance": 1,
+          "budget_exhausted": 0
+        },
+        "completion_rate_excluding_F6": "2/2"
       },
       "ast": {
         "majority_correct": true,
@@ -68,7 +103,14 @@
         "avg_turns": 6.7,
         "avg_tool_render_chars": 5090,
         "avg_interface_tokens": 1749,
-        "interface_share_of_input": 0.486
+        "interface_share_of_input": 0.486,
+        "outcome_breakdown": {
+          "forensic_correct": 3,
+          "forensic_wrong": 0,
+          "protocol_noncompliance": 0,
+          "budget_exhausted": 0
+        },
+        "completion_rate_excluding_F6": "3/3"
       }
     },
     {
@@ -80,7 +122,14 @@
         "avg_turns": 5,
         "avg_tool_render_chars": 5820,
         "avg_interface_tokens": 621,
-        "interface_share_of_input": 0.184
+        "interface_share_of_input": 0.184,
+        "outcome_breakdown": {
+          "forensic_correct": 3,
+          "forensic_wrong": 0,
+          "protocol_noncompliance": 0,
+          "budget_exhausted": 0
+        },
+        "completion_rate_excluding_F6": "3/3"
       },
       "ast": {
         "majority_correct": true,
@@ -89,7 +138,14 @@
         "avg_turns": 5,
         "avg_tool_render_chars": 5039,
         "avg_interface_tokens": 1750,
-        "interface_share_of_input": 0.506
+        "interface_share_of_input": 0.506,
+        "outcome_breakdown": {
+          "forensic_correct": 3,
+          "forensic_wrong": 0,
+          "protocol_noncompliance": 0,
+          "budget_exhausted": 0
+        },
+        "completion_rate_excluding_F6": "3/3"
       }
     },
     {
@@ -101,7 +157,14 @@
         "avg_turns": 5.3,
         "avg_tool_render_chars": 6325,
         "avg_interface_tokens": 621,
-        "interface_share_of_input": 0.219
+        "interface_share_of_input": 0.219,
+        "outcome_breakdown": {
+          "forensic_correct": 3,
+          "forensic_wrong": 0,
+          "protocol_noncompliance": 0,
+          "budget_exhausted": 0
+        },
+        "completion_rate_excluding_F6": "3/3"
       },
       "ast": {
         "majority_correct": true,
@@ -110,7 +173,14 @@
         "avg_turns": 6.7,
         "avg_tool_render_chars": 3188,
         "avg_interface_tokens": 1750,
-        "interface_share_of_input": 0.524
+        "interface_share_of_input": 0.524,
+        "outcome_breakdown": {
+          "forensic_correct": 3,
+          "forensic_wrong": 0,
+          "protocol_noncompliance": 0,
+          "budget_exhausted": 0
+        },
+        "completion_rate_excluding_F6": "3/3"
       }
     }
   ],
@@ -123,5 +193,408 @@
     "ast_avg_turns": 6.1,
     "interface_tax_avg": 2.82,
     "note": "interface_tax_avg = AST 臂接口注入 token 相对 bash 臂的倍数（每请求实测）；多数表决口径 ≥2/3"
+  },
+  "reclassified_e1": {
+    "generated_at": "2026-08-24T15:04:39.666Z",
+    "rule": "format_error+空answerRaw=no_finish_call；maxTurns打满(llmCalls>=8)→budget_exhausted；未打满格式失败→protocol_noncompliance；toolRenderChars===0 作 no_tool_exploration 代理",
+    "totals": {
+      "forensic_correct": 28,
+      "forensic_wrong": 0,
+      "protocol_noncompliance": 1,
+      "budget_exhausted": 1
+    },
+    "per_run": [
+      {
+        "question_id": "q-web-001",
+        "arm": "bash-v0.1",
+        "run_index": 1,
+        "classification": "correct",
+        "f6": {
+          "no_finish_call": false,
+          "finish_payload_invalid": false,
+          "no_tool_exploration": false,
+          "max_turns_exhausted": true
+        },
+        "outcome_bucket": "forensic_correct"
+      },
+      {
+        "question_id": "q-web-001",
+        "arm": "bash-v0.1",
+        "run_index": 2,
+        "classification": "correct",
+        "f6": {
+          "no_finish_call": false,
+          "finish_payload_invalid": false,
+          "no_tool_exploration": false,
+          "max_turns_exhausted": false
+        },
+        "outcome_bucket": "forensic_correct"
+      },
+      {
+        "question_id": "q-web-001",
+        "arm": "bash-v0.1",
+        "run_index": 3,
+        "classification": "correct",
+        "f6": {
+          "no_finish_call": false,
+          "finish_payload_invalid": false,
+          "no_tool_exploration": false,
+          "max_turns_exhausted": false
+        },
+        "outcome_bucket": "forensic_correct"
+      },
+      {
+        "question_id": "q-web-001",
+        "arm": "ast-v0.4",
+        "run_index": 1,
+        "classification": "correct",
+        "f6": {
+          "no_finish_call": false,
+          "finish_payload_invalid": false,
+          "no_tool_exploration": false,
+          "max_turns_exhausted": false
+        },
+        "outcome_bucket": "forensic_correct"
+      },
+      {
+        "question_id": "q-web-001",
+        "arm": "ast-v0.4",
+        "run_index": 2,
+        "classification": "correct",
+        "f6": {
+          "no_finish_call": false,
+          "finish_payload_invalid": false,
+          "no_tool_exploration": false,
+          "max_turns_exhausted": false
+        },
+        "outcome_bucket": "forensic_correct"
+      },
+      {
+        "question_id": "q-web-001",
+        "arm": "ast-v0.4",
+        "run_index": 3,
+        "classification": "correct",
+        "f6": {
+          "no_finish_call": false,
+          "finish_payload_invalid": false,
+          "no_tool_exploration": false,
+          "max_turns_exhausted": false
+        },
+        "outcome_bucket": "forensic_correct"
+      },
+      {
+        "question_id": "q-web-002",
+        "arm": "bash-v0.1",
+        "run_index": 1,
+        "classification": "correct",
+        "f6": {
+          "no_finish_call": false,
+          "finish_payload_invalid": false,
+          "no_tool_exploration": false,
+          "max_turns_exhausted": false
+        },
+        "outcome_bucket": "forensic_correct"
+      },
+      {
+        "question_id": "q-web-002",
+        "arm": "bash-v0.1",
+        "run_index": 2,
+        "classification": "correct",
+        "f6": {
+          "no_finish_call": false,
+          "finish_payload_invalid": false,
+          "no_tool_exploration": false,
+          "max_turns_exhausted": false
+        },
+        "outcome_bucket": "forensic_correct"
+      },
+      {
+        "question_id": "q-web-002",
+        "arm": "bash-v0.1",
+        "run_index": 3,
+        "classification": "correct",
+        "f6": {
+          "no_finish_call": false,
+          "finish_payload_invalid": false,
+          "no_tool_exploration": false,
+          "max_turns_exhausted": false
+        },
+        "outcome_bucket": "forensic_correct"
+      },
+      {
+        "question_id": "q-web-002",
+        "arm": "ast-v0.4",
+        "run_index": 1,
+        "classification": "correct",
+        "f6": {
+          "no_finish_call": false,
+          "finish_payload_invalid": false,
+          "no_tool_exploration": false,
+          "max_turns_exhausted": false
+        },
+        "outcome_bucket": "forensic_correct"
+      },
+      {
+        "question_id": "q-web-002",
+        "arm": "ast-v0.4",
+        "run_index": 2,
+        "classification": "format_error",
+        "f6": {
+          "no_finish_call": true,
+          "finish_payload_invalid": false,
+          "no_tool_exploration": false,
+          "max_turns_exhausted": true
+        },
+        "outcome_bucket": "budget_exhausted"
+      },
+      {
+        "question_id": "q-web-002",
+        "arm": "ast-v0.4",
+        "run_index": 3,
+        "classification": "correct",
+        "f6": {
+          "no_finish_call": false,
+          "finish_payload_invalid": false,
+          "no_tool_exploration": false,
+          "max_turns_exhausted": true
+        },
+        "outcome_bucket": "forensic_correct"
+      },
+      {
+        "question_id": "q-edge-001",
+        "arm": "bash-v0.1",
+        "run_index": 1,
+        "classification": "correct",
+        "f6": {
+          "no_finish_call": false,
+          "finish_payload_invalid": false,
+          "no_tool_exploration": false,
+          "max_turns_exhausted": false
+        },
+        "outcome_bucket": "forensic_correct"
+      },
+      {
+        "question_id": "q-edge-001",
+        "arm": "bash-v0.1",
+        "run_index": 2,
+        "classification": "format_error",
+        "f6": {
+          "no_finish_call": true,
+          "finish_payload_invalid": false,
+          "no_tool_exploration": false,
+          "max_turns_exhausted": false
+        },
+        "outcome_bucket": "protocol_noncompliance"
+      },
+      {
+        "question_id": "q-edge-001",
+        "arm": "bash-v0.1",
+        "run_index": 3,
+        "classification": "correct",
+        "f6": {
+          "no_finish_call": false,
+          "finish_payload_invalid": false,
+          "no_tool_exploration": false,
+          "max_turns_exhausted": false
+        },
+        "outcome_bucket": "forensic_correct"
+      },
+      {
+        "question_id": "q-edge-001",
+        "arm": "ast-v0.4",
+        "run_index": 1,
+        "classification": "correct",
+        "f6": {
+          "no_finish_call": false,
+          "finish_payload_invalid": false,
+          "no_tool_exploration": false,
+          "max_turns_exhausted": false
+        },
+        "outcome_bucket": "forensic_correct"
+      },
+      {
+        "question_id": "q-edge-001",
+        "arm": "ast-v0.4",
+        "run_index": 2,
+        "classification": "correct",
+        "f6": {
+          "no_finish_call": false,
+          "finish_payload_invalid": false,
+          "no_tool_exploration": false,
+          "max_turns_exhausted": true
+        },
+        "outcome_bucket": "forensic_correct"
+      },
+      {
+        "question_id": "q-edge-001",
+        "arm": "ast-v0.4",
+        "run_index": 3,
+        "classification": "correct",
+        "f6": {
+          "no_finish_call": false,
+          "finish_payload_invalid": false,
+          "no_tool_exploration": false,
+          "max_turns_exhausted": false
+        },
+        "outcome_bucket": "forensic_correct"
+      },
+      {
+        "question_id": "q-web-003",
+        "arm": "bash-v0.1",
+        "run_index": 1,
+        "classification": "correct",
+        "f6": {
+          "no_finish_call": false,
+          "finish_payload_invalid": false,
+          "no_tool_exploration": false,
+          "max_turns_exhausted": false
+        },
+        "outcome_bucket": "forensic_correct"
+      },
+      {
+        "question_id": "q-web-003",
+        "arm": "bash-v0.1",
+        "run_index": 2,
+        "classification": "correct",
+        "f6": {
+          "no_finish_call": false,
+          "finish_payload_invalid": false,
+          "no_tool_exploration": false,
+          "max_turns_exhausted": false
+        },
+        "outcome_bucket": "forensic_correct"
+      },
+      {
+        "question_id": "q-web-003",
+        "arm": "bash-v0.1",
+        "run_index": 3,
+        "classification": "correct",
+        "f6": {
+          "no_finish_call": false,
+          "finish_payload_invalid": false,
+          "no_tool_exploration": false,
+          "max_turns_exhausted": false
+        },
+        "outcome_bucket": "forensic_correct"
+      },
+      {
+        "question_id": "q-web-003",
+        "arm": "ast-v0.4",
+        "run_index": 1,
+        "classification": "correct",
+        "f6": {
+          "no_finish_call": false,
+          "finish_payload_invalid": false,
+          "no_tool_exploration": false,
+          "max_turns_exhausted": false
+        },
+        "outcome_bucket": "forensic_correct"
+      },
+      {
+        "question_id": "q-web-003",
+        "arm": "ast-v0.4",
+        "run_index": 2,
+        "classification": "correct",
+        "f6": {
+          "no_finish_call": false,
+          "finish_payload_invalid": false,
+          "no_tool_exploration": false,
+          "max_turns_exhausted": false
+        },
+        "outcome_bucket": "forensic_correct"
+      },
+      {
+        "question_id": "q-web-003",
+        "arm": "ast-v0.4",
+        "run_index": 3,
+        "classification": "correct",
+        "f6": {
+          "no_finish_call": false,
+          "finish_payload_invalid": false,
+          "no_tool_exploration": false,
+          "max_turns_exhausted": false
+        },
+        "outcome_bucket": "forensic_correct"
+      },
+      {
+        "question_id": "q-web-004",
+        "arm": "bash-v0.1",
+        "run_index": 1,
+        "classification": "correct",
+        "f6": {
+          "no_finish_call": false,
+          "finish_payload_invalid": false,
+          "no_tool_exploration": false,
+          "max_turns_exhausted": false
+        },
+        "outcome_bucket": "forensic_correct"
+      },
+      {
+        "question_id": "q-web-004",
+        "arm": "bash-v0.1",
+        "run_index": 2,
+        "classification": "correct",
+        "f6": {
+          "no_finish_call": false,
+          "finish_payload_invalid": false,
+          "no_tool_exploration": false,
+          "max_turns_exhausted": false
+        },
+        "outcome_bucket": "forensic_correct"
+      },
+      {
+        "question_id": "q-web-004",
+        "arm": "bash-v0.1",
+        "run_index": 3,
+        "classification": "correct",
+        "f6": {
+          "no_finish_call": false,
+          "finish_payload_invalid": false,
+          "no_tool_exploration": false,
+          "max_turns_exhausted": false
+        },
+        "outcome_bucket": "forensic_correct"
+      },
+      {
+        "question_id": "q-web-004",
+        "arm": "ast-v0.4",
+        "run_index": 1,
+        "classification": "correct",
+        "f6": {
+          "no_finish_call": false,
+          "finish_payload_invalid": false,
+          "no_tool_exploration": false,
+          "max_turns_exhausted": false
+        },
+        "outcome_bucket": "forensic_correct"
+      },
+      {
+        "question_id": "q-web-004",
+        "arm": "ast-v0.4",
+        "run_index": 2,
+        "classification": "correct",
+        "f6": {
+          "no_finish_call": false,
+          "finish_payload_invalid": false,
+          "no_tool_exploration": false,
+          "max_turns_exhausted": false
+        },
+        "outcome_bucket": "forensic_correct"
+      },
+      {
+        "question_id": "q-web-004",
+        "arm": "ast-v0.4",
+        "run_index": 3,
+        "classification": "correct",
+        "f6": {
+          "no_finish_call": false,
+          "finish_payload_invalid": false,
+          "no_tool_exploration": false,
+          "max_turns_exhausted": false
+        },
+        "outcome_bucket": "forensic_correct"
+      }
+    ],
+    "verification": "PASS（30/30 与任务书预期一致）"
   }
 }

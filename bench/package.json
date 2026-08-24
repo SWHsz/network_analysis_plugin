@@ -14,6 +14,8 @@
     "slice-q4": "tsx src/runner/run-slice.ts q-web-003",
     "slice-q5": "tsx src/runner/run-slice.ts q-web-004",
     "slice-all": "tsx src/runner/run-slice.ts --all",
+    "reclassify-e1": "tsx src/runner/reclassify-e1.ts",
+    "model-matrix": "tsx src/runner/model-matrix.ts",
     "derive": "tsx src/deriver/cli.ts",
     "spike-sql": "tsx src/runner/spike-sql.ts"
   },

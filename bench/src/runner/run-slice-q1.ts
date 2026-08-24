@@ -189,7 +189,7 @@ async function main(): Promise<number> {
 
   for (const a of summaryArms) {
     console.log(
-      `[majority] ${a.arm}: ${a.majority_correct ? "correct" : "wrong"} (${a.vote_detail})  ` +
+      `[majority] ${a.arm}: ${a.majority_correct ? "correct" : "wrong_answer"} (${a.vote_detail})  ` +
         `mean in=${a.means.input_tokens} out=${a.means.output_tokens} turns=${a.means.llm_calls} interfaceShare=${a.means.interface_share_of_input}`,
     );
   }

@@ -25,6 +25,10 @@ export interface RunOutcome {
   answerRaw: string;
   finishCalled: boolean;
   aborted: string | null;
+  /** 每轮 token usage（turn:complete 实测，1-based） */
+  turnUsage: Array<{ turn: number; inputTokens: number; outputTokens: number }>;
+  /** 各轮完成时刻（wall ms），用于把工具调用按时间归轮 */
+  turnMarks: number[];
 }
 
 /** 跑前清 Stirrup 任务缓存，避免上一轮 state.json 串跑（EVALUATION 风险 #3） */
@@ -43,6 +47,8 @@ export async function runArmOnce(opts: {
   await clearStirrupCache(task);
 
   const records: ToolCallRecord[] = [];
+  const turnUsage: Array<{ turn: number; inputTokens: number; outputTokens: number }> = [];
+  const turnMarks: number[] = [];
   let llmCalls = 0;
   let inputTokens = 0;
   let outputTokens = 0;
@@ -62,6 +68,8 @@ export async function runArmOnce(opts: {
     llmCalls++;
     inputTokens += d.tokenUsage?.input ?? 0;
     outputTokens += d.tokenUsage?.output ?? 0;
+    turnUsage.push({ turn: llmCalls, inputTokens: d.tokenUsage?.input ?? 0, outputTokens: d.tokenUsage?.output ?? 0 });
+    turnMarks.push(Date.now());
     if (outputTokens > budget.maxTokens) {
       ac.abort(new Error(`output token budget exceeded: ${outputTokens} > ${budget.maxTokens}`));
     }
@@ -91,5 +99,7 @@ export async function runArmOnce(opts: {
     answerRaw: (result?.finishParams as { reason?: string } | undefined)?.reason ?? "",
     finishCalled: result !== null && result.finishParams !== undefined,
     aborted,
+    turnUsage,
+    turnMarks,
   };
 }

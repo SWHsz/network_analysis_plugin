@@ -112,7 +112,7 @@ export function assembleReport(input: {
   const totalTokens = withMetrics.reduce((a, r) => a + (r.metrics?.inputTokens ?? 0) + (r.metrics?.outputTokens ?? 0), 0);
   const totalWallMs = withMetrics.reduce((a, r) => a + (r.metrics?.wallMs ?? 0), 0);
 
-  const errorModeDist: Record<string, number> = { correct: 0, wrong: 0, format_error: 0, budget_exhausted: 0 };
+  const errorModeDist: Record<string, number> = { correct: 0, wrong_answer: 0, format_error: 0, budget_exhausted: 0 };
   const bump = (k: string) => {
     errorModeDist[k] = (errorModeDist[k] ?? 0) + 1;
   };

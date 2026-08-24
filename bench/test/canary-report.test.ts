@@ -80,7 +80,7 @@ describe("assembleReport（§6.5 结构）", () => {
       }),
       run({
         runIndex: 2,
-        classification: "wrong",
+        classification: "wrong_answer",
         evidence: { coverage: 0.5, macroPrecision: 0.5, macroRecall: 0.5, allFieldsPass: false, needsHumanReviewFields: ["retr"] },
         metrics: { llmCalls: 5, inputTokens: 200, outputTokens: 100, toolRenderChars: 400, interfaceTokens: 555, wallMs: 2000, budgetExhausted: false },
       }),
@@ -104,7 +104,7 @@ describe("assembleReport（§6.5 结构）", () => {
       model: "m",
       date: "d",
       runsPerQuestion: 1,
-      runs: [run({ classification: "wrong", evidence: { coverage: 1, macroPrecision: 1, macroRecall: 0.5, allFieldsPass: false, needsHumanReviewFields: [] } })],
+      runs: [run({ classification: "wrong_answer", evidence: { coverage: 1, macroPrecision: 1, macroRecall: 0.5, allFieldsPass: false, needsHumanReviewFields: [] } })],
     });
     expect(rep.M2_cost.tokens_per_correct).toBeNull();
     expect(rep.M4_hallucination_rate).toBeNull();

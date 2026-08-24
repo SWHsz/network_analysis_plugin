@@ -4,7 +4,7 @@
  *
  * 分类 classification：
  *   "correct"      — schema 过、全字段对
- *   "wrong"        — schema 过但有字段错
+ *   "wrong_answer" — schema 过但有字段错（取证失败）
  *   "format_error" — 提取失败或 answer_schema 校验不过（单独分类，不计入对错）
  */
 import { extractFinalAnswer, type Extraction, validateAgainstContract } from "./answer-contract.js";
@@ -13,7 +13,7 @@ import { scoreEvidence, type EvidenceResult } from "./evidence.js";
 import { scoreHallucinationSupport, type HallucinationVerdict } from "./hallucination.js";
 import type { GroundTruth, Question } from "./question.js";
 
-export type RunClassification = "correct" | "wrong" | "format_error";
+export type RunClassification = "correct" | "wrong_answer" | "format_error";
 
 export interface ScoredRun {
   questionId: string;
@@ -63,7 +63,7 @@ export function scoreRun(q: Question, gt: GroundTruth, answerRaw: string, source
     correctness,
     evidence,
     hallucination: scoreHallucinationSupport(q, answer),
-    classification: correctness.correct ? "correct" : "wrong",
+    classification: correctness.correct ? "correct" : "wrong_answer",
   };
 }
 
@@ -134,7 +134,7 @@ export function scoreAnswerObject(q: Question, gt: GroundTruth, answer: Record<s
       correctness,
       evidence,
       hallucination: scoreHallucinationSupport(q, ans),
-      classification: correctness.correct ? "correct" : "wrong",
+      classification: correctness.correct ? "correct" : "wrong_answer",
     },
   };
 }
