@@ -1,0 +1,127 @@
+{
+  "model": "deepseek-v4-flash",
+  "budget": {
+    "maxTurns": 8,
+    "maxTokens": 4000,
+    "timeoutMs": 180000
+  },
+  "runs_per_question": 3,
+  "generated_at": "2026-08-24T14:17:26.694Z",
+  "questions": [
+    {
+      "question_id": "q-web-001",
+      "bash": {
+        "majority_correct": true,
+        "vote_detail": "3/3 correct (correct,correct,correct)",
+        "avg_input_tokens": 21963,
+        "avg_turns": 5.7,
+        "avg_tool_render_chars": 6430,
+        "avg_interface_tokens": 621,
+        "interface_share_of_input": 0.18
+      },
+      "ast": {
+        "majority_correct": true,
+        "vote_detail": "3/3 correct (correct,correct,correct)",
+        "avg_input_tokens": 16955,
+        "avg_turns": 5.3,
+        "avg_tool_render_chars": 3686,
+        "avg_interface_tokens": 1750,
+        "interface_share_of_input": 0.551
+      }
+    },
+    {
+      "question_id": "q-web-002",
+      "bash": {
+        "majority_correct": true,
+        "vote_detail": "3/3 correct (correct,correct,correct)",
+        "avg_input_tokens": 16058,
+        "avg_turns": 4.7,
+        "avg_tool_render_chars": 6308,
+        "avg_interface_tokens": 621,
+        "interface_share_of_input": 0.186
+      },
+      "ast": {
+        "majority_correct": true,
+        "vote_detail": "2/3 correct (correct,format_error,correct)",
+        "avg_input_tokens": 32997,
+        "avg_turns": 7,
+        "avg_tool_render_chars": 10289,
+        "avg_interface_tokens": 1750,
+        "interface_share_of_input": 0.375
+      }
+    },
+    {
+      "question_id": "q-edge-001",
+      "bash": {
+        "majority_correct": true,
+        "vote_detail": "2/3 correct (correct,format_error,correct)",
+        "avg_input_tokens": 19981,
+        "avg_turns": 4.7,
+        "avg_tool_render_chars": 11439,
+        "avg_interface_tokens": 621,
+        "interface_share_of_input": 0.154
+      },
+      "ast": {
+        "majority_correct": true,
+        "vote_detail": "3/3 correct (correct,correct,correct)",
+        "avg_input_tokens": 24404,
+        "avg_turns": 6.7,
+        "avg_tool_render_chars": 5090,
+        "avg_interface_tokens": 1749,
+        "interface_share_of_input": 0.486
+      }
+    },
+    {
+      "question_id": "q-web-003",
+      "bash": {
+        "majority_correct": true,
+        "vote_detail": "3/3 correct (correct,correct,correct)",
+        "avg_input_tokens": 17457,
+        "avg_turns": 5,
+        "avg_tool_render_chars": 5820,
+        "avg_interface_tokens": 621,
+        "interface_share_of_input": 0.184
+      },
+      "ast": {
+        "majority_correct": true,
+        "vote_detail": "3/3 correct (correct,correct,correct)",
+        "avg_input_tokens": 17302,
+        "avg_turns": 5,
+        "avg_tool_render_chars": 5039,
+        "avg_interface_tokens": 1750,
+        "interface_share_of_input": 0.506
+      }
+    },
+    {
+      "question_id": "q-web-004",
+      "bash": {
+        "majority_correct": true,
+        "vote_detail": "3/3 correct (correct,correct,correct)",
+        "avg_input_tokens": 16134,
+        "avg_turns": 5.3,
+        "avg_tool_render_chars": 6325,
+        "avg_interface_tokens": 621,
+        "interface_share_of_input": 0.219
+      },
+      "ast": {
+        "majority_correct": true,
+        "vote_detail": "3/3 correct (correct,correct,correct)",
+        "avg_input_tokens": 22295,
+        "avg_turns": 6.7,
+        "avg_tool_render_chars": 3188,
+        "avg_interface_tokens": 1750,
+        "interface_share_of_input": 0.524
+      }
+    }
+  ],
+  "summary": {
+    "bash_overall_correct": "5/5",
+    "ast_overall_correct": "5/5",
+    "bash_avg_tokens": 18318.6,
+    "ast_avg_tokens": 22790.6,
+    "bash_avg_turns": 5.1,
+    "ast_avg_turns": 6.1,
+    "interface_tax_avg": 2.82,
+    "note": "interface_tax_avg = AST 臂接口注入 token 相对 bash 臂的倍数（每请求实测）；多数表决口径 ≥2/3"
+  }
+}

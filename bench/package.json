@@ -9,6 +9,11 @@
     "canary": "tsx src/scorer/cli.ts canary",
     "demo-reports": "tsx src/scorer/cli.ts demo-reports",
     "slice-q1": "tsx src/runner/run-slice-q1.ts",
+    "slice-q2": "tsx src/runner/run-slice.ts q-web-002",
+    "slice-q3": "tsx src/runner/run-slice.ts q-edge-001",
+    "slice-q4": "tsx src/runner/run-slice.ts q-web-003",
+    "slice-q5": "tsx src/runner/run-slice.ts q-web-004",
+    "slice-all": "tsx src/runner/run-slice.ts --all",
     "derive": "tsx src/deriver/cli.ts",
     "spike-sql": "tsx src/runner/spike-sql.ts"
   },
