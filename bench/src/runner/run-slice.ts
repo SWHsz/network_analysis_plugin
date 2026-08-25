@@ -52,6 +52,13 @@ import type { ArmResult, Budget, ToolCallRecord } from "./types.js";
 
 const SLICE_QUESTION_IDS = SLICE_IDS as unknown as string[];
 const ARMS = ARM_NAMES;
+/**
+ * 预算裁定（终局实验参数，不做敏感性实验）：32 包量级的 fixture 下该预算已属宽裕，
+ * 打满轮次/超时本身即 agent 侧低效的有效信号而非 harness 伪影。
+ * 适用边界：此论证只在切片量级成立——更大 capture 的下钻深度天然更大，预算须按
+ * 规模重新推导，不得沿用本值。数值溯源：Stirrup spike demo 默认值，经跨批次锁死
+ * 冻结为设计选择。
+ */
 const BUDGET: Budget = { maxTurns: 8, maxTokens: 4000, timeoutMs: 180_000 };
 
 const OUT_RUNS_DIR = path.join(REPO_ROOT, "bench", "out", "runs");

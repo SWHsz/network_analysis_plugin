@@ -119,6 +119,10 @@ tool_binding_failure`，完成率报双口径（`completion_rate_excluding_F6` �
 空到达标注/期望形状，≤300 chars）；finish 工具描述携带与提取契约同形的已填 dummy
 实例（防 schema 回声）。
 
+**预算口径**：切片量级 fixture（≤32 包）统一 maxTurns=8 / maxTokens=4000（输出，含
+推理 token）/ timeoutMs=180s，为终局实验参数——该量级下预算宽裕，耗尽即 agent 侧
+低效信号；更大 capture 的实验须按规模重新推导预算，不沿用本值。
+
 ## Backend（tshark）策略
 
 解析顺序：**config 显式路径 → 已下载的 pin 版本（4.4.18）→ system tshark →（都没有时）首次运行自动下载 pin 版**。

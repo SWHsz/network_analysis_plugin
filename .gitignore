@@ -21,6 +21,9 @@ dsh-session-*
 演进计划RFC.md
 dataset_anoymized
 dataset
+# 第三方参考仓库（仅本地阅读，不入库，避免进入全树安全扫描）
+CFA-bench/
+Cybersleuth_Forensic_Agent/
 *.md
 !README.md
 
