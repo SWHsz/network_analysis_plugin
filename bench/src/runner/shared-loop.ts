@@ -9,9 +9,10 @@
  *   transcript 可辨二者）。
  */
 import { rm } from "node:fs/promises";
-import { Agent, SIMPLE_FINISH_TOOL, CacheManager } from "@stirrup/stirrup";
+import { Agent, CacheManager } from "@stirrup/stirrup";
 import type { AgentRunResult } from "@stirrup/stirrup";
 import { ChatCompletionsClient } from "@stirrup/stirrup/clients/openai";
+import { FINISH_TOOL_V02 } from "./finish-tool.js";
 import type { Arm, Budget, ToolCallRecord } from "./types.js";
 
 export interface RunOutcome {
@@ -60,7 +61,7 @@ export async function runArmOnce(opts: {
     maxTurns: budget.maxTurns,
     systemPrompt: arm.systemPrompt,
     tools: arm.buildTools(records),
-    finishTool: SIMPLE_FINISH_TOOL,
+    finishTool: FINISH_TOOL_V02,
   });
 
   const ac = new AbortController();

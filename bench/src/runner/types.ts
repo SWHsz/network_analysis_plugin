@@ -21,6 +21,13 @@ export interface ToolCallRecord {
   /** 模型可见字符数：AST 臂为渲染文本，bash 臂为 stdout+stderr */
   resultChars: number;
   startedAtMs: number;
+  /** v0.2 诊断遥测：解析前的原始参数串（provider→harness 链路的工具侧观测） */
+  rawArgs?: string;
+  rawArgsWasObject?: boolean;
+  rawArgsTruncated?: boolean;
+  argsParseError?: string | null;
+  /** v0.2：该调用的参数校验错误含「空到达」标注（必要参数到达为空/缺失） */
+  emptyArrival?: boolean;
 }
 
 export interface ArmMetrics {

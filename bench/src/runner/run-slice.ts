@@ -38,12 +38,16 @@ import {
   interfaceCharsOf,
   interfaceTokensOf,
   loadApiKey,
+  providerToolCallCount,
+  providerToolCallsFrom,
   resolveProvider,
   startRecordingProxy,
   type InterfaceCapture,
+  type ProviderToolCall,
 } from "./llm.js";
 import { runArmOnce } from "./shared-loop.js";
-import { SLICE_QUESTION_IDS as SLICE_IDS, ARM_NAMES } from "./run-slice-ids.js";
+import { SLICE_QUESTION_IDS as SLICE_IDS, ARM_NAMES, PROTOCOL_VERSION } from "./run-slice-ids.js";
+import { applyF7, detectF7, type CallLite, type F7Detection, type FinalBucket } from "../scorer/f7.js";
 import type { ArmResult, Budget, ToolCallRecord } from "./types.js";
 
 const SLICE_QUESTION_IDS = SLICE_IDS as unknown as string[];
@@ -51,20 +55,47 @@ const ARMS = ARM_NAMES;
 const BUDGET: Budget = { maxTurns: 8, maxTokens: 4000, timeoutMs: 180_000 };
 
 const OUT_RUNS_DIR = path.join(REPO_ROOT, "bench", "out", "runs");
-/** 当前批次的输出根目录与模型（默认 E1 兼容路径；--model 时切到 model-<model>/） */
+/**
+ * 当前批次的输出根目录与模型（默认 E1 兼容路径；--model 时切到 model-<model>/）。
+ * v0.2 起汇总一律写 all-summary-v02.json——v0.1 的 all-summary.json 是不可变基线。
+ */
 let runsBaseDir = OUT_RUNS_DIR;
-let allSummaryPath = path.join(REPO_ROOT, "bench", "out", "all-summary.json");
+let allSummaryPath = path.join(REPO_ROOT, "bench", "out", "all-summary-v02.json");
 let currentModel = DEFAULT_MODEL;
+
+type FiveBuckets = Record<FinalBucket, number>;
+
+function emptyFiveBuckets(): FiveBuckets {
+  return {
+    forensic_correct: 0,
+    forensic_wrong: 0,
+    protocol_noncompliance: 0,
+    budget_exhausted: 0,
+    tool_binding_failure: 0,
+  };
+}
 
 interface ArmOutput {
   result: ArmResult;
   classification: RunClassification;
   messageHistory: unknown[];
   f6: F6Subtypes;
-  bucket: OutcomeBucket;
+  f7: F7Detection;
+  bucket: FinalBucket;
   runCaptures: InterfaceCapture[];
+  providerToolCalls: ProviderToolCall[];
   turnUsage: Array<{ turn: number; inputTokens: number; outputTokens: number }>;
   turnMarks: number[];
+}
+
+/** 从工具调用记录提取 F7 判定所需的调用摘要 */
+function callLitesOf(records: ToolCallRecord[]): CallLite[] {
+  return records.map((r) => ({
+    name: r.name,
+    argsJson: typeof r.rawArgs === "string" && r.rawArgs !== "" ? r.rawArgs : JSON.stringify(r.args ?? null),
+    ok: r.ok,
+    emptyArrival: r.emptyArrival === true,
+  }));
 }
 
 /** 逐段白名单 + 最终包含检查（写盘边界） */
@@ -115,7 +146,7 @@ async function main(): Promise<number> {
   if (model !== DEFAULT_MODEL) {
     assertSafeBasename(model, "模型名");
     runsBaseDir = path.join(OUT_RUNS_DIR, `model-${model}`);
-    allSummaryPath = path.join(runsBaseDir, "all-summary.json");
+    allSummaryPath = path.join(runsBaseDir, "all-summary-v02.json");
   }
 
   const all = loadQuestionsDir();
@@ -166,13 +197,15 @@ async function main(): Promise<number> {
       console.log(`\n########## ${q.question_id} ##########`);
       const outputs = new Map<string, ArmOutput[]>();
       for (const armName of ARMS) {
-        const arm = armName === "bash-v0.1" ? new BashArm(captureAbsPath) : new AstArm(captureAbsPath);
+        const arm = armName.startsWith("bash-") ? new BashArm(captureAbsPath) : new AstArm(captureAbsPath);
         const outs: ArmOutput[] = [];
         for (let i = 1; i <= runsPerQuestion; i++) {
           console.log(`\n===== ${arm.name} run ${i}/${runsPerQuestion} =====`);
           const capStart = captureCount();
+          const providerArgsStart = providerToolCallCount();
           const outcome = await runArmOnce({ arm, task, budget: BUDGET, client });
           const runCaptures = capturesFrom(capStart);
+          const providerToolCalls = providerToolCallsFrom(providerArgsStart);
 
           const extraction = extractFinalAnswer(outcome.answerRaw);
           const contract = validateAgainstContract(q.answer_schema, extraction);
@@ -202,13 +235,19 @@ async function main(): Promise<number> {
             llmCalls: outcome.llmCalls,
             maxTurns: BUDGET.maxTurns,
           });
+          // v0.2：F7 工具绑定失败（arrival-side 遥测）；失败 run 优先级 F7 > budget
+          const f7 = detectF7(callLitesOf(outcome.records));
+          const runCompleted = scored.classification !== "format_error";
+          const bucket = applyF7(outcomeBucket(scored.classification, f6), f7, runCompleted);
           outs.push({
             result,
             classification: scored.classification,
             messageHistory: outcome.messageHistory,
             f6,
-            bucket: outcomeBucket(scored.classification, f6),
+            f7,
+            bucket,
             runCaptures,
+            providerToolCalls,
             turnUsage: outcome.turnUsage,
             turnMarks: outcome.turnMarks,
           });
@@ -224,6 +263,9 @@ async function main(): Promise<number> {
             `  提取：${extraction.status === "ok" ? JSON.stringify(extraction.value) : `format_error(${extraction.reason})`} → ${scored.classification}` +
               (scored.classification === "format_error" ? ` [F6: ${JSON.stringify(f6)}]` : ""),
           );
+          if (f7.binding) {
+            console.log(`  [F7] ${f7.evidence}${bucket === "tool_binding_failure" ? " → tool_binding_failure" : "（完成态，仅记诊断）"}`);
+          }
         }
         outputs.set(armName, outs);
       }
@@ -269,12 +311,29 @@ function runsJson(outs: ArmOutput[]): string {
       run_index: i + 1,
       classification: o.classification,
       f6: o.f6,
+      f7: o.f7,
+      binding_failures_count: o.f7.emptyArrivalCount,
       outcome_bucket: o.bucket,
       answerRaw: o.result.answerRaw,
       answer: o.result.answer ?? null,
       format_error: o.result.formatError ?? null,
       metrics: o.result.metrics,
       aborted: o.result.aborted,
+      // v0.2：调用级摘要（F7 复判与错误形态分析用；完整记录见 transcript.json）
+      calls: callLitesOf(o.result.transcript).map((c, j) => {
+        const rec = o.result.transcript[j]!;
+        return {
+          seq: rec.seq,
+          name: c.name,
+          ok: c.ok,
+          emptyArrival: c.emptyArrival,
+          rawArgs: rec.rawArgs ?? null,
+          rawArgsTruncated: rec.rawArgsTruncated === true,
+          resultChars: rec.resultChars,
+        };
+      }),
+      // v0.2：provider 响应体里的原始 tool_calls 参数串（H-harness vs H-model 证据）
+      provider_raw_tool_calls: o.providerToolCalls,
     })),
     null,
     2,
@@ -329,9 +388,15 @@ function rhoOf(outs: ArmOutput[]): Record<string, unknown> {
 
 function armSummary(name: string, outs: ArmOutput[]): Record<string, unknown> {
   const vote = majorityVote(outs.map((o) => o.classification));
-  const breakdown = emptyBreakdown();
+  const breakdown = emptyFiveBuckets();
   for (const o of outs) breakdown[o.bucket]++;
-  const rates = completionRates(breakdown);
+  // 双口径：excluding 口径只含 forensic_*（F6 协议失败与 F7 绑定失败均不污染完成率）
+  const forensic = breakdown.forensic_correct + breakdown.forensic_wrong;
+  const total = forensic + breakdown.protocol_noncompliance + breakdown.budget_exhausted + breakdown.tool_binding_failure;
+  const rates = {
+    completion_rate_excluding_F6: forensic === 0 ? "0/0" : `${breakdown.forensic_correct}/${forensic}`,
+    completion_rate_raw: total === 0 ? "0/0" : `${breakdown.forensic_correct}/${total}`,
+  };
   // 每轮明细：turn 序 → 该轮 input/output + 该轮工具渲染 chars（按时间归轮）
   const perTurn = outs.map((o, runIdx) => {
     const renderByTurn = new Map<number, number>();
@@ -363,6 +428,8 @@ function armSummary(name: string, outs: ArmOutput[]): Record<string, unknown> {
       run_index: i + 1,
       classification: o.classification,
       f6: o.f6,
+      f7: o.f7,
+      binding_failures_count: o.f7.emptyArrivalCount,
       outcome_bucket: o.bucket,
       format_error: o.result.formatError ?? null,
       llm_calls: o.result.metrics.llmCalls,
@@ -400,10 +467,11 @@ async function writeQuestionSummary(q: Question, outputs: Map<string, ArmOutput[
   const armSummaries = ARMS.map((name) => armSummary(name, outputs.get(name) ?? []));
   const summary = {
     date: new Date().toISOString(),
+    protocol_version: PROTOCOL_VERSION,
     model: currentModel,
     question_id: q.question_id,
     budget: BUDGET,
-    runs_per_question: (outputs.get("bash-v0.1") ?? []).length,
+    runs_per_question: (outputs.get(ARM_NAMES[0]) ?? []).length,
     arms: armSummaries,
     interface_tax: interfaceTaxOf(armSummaries),
   };
@@ -466,6 +534,7 @@ async function writeAllSummary(model: string, batch: Array<{ q: Question; output
   };
 
   const summary = {
+    protocol_version: PROTOCOL_VERSION,
     model,
     budget: BUDGET,
     runs_per_question: 3,

@@ -106,10 +106,18 @@ transcript，接口注入 token 经本地记录代理实测。切片期保留"�
 
 **失败分类**：`format_error` 细分为 F6 协议不合规子类（`no_finish_call` 纯文本收尾 /
 `finish_payload_invalid` payload 坏 / `no_tool_exploration` 零探索），`max_turns_exhausted`
-单列；结果四分桶 `forensic_correct / forensic_wrong / protocol_noncompliance /
-budget_exhausted`，完成率报双口径（`completion_rate_excluding_F6` 为去除协议失败的主口径）。
-多模型批次经 `--model` 路由（DeepSeek 直连或 opengo 转发），产物按模型分目录，
-`bench/out/model-matrix.json` 聚合跨模型对比。
+单列；F7 工具绑定失败（必要参数空到达失败 ≥3 次/run 或同参连败 ≥3）优先于预算桶——
+结果五分桶 `forensic_correct / forensic_wrong / protocol_noncompliance / budget_exhausted /
+tool_binding_failure`，完成率报双口径（`completion_rate_excluding_F6` 为去除协议失败的
+主口径）。多模型批次经 `--model` 路由（DeepSeek 直连或 opengo 转发），产物按模型分目录，
+`bench/out/model-matrix.json`（v0.1 协议）与 `bench/out/model-matrix-v02.json`
+（含 F7 重分类与复跑对照）聚合跨模型对比。
+
+**v0.2 协议（臂 bash-v0.2 / ast-v0.5）**：每次工具调用在 transcript 记录 `rawArgs`
+（executor 入口原始参数串，截断 2000）与 provider 响应体原始 tool_calls 参数（双侧
+观测，用于区分 harness 丢参与模型发空参）；参数校验错误四段式回显（问题/收到参数/
+空到达标注/期望形状，≤300 chars）；finish 工具描述携带与提取契约同形的已填 dummy
+实例（防 schema 回声）。
 
 ## Backend（tshark）策略
 

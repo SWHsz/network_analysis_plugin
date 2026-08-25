@@ -1,0 +1,1294 @@
+{
+  "protocol_version": "v0.2",
+  "generated_at": "2026-08-25T13:12:22.413Z",
+  "reclassified_from_v01": {
+    "rule": "v0.1 无逐 run arrival 遥测 → 臂级 traffic_query 空到达率 ≥0.9（transcript 聚合）作代理判据；仅 budget_exhausted run 重分类为 tool_binding_failure；多数表决结果不变",
+    "five_buckets": {
+      "deepseek-v4-flash": {
+        "bash-v0.1": {
+          "forensic_correct": 14,
+          "forensic_wrong": 0,
+          "protocol_noncompliance": 1,
+          "budget_exhausted": 0,
+          "tool_binding_failure": 0
+        },
+        "ast-v0.4": {
+          "forensic_correct": 14,
+          "forensic_wrong": 0,
+          "protocol_noncompliance": 1,
+          "budget_exhausted": 0,
+          "tool_binding_failure": 0
+        }
+      },
+      "deepseek-v4-pro": {
+        "bash-v0.1": {
+          "forensic_correct": 3,
+          "forensic_wrong": 0,
+          "protocol_noncompliance": 12,
+          "budget_exhausted": 0,
+          "tool_binding_failure": 0
+        },
+        "ast-v0.4": {
+          "forensic_correct": 5,
+          "forensic_wrong": 0,
+          "protocol_noncompliance": 4,
+          "budget_exhausted": 6,
+          "tool_binding_failure": 0
+        }
+      },
+      "glm-5.3": {
+        "bash-v0.1": {
+          "forensic_correct": 14,
+          "forensic_wrong": 0,
+          "protocol_noncompliance": 1,
+          "budget_exhausted": 0,
+          "tool_binding_failure": 0
+        },
+        "ast-v0.4": {
+          "forensic_correct": 12,
+          "forensic_wrong": 0,
+          "protocol_noncompliance": 0,
+          "budget_exhausted": 3,
+          "tool_binding_failure": 0
+        }
+      },
+      "kimi-k3": {
+        "bash-v0.1": {
+          "forensic_correct": 15,
+          "forensic_wrong": 0,
+          "protocol_noncompliance": 0,
+          "budget_exhausted": 0,
+          "tool_binding_failure": 0
+        },
+        "ast-v0.4": {
+          "forensic_correct": 2,
+          "forensic_wrong": 0,
+          "protocol_noncompliance": 0,
+          "budget_exhausted": 0,
+          "tool_binding_failure": 13
+        }
+      }
+    },
+    "kimi_ast_f7_count": 13,
+    "verification": "PASS（kimi/ast 13 个 budget run 全落 F7；其余模型/臂零误伤）",
+    "per_run": [
+      {
+        "model": "deepseek-v4-flash",
+        "arm": "bash-v0.1",
+        "question_id": "q-web-001",
+        "run_index": 1,
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-flash",
+        "arm": "bash-v0.1",
+        "question_id": "q-web-001",
+        "run_index": 2,
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-flash",
+        "arm": "bash-v0.1",
+        "question_id": "q-web-001",
+        "run_index": 3,
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-flash",
+        "arm": "bash-v0.1",
+        "question_id": "q-web-002",
+        "run_index": 1,
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-flash",
+        "arm": "bash-v0.1",
+        "question_id": "q-web-002",
+        "run_index": 2,
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-flash",
+        "arm": "bash-v0.1",
+        "question_id": "q-web-002",
+        "run_index": 3,
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-flash",
+        "arm": "bash-v0.1",
+        "question_id": "q-edge-001",
+        "run_index": 1,
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-flash",
+        "arm": "bash-v0.1",
+        "question_id": "q-edge-001",
+        "run_index": 2,
+        "new_bucket": "protocol_noncompliance",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-flash",
+        "arm": "bash-v0.1",
+        "question_id": "q-edge-001",
+        "run_index": 3,
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-flash",
+        "arm": "bash-v0.1",
+        "question_id": "q-web-003",
+        "run_index": 1,
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-flash",
+        "arm": "bash-v0.1",
+        "question_id": "q-web-003",
+        "run_index": 2,
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-flash",
+        "arm": "bash-v0.1",
+        "question_id": "q-web-003",
+        "run_index": 3,
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-flash",
+        "arm": "bash-v0.1",
+        "question_id": "q-web-004",
+        "run_index": 1,
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-flash",
+        "arm": "bash-v0.1",
+        "question_id": "q-web-004",
+        "run_index": 2,
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-flash",
+        "arm": "bash-v0.1",
+        "question_id": "q-web-004",
+        "run_index": 3,
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-flash",
+        "arm": "ast-v0.4",
+        "question_id": "q-web-001",
+        "run_index": 1,
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-flash",
+        "arm": "ast-v0.4",
+        "question_id": "q-web-001",
+        "run_index": 2,
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-flash",
+        "arm": "ast-v0.4",
+        "question_id": "q-web-001",
+        "run_index": 3,
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-flash",
+        "arm": "ast-v0.4",
+        "question_id": "q-web-002",
+        "run_index": 1,
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-flash",
+        "arm": "ast-v0.4",
+        "question_id": "q-web-002",
+        "run_index": 2,
+        "new_bucket": "protocol_noncompliance",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-flash",
+        "arm": "ast-v0.4",
+        "question_id": "q-web-002",
+        "run_index": 3,
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-flash",
+        "arm": "ast-v0.4",
+        "question_id": "q-edge-001",
+        "run_index": 1,
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-flash",
+        "arm": "ast-v0.4",
+        "question_id": "q-edge-001",
+        "run_index": 2,
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-flash",
+        "arm": "ast-v0.4",
+        "question_id": "q-edge-001",
+        "run_index": 3,
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-flash",
+        "arm": "ast-v0.4",
+        "question_id": "q-web-003",
+        "run_index": 1,
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-flash",
+        "arm": "ast-v0.4",
+        "question_id": "q-web-003",
+        "run_index": 2,
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-flash",
+        "arm": "ast-v0.4",
+        "question_id": "q-web-003",
+        "run_index": 3,
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-flash",
+        "arm": "ast-v0.4",
+        "question_id": "q-web-004",
+        "run_index": 1,
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-flash",
+        "arm": "ast-v0.4",
+        "question_id": "q-web-004",
+        "run_index": 2,
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-flash",
+        "arm": "ast-v0.4",
+        "question_id": "q-web-004",
+        "run_index": 3,
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-pro",
+        "arm": "bash-v0.1",
+        "question_id": "q-web-001",
+        "run_index": 1,
+        "old_bucket": "protocol_noncompliance",
+        "new_bucket": "protocol_noncompliance",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-pro",
+        "arm": "bash-v0.1",
+        "question_id": "q-web-001",
+        "run_index": 2,
+        "old_bucket": "protocol_noncompliance",
+        "new_bucket": "protocol_noncompliance",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-pro",
+        "arm": "bash-v0.1",
+        "question_id": "q-web-001",
+        "run_index": 3,
+        "old_bucket": "protocol_noncompliance",
+        "new_bucket": "protocol_noncompliance",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-pro",
+        "arm": "bash-v0.1",
+        "question_id": "q-web-002",
+        "run_index": 1,
+        "old_bucket": "forensic_correct",
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-pro",
+        "arm": "bash-v0.1",
+        "question_id": "q-web-002",
+        "run_index": 2,
+        "old_bucket": "protocol_noncompliance",
+        "new_bucket": "protocol_noncompliance",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-pro",
+        "arm": "bash-v0.1",
+        "question_id": "q-web-002",
+        "run_index": 3,
+        "old_bucket": "forensic_correct",
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-pro",
+        "arm": "bash-v0.1",
+        "question_id": "q-edge-001",
+        "run_index": 1,
+        "old_bucket": "forensic_correct",
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-pro",
+        "arm": "bash-v0.1",
+        "question_id": "q-edge-001",
+        "run_index": 2,
+        "old_bucket": "protocol_noncompliance",
+        "new_bucket": "protocol_noncompliance",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-pro",
+        "arm": "bash-v0.1",
+        "question_id": "q-edge-001",
+        "run_index": 3,
+        "old_bucket": "protocol_noncompliance",
+        "new_bucket": "protocol_noncompliance",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-pro",
+        "arm": "bash-v0.1",
+        "question_id": "q-web-003",
+        "run_index": 1,
+        "old_bucket": "protocol_noncompliance",
+        "new_bucket": "protocol_noncompliance",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-pro",
+        "arm": "bash-v0.1",
+        "question_id": "q-web-003",
+        "run_index": 2,
+        "old_bucket": "protocol_noncompliance",
+        "new_bucket": "protocol_noncompliance",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-pro",
+        "arm": "bash-v0.1",
+        "question_id": "q-web-003",
+        "run_index": 3,
+        "old_bucket": "protocol_noncompliance",
+        "new_bucket": "protocol_noncompliance",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-pro",
+        "arm": "bash-v0.1",
+        "question_id": "q-web-004",
+        "run_index": 1,
+        "old_bucket": "protocol_noncompliance",
+        "new_bucket": "protocol_noncompliance",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-pro",
+        "arm": "bash-v0.1",
+        "question_id": "q-web-004",
+        "run_index": 2,
+        "old_bucket": "protocol_noncompliance",
+        "new_bucket": "protocol_noncompliance",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-pro",
+        "arm": "bash-v0.1",
+        "question_id": "q-web-004",
+        "run_index": 3,
+        "old_bucket": "protocol_noncompliance",
+        "new_bucket": "protocol_noncompliance",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-pro",
+        "arm": "ast-v0.4",
+        "question_id": "q-web-001",
+        "run_index": 1,
+        "old_bucket": "budget_exhausted",
+        "new_bucket": "budget_exhausted",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-pro",
+        "arm": "ast-v0.4",
+        "question_id": "q-web-001",
+        "run_index": 2,
+        "old_bucket": "forensic_correct",
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-pro",
+        "arm": "ast-v0.4",
+        "question_id": "q-web-001",
+        "run_index": 3,
+        "old_bucket": "forensic_correct",
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-pro",
+        "arm": "ast-v0.4",
+        "question_id": "q-web-002",
+        "run_index": 1,
+        "old_bucket": "protocol_noncompliance",
+        "new_bucket": "protocol_noncompliance",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-pro",
+        "arm": "ast-v0.4",
+        "question_id": "q-web-002",
+        "run_index": 2,
+        "old_bucket": "budget_exhausted",
+        "new_bucket": "budget_exhausted",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-pro",
+        "arm": "ast-v0.4",
+        "question_id": "q-web-002",
+        "run_index": 3,
+        "old_bucket": "forensic_correct",
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-pro",
+        "arm": "ast-v0.4",
+        "question_id": "q-edge-001",
+        "run_index": 1,
+        "old_bucket": "budget_exhausted",
+        "new_bucket": "budget_exhausted",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-pro",
+        "arm": "ast-v0.4",
+        "question_id": "q-edge-001",
+        "run_index": 2,
+        "old_bucket": "forensic_correct",
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-pro",
+        "arm": "ast-v0.4",
+        "question_id": "q-edge-001",
+        "run_index": 3,
+        "old_bucket": "budget_exhausted",
+        "new_bucket": "budget_exhausted",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-pro",
+        "arm": "ast-v0.4",
+        "question_id": "q-web-003",
+        "run_index": 1,
+        "old_bucket": "protocol_noncompliance",
+        "new_bucket": "protocol_noncompliance",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-pro",
+        "arm": "ast-v0.4",
+        "question_id": "q-web-003",
+        "run_index": 2,
+        "old_bucket": "protocol_noncompliance",
+        "new_bucket": "protocol_noncompliance",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-pro",
+        "arm": "ast-v0.4",
+        "question_id": "q-web-003",
+        "run_index": 3,
+        "old_bucket": "budget_exhausted",
+        "new_bucket": "budget_exhausted",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-pro",
+        "arm": "ast-v0.4",
+        "question_id": "q-web-004",
+        "run_index": 1,
+        "old_bucket": "budget_exhausted",
+        "new_bucket": "budget_exhausted",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-pro",
+        "arm": "ast-v0.4",
+        "question_id": "q-web-004",
+        "run_index": 2,
+        "old_bucket": "protocol_noncompliance",
+        "new_bucket": "protocol_noncompliance",
+        "f7_evidence": null
+      },
+      {
+        "model": "deepseek-v4-pro",
+        "arm": "ast-v0.4",
+        "question_id": "q-web-004",
+        "run_index": 3,
+        "old_bucket": "forensic_correct",
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "glm-5.3",
+        "arm": "bash-v0.1",
+        "question_id": "q-web-001",
+        "run_index": 1,
+        "old_bucket": "forensic_correct",
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "glm-5.3",
+        "arm": "bash-v0.1",
+        "question_id": "q-web-001",
+        "run_index": 2,
+        "old_bucket": "forensic_correct",
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "glm-5.3",
+        "arm": "bash-v0.1",
+        "question_id": "q-web-001",
+        "run_index": 3,
+        "old_bucket": "forensic_correct",
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "glm-5.3",
+        "arm": "bash-v0.1",
+        "question_id": "q-web-002",
+        "run_index": 1,
+        "old_bucket": "forensic_correct",
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "glm-5.3",
+        "arm": "bash-v0.1",
+        "question_id": "q-web-002",
+        "run_index": 2,
+        "old_bucket": "protocol_noncompliance",
+        "new_bucket": "protocol_noncompliance",
+        "f7_evidence": null
+      },
+      {
+        "model": "glm-5.3",
+        "arm": "bash-v0.1",
+        "question_id": "q-web-002",
+        "run_index": 3,
+        "old_bucket": "forensic_correct",
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "glm-5.3",
+        "arm": "bash-v0.1",
+        "question_id": "q-edge-001",
+        "run_index": 1,
+        "old_bucket": "forensic_correct",
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "glm-5.3",
+        "arm": "bash-v0.1",
+        "question_id": "q-edge-001",
+        "run_index": 2,
+        "old_bucket": "forensic_correct",
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "glm-5.3",
+        "arm": "bash-v0.1",
+        "question_id": "q-edge-001",
+        "run_index": 3,
+        "old_bucket": "forensic_correct",
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "glm-5.3",
+        "arm": "bash-v0.1",
+        "question_id": "q-web-003",
+        "run_index": 1,
+        "old_bucket": "forensic_correct",
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "glm-5.3",
+        "arm": "bash-v0.1",
+        "question_id": "q-web-003",
+        "run_index": 2,
+        "old_bucket": "forensic_correct",
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "glm-5.3",
+        "arm": "bash-v0.1",
+        "question_id": "q-web-003",
+        "run_index": 3,
+        "old_bucket": "forensic_correct",
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "glm-5.3",
+        "arm": "bash-v0.1",
+        "question_id": "q-web-004",
+        "run_index": 1,
+        "old_bucket": "forensic_correct",
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "glm-5.3",
+        "arm": "bash-v0.1",
+        "question_id": "q-web-004",
+        "run_index": 2,
+        "old_bucket": "forensic_correct",
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "glm-5.3",
+        "arm": "bash-v0.1",
+        "question_id": "q-web-004",
+        "run_index": 3,
+        "old_bucket": "forensic_correct",
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "glm-5.3",
+        "arm": "ast-v0.4",
+        "question_id": "q-web-001",
+        "run_index": 1,
+        "old_bucket": "forensic_correct",
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "glm-5.3",
+        "arm": "ast-v0.4",
+        "question_id": "q-web-001",
+        "run_index": 2,
+        "old_bucket": "forensic_correct",
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "glm-5.3",
+        "arm": "ast-v0.4",
+        "question_id": "q-web-001",
+        "run_index": 3,
+        "old_bucket": "forensic_correct",
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "glm-5.3",
+        "arm": "ast-v0.4",
+        "question_id": "q-web-002",
+        "run_index": 1,
+        "old_bucket": "budget_exhausted",
+        "new_bucket": "budget_exhausted",
+        "f7_evidence": null
+      },
+      {
+        "model": "glm-5.3",
+        "arm": "ast-v0.4",
+        "question_id": "q-web-002",
+        "run_index": 2,
+        "old_bucket": "forensic_correct",
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "glm-5.3",
+        "arm": "ast-v0.4",
+        "question_id": "q-web-002",
+        "run_index": 3,
+        "old_bucket": "budget_exhausted",
+        "new_bucket": "budget_exhausted",
+        "f7_evidence": null
+      },
+      {
+        "model": "glm-5.3",
+        "arm": "ast-v0.4",
+        "question_id": "q-edge-001",
+        "run_index": 1,
+        "old_bucket": "forensic_correct",
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "glm-5.3",
+        "arm": "ast-v0.4",
+        "question_id": "q-edge-001",
+        "run_index": 2,
+        "old_bucket": "forensic_correct",
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "glm-5.3",
+        "arm": "ast-v0.4",
+        "question_id": "q-edge-001",
+        "run_index": 3,
+        "old_bucket": "budget_exhausted",
+        "new_bucket": "budget_exhausted",
+        "f7_evidence": null
+      },
+      {
+        "model": "glm-5.3",
+        "arm": "ast-v0.4",
+        "question_id": "q-web-003",
+        "run_index": 1,
+        "old_bucket": "forensic_correct",
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "glm-5.3",
+        "arm": "ast-v0.4",
+        "question_id": "q-web-003",
+        "run_index": 2,
+        "old_bucket": "forensic_correct",
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "glm-5.3",
+        "arm": "ast-v0.4",
+        "question_id": "q-web-003",
+        "run_index": 3,
+        "old_bucket": "forensic_correct",
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "glm-5.3",
+        "arm": "ast-v0.4",
+        "question_id": "q-web-004",
+        "run_index": 1,
+        "old_bucket": "forensic_correct",
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "glm-5.3",
+        "arm": "ast-v0.4",
+        "question_id": "q-web-004",
+        "run_index": 2,
+        "old_bucket": "forensic_correct",
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "glm-5.3",
+        "arm": "ast-v0.4",
+        "question_id": "q-web-004",
+        "run_index": 3,
+        "old_bucket": "forensic_correct",
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "kimi-k3",
+        "arm": "bash-v0.1",
+        "question_id": "q-web-001",
+        "run_index": 1,
+        "old_bucket": "forensic_correct",
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "kimi-k3",
+        "arm": "bash-v0.1",
+        "question_id": "q-web-001",
+        "run_index": 2,
+        "old_bucket": "forensic_correct",
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "kimi-k3",
+        "arm": "bash-v0.1",
+        "question_id": "q-web-001",
+        "run_index": 3,
+        "old_bucket": "forensic_correct",
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "kimi-k3",
+        "arm": "bash-v0.1",
+        "question_id": "q-web-002",
+        "run_index": 1,
+        "old_bucket": "forensic_correct",
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "kimi-k3",
+        "arm": "bash-v0.1",
+        "question_id": "q-web-002",
+        "run_index": 2,
+        "old_bucket": "forensic_correct",
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "kimi-k3",
+        "arm": "bash-v0.1",
+        "question_id": "q-web-002",
+        "run_index": 3,
+        "old_bucket": "forensic_correct",
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "kimi-k3",
+        "arm": "bash-v0.1",
+        "question_id": "q-edge-001",
+        "run_index": 1,
+        "old_bucket": "forensic_correct",
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "kimi-k3",
+        "arm": "bash-v0.1",
+        "question_id": "q-edge-001",
+        "run_index": 2,
+        "old_bucket": "forensic_correct",
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "kimi-k3",
+        "arm": "bash-v0.1",
+        "question_id": "q-edge-001",
+        "run_index": 3,
+        "old_bucket": "forensic_correct",
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "kimi-k3",
+        "arm": "bash-v0.1",
+        "question_id": "q-web-003",
+        "run_index": 1,
+        "old_bucket": "forensic_correct",
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "kimi-k3",
+        "arm": "bash-v0.1",
+        "question_id": "q-web-003",
+        "run_index": 2,
+        "old_bucket": "forensic_correct",
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "kimi-k3",
+        "arm": "bash-v0.1",
+        "question_id": "q-web-003",
+        "run_index": 3,
+        "old_bucket": "forensic_correct",
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "kimi-k3",
+        "arm": "bash-v0.1",
+        "question_id": "q-web-004",
+        "run_index": 1,
+        "old_bucket": "forensic_correct",
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "kimi-k3",
+        "arm": "bash-v0.1",
+        "question_id": "q-web-004",
+        "run_index": 2,
+        "old_bucket": "forensic_correct",
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "kimi-k3",
+        "arm": "bash-v0.1",
+        "question_id": "q-web-004",
+        "run_index": 3,
+        "old_bucket": "forensic_correct",
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "kimi-k3",
+        "arm": "ast-v0.4",
+        "question_id": "q-web-001",
+        "run_index": 1,
+        "old_bucket": "forensic_correct",
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "kimi-k3",
+        "arm": "ast-v0.4",
+        "question_id": "q-web-001",
+        "run_index": 2,
+        "old_bucket": "forensic_correct",
+        "new_bucket": "forensic_correct",
+        "f7_evidence": null
+      },
+      {
+        "model": "kimi-k3",
+        "arm": "ast-v0.4",
+        "question_id": "q-web-001",
+        "run_index": 3,
+        "old_bucket": "budget_exhausted",
+        "new_bucket": "tool_binding_failure",
+        "f7_evidence": "臂级 traffic_query 空到达/失败 5/5（率 1.00 ≥0.9）+ run 打满轮次 llmCalls=8"
+      },
+      {
+        "model": "kimi-k3",
+        "arm": "ast-v0.4",
+        "question_id": "q-web-002",
+        "run_index": 1,
+        "old_bucket": "budget_exhausted",
+        "new_bucket": "tool_binding_failure",
+        "f7_evidence": "臂级 traffic_query 空到达/失败 5/5（率 1.00 ≥0.9）+ run 打满轮次 llmCalls=8"
+      },
+      {
+        "model": "kimi-k3",
+        "arm": "ast-v0.4",
+        "question_id": "q-web-002",
+        "run_index": 2,
+        "old_bucket": "budget_exhausted",
+        "new_bucket": "tool_binding_failure",
+        "f7_evidence": "臂级 traffic_query 空到达/失败 5/5（率 1.00 ≥0.9）+ run 打满轮次 llmCalls=8"
+      },
+      {
+        "model": "kimi-k3",
+        "arm": "ast-v0.4",
+        "question_id": "q-web-002",
+        "run_index": 3,
+        "old_bucket": "budget_exhausted",
+        "new_bucket": "tool_binding_failure",
+        "f7_evidence": "臂级 traffic_query 空到达/失败 5/5（率 1.00 ≥0.9）+ run 打满轮次 llmCalls=8"
+      },
+      {
+        "model": "kimi-k3",
+        "arm": "ast-v0.4",
+        "question_id": "q-edge-001",
+        "run_index": 1,
+        "old_bucket": "budget_exhausted",
+        "new_bucket": "tool_binding_failure",
+        "f7_evidence": "臂级 traffic_query 空到达/失败 5/5（率 1.00 ≥0.9）+ run 打满轮次 llmCalls=8"
+      },
+      {
+        "model": "kimi-k3",
+        "arm": "ast-v0.4",
+        "question_id": "q-edge-001",
+        "run_index": 2,
+        "old_bucket": "budget_exhausted",
+        "new_bucket": "tool_binding_failure",
+        "f7_evidence": "臂级 traffic_query 空到达/失败 5/5（率 1.00 ≥0.9）+ run 打满轮次 llmCalls=8"
+      },
+      {
+        "model": "kimi-k3",
+        "arm": "ast-v0.4",
+        "question_id": "q-edge-001",
+        "run_index": 3,
+        "old_bucket": "budget_exhausted",
+        "new_bucket": "tool_binding_failure",
+        "f7_evidence": "臂级 traffic_query 空到达/失败 5/5（率 1.00 ≥0.9）+ run 打满轮次 llmCalls=8"
+      },
+      {
+        "model": "kimi-k3",
+        "arm": "ast-v0.4",
+        "question_id": "q-web-003",
+        "run_index": 1,
+        "old_bucket": "budget_exhausted",
+        "new_bucket": "tool_binding_failure",
+        "f7_evidence": "臂级 traffic_query 空到达/失败 5/5（率 1.00 ≥0.9）+ run 打满轮次 llmCalls=8"
+      },
+      {
+        "model": "kimi-k3",
+        "arm": "ast-v0.4",
+        "question_id": "q-web-003",
+        "run_index": 2,
+        "old_bucket": "budget_exhausted",
+        "new_bucket": "tool_binding_failure",
+        "f7_evidence": "臂级 traffic_query 空到达/失败 5/5（率 1.00 ≥0.9）+ run 打满轮次 llmCalls=8"
+      },
+      {
+        "model": "kimi-k3",
+        "arm": "ast-v0.4",
+        "question_id": "q-web-003",
+        "run_index": 3,
+        "old_bucket": "budget_exhausted",
+        "new_bucket": "tool_binding_failure",
+        "f7_evidence": "臂级 traffic_query 空到达/失败 5/5（率 1.00 ≥0.9）+ run 打满轮次 llmCalls=8"
+      },
+      {
+        "model": "kimi-k3",
+        "arm": "ast-v0.4",
+        "question_id": "q-web-004",
+        "run_index": 1,
+        "old_bucket": "budget_exhausted",
+        "new_bucket": "tool_binding_failure",
+        "f7_evidence": "臂级 traffic_query 空到达/失败 5/5（率 1.00 ≥0.9）+ run 打满轮次 llmCalls=8"
+      },
+      {
+        "model": "kimi-k3",
+        "arm": "ast-v0.4",
+        "question_id": "q-web-004",
+        "run_index": 2,
+        "old_bucket": "budget_exhausted",
+        "new_bucket": "tool_binding_failure",
+        "f7_evidence": "臂级 traffic_query 空到达/失败 5/5（率 1.00 ≥0.9）+ run 打满轮次 llmCalls=8"
+      },
+      {
+        "model": "kimi-k3",
+        "arm": "ast-v0.4",
+        "question_id": "q-web-004",
+        "run_index": 3,
+        "old_bucket": "budget_exhausted",
+        "new_bucket": "tool_binding_failure",
+        "f7_evidence": "臂级 traffic_query 空到达/失败 5/5（率 1.00 ≥0.9）+ run 打满轮次 llmCalls=8"
+      }
+    ]
+  },
+  "v02_runs": {
+    "kimi-k3": {
+      "bash": {
+        "correct": "5/5",
+        "buckets": {
+          "forensic_correct": 14,
+          "forensic_wrong": 0,
+          "protocol_noncompliance": 1,
+          "budget_exhausted": 0,
+          "tool_binding_failure": 0
+        },
+        "empty_arrival_calls": 0,
+        "runs": 15,
+        "f6_payload_invalid": 1,
+        "avg_turns": 4.5,
+        "avg_input_tokens": 11052
+      },
+      "ast": {
+        "correct": "2/5",
+        "buckets": {
+          "forensic_correct": 7,
+          "forensic_wrong": 0,
+          "protocol_noncompliance": 0,
+          "budget_exhausted": 2,
+          "tool_binding_failure": 6
+        },
+        "empty_arrival_calls": 35,
+        "runs": 15,
+        "f6_payload_invalid": 0,
+        "avg_turns": 6.8,
+        "avg_input_tokens": 19819
+      }
+    },
+    "deepseek-v4-pro": {
+      "bash": {
+        "correct": "4/5",
+        "buckets": {
+          "forensic_correct": 11,
+          "forensic_wrong": 0,
+          "protocol_noncompliance": 4,
+          "budget_exhausted": 0,
+          "tool_binding_failure": 0
+        },
+        "empty_arrival_calls": 0,
+        "runs": 15,
+        "f6_payload_invalid": 0,
+        "avg_turns": 4.5,
+        "avg_input_tokens": 15627
+      },
+      "ast": {
+        "correct": "4/5",
+        "buckets": {
+          "forensic_correct": 11,
+          "forensic_wrong": 0,
+          "protocol_noncompliance": 1,
+          "budget_exhausted": 3,
+          "tool_binding_failure": 0
+        },
+        "empty_arrival_calls": 0,
+        "runs": 15,
+        "f6_payload_invalid": 0,
+        "avg_turns": 7.3,
+        "avg_input_tokens": 27149
+      }
+    }
+  },
+  "before_after": {
+    "kimi-k3": {
+      "v01": {
+        "bash": {
+          "buckets": {
+            "forensic_correct": 15,
+            "forensic_wrong": 0,
+            "protocol_noncompliance": 0,
+            "budget_exhausted": 0,
+            "tool_binding_failure": 0
+          },
+          "majority": null
+        },
+        "ast": {
+          "buckets": {
+            "forensic_correct": 2,
+            "forensic_wrong": 0,
+            "protocol_noncompliance": 0,
+            "budget_exhausted": 0,
+            "tool_binding_failure": 13
+          },
+          "majority": null
+        }
+      },
+      "v02": {
+        "bash": {
+          "buckets": {
+            "forensic_correct": 14,
+            "forensic_wrong": 0,
+            "protocol_noncompliance": 1,
+            "budget_exhausted": 0,
+            "tool_binding_failure": 0
+          },
+          "majority": "5/5"
+        },
+        "ast": {
+          "buckets": {
+            "forensic_correct": 7,
+            "forensic_wrong": 0,
+            "protocol_noncompliance": 0,
+            "budget_exhausted": 2,
+            "tool_binding_failure": 6
+          },
+          "majority": "2/5"
+        }
+      }
+    },
+    "deepseek-v4-pro": {
+      "v01": {
+        "bash": {
+          "buckets": {
+            "forensic_correct": 3,
+            "forensic_wrong": 0,
+            "protocol_noncompliance": 12,
+            "budget_exhausted": 0,
+            "tool_binding_failure": 0
+          },
+          "majority": null
+        },
+        "ast": {
+          "buckets": {
+            "forensic_correct": 5,
+            "forensic_wrong": 0,
+            "protocol_noncompliance": 4,
+            "budget_exhausted": 6,
+            "tool_binding_failure": 0
+          },
+          "majority": null
+        }
+      },
+      "v02": {
+        "bash": {
+          "buckets": {
+            "forensic_correct": 11,
+            "forensic_wrong": 0,
+            "protocol_noncompliance": 4,
+            "budget_exhausted": 0,
+            "tool_binding_failure": 0
+          },
+          "majority": "4/5"
+        },
+        "ast": {
+          "buckets": {
+            "forensic_correct": 11,
+            "forensic_wrong": 0,
+            "protocol_noncompliance": 1,
+            "budget_exhausted": 3,
+            "tool_binding_failure": 0
+          },
+          "majority": "4/5"
+        }
+      }
+    }
+  },
+  "findings": {
+    "P1": "kimi/ast 空 query 到达 35 次（跨 15 run；v0.1 为 29 次跨 15 run）——证伪（预测 ≈0 未实现）：H-model 坐实，四段式错误回显不改变模型的嵌套参数绑定行为，与 smoke 诊断一致",
+    "P2": "kimi/ast 多数表决 2/5（v0.1 为 1/5）——回升 有限：错误回显+finish 示例修正后通过 inspect/evidence 绕行路径多得 1 题，但 traffic_query 依赖题仍被 F7 锁死——模型侧绑定限制坐实，F7 归因干净（有效结果）",
+    "P3": "pro finish_payload_invalid（protocol 桶 run 数）0（v0.1 为 16）——验证",
+    "P4": "v0.2 完成态 run 的 forensic_wrong 合计 0（应为 0=取证对错未受接口修复影响）——验证"
+  },
+  "smoke_diagnosis": "H-model 坐实（provider 原串与工具侧 rawArgs 逐字节一致均为 query:{}）；详见 bench/slices/v02-smoke-diagnosis.md"
+}

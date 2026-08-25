@@ -16,6 +16,8 @@
     "slice-all": "tsx src/runner/run-slice.ts --all",
     "reclassify-e1": "tsx src/runner/reclassify-e1.ts",
     "model-matrix": "tsx src/runner/model-matrix.ts",
+    "reclassify-v01-f7": "tsx src/runner/reclassify-v01-f7.ts",
+    "model-matrix-v02": "tsx src/runner/model-matrix-v02.ts",
     "derive": "tsx src/deriver/cli.ts",
     "spike-sql": "tsx src/runner/spike-sql.ts"
   },

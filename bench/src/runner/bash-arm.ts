@@ -6,11 +6,13 @@ import { spawn } from "node:child_process";
 import { z } from "zod";
 import type { Tool } from "@stirrup/stirrup";
 import { REPO_ROOT } from "../paths.js";
+import { marksEmptyArrival, paramValidationError } from "./tool-errors.js";
 import type { Arm, ToolCallRecord } from "./types.js";
 import { buildSystemPrompt } from "./prompts.js";
 
 const OUTPUT_CHAR_CAP = 16_000;
 const CMD_TIMEOUT_MS = 60_000;
+const RAW_ARGS_CAP = 2_000;
 
 function runShell(command: string): Promise<{ text: string; ok: boolean }> {
   return new Promise((resolve) => {
@@ -40,7 +42,7 @@ function runShell(command: string): Promise<{ text: string; ok: boolean }> {
 }
 
 export class BashArm implements Arm {
-  readonly name = "bash-v0.1";
+  readonly name = "bash-v0.2";
 
   constructor(private readonly captureAbsPath: string) {}
 
@@ -61,7 +63,16 @@ export class BashArm implements Arm {
       }),
       executor: async (params: { command?: string }): Promise<{ content: string; success: boolean }> => {
         if (typeof params?.command !== "string" || params.command.trim() === "") {
-          return { content: "ERROR: command must be a non-empty string", success: false };
+          return {
+            content: paramValidationError({
+              tool: "shell",
+              problem: "command 必须为非空字符串",
+              received: params,
+              emptyArrivals: ["command"],
+              expectedShape: "command(字符串: 要执行的 zsh 命令)",
+            }),
+            success: false,
+          };
         }
         const { text, ok } = await runShell(params.command);
         return { content: text, success: ok };
@@ -72,27 +83,59 @@ export class BashArm implements Arm {
   }
 }
 
-/** Stirrup 缺单次耗时的一等字段 → executor 计时 wrapper（spike 已验证形态） */
+/**
+ * Stirrup 缺单次耗时的一等字段 → executor 计时 wrapper（spike 已验证形态）。
+ * v0.2：同时记录 rawArgs 诊断遥测（executor 收到的参数若已是对象——Stirrup 已
+ * JSON.parse——则序列化记录并置 rawArgsWasObject；若为字符串则原样记录，解析
+ * 失败记 argsParseError），并从错误回显中提取「空到达」标注。
+ */
 export function withTiming(tool: Tool<any, any>, records: ToolCallRecord[]): Tool<any, any> {
   const inner = tool.executor;
   return {
     ...tool,
     executor: async (params: unknown) => {
       const startedAtMs = Date.now();
+      let rawArgs = "";
+      let rawArgsWasObject = false;
+      let rawArgsTruncated = false;
+      let argsParseError: string | null = null;
+      let parsed: unknown = params;
+      if (typeof params === "string") {
+        rawArgs = params;
+        try {
+          parsed = JSON.parse(params);
+        } catch (e) {
+          argsParseError = (e as Error).message;
+        }
+      } else {
+        rawArgsWasObject = true;
+        rawArgs = JSON.stringify(params ?? null) ?? "";
+      }
+      if (rawArgs.length > RAW_ARGS_CAP) {
+        rawArgs = rawArgs.slice(0, RAW_ARGS_CAP);
+        rawArgsTruncated = true;
+      }
       const rec: ToolCallRecord = {
         seq: records.length,
         name: tool.name,
-        args: params,
+        args: parsed,
         ok: false,
         durationMs: 0,
         resultChars: 0,
         startedAtMs,
+        rawArgs,
+        rawArgsWasObject,
+        rawArgsTruncated,
+        argsParseError,
       };
       records.push(rec);
       try {
-        const out = await inner(params as never);
+        const out = await inner(parsed as never);
         rec.ok = out.success !== false;
         rec.resultChars = typeof out.content === "string" ? out.content.length : JSON.stringify(out.content ?? "").length;
+        if (!rec.ok && typeof out.content === "string" && marksEmptyArrival(out.content)) {
+          rec.emptyArrival = true;
+        }
         return out;
       } finally {
         rec.durationMs = Date.now() - startedAtMs;

@@ -22,6 +22,7 @@ import {
   type TrafficQuery,
 } from "traffic-core";
 import { withTiming } from "./bash-arm.js";
+import { paramValidationError } from "./tool-errors.js";
 import type { Arm, ToolCallRecord } from "./types.js";
 import { buildSystemPrompt } from "./prompts.js";
 
@@ -173,7 +174,7 @@ function renderTimeseries(t: TimeseriesResult): string {
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 export class AstArm implements Arm {
-  readonly name = "ast-v0.4";
+  readonly name = "ast-v0.5";
 
   constructor(private readonly captureAbsPath: string) {}
 
@@ -182,6 +183,32 @@ export class AstArm implements Arm {
   }
 
   buildTools(records: ToolCallRecord[]): Array<Tool<any, any>> {
+    // v0.2：必要参数前置守卫（四段式回显；空到达显式标注，F7 可观测信号）
+    const requireParams = (
+      tool: string,
+      params: Record<string, unknown> | undefined,
+      required: string[],
+      expectedShape: string,
+    ): ToolResult | null => {
+      const empties: string[] = [];
+      for (const key of required) {
+        const v = params?.[key];
+        if (v === undefined || v === null || (typeof v === "string" && v.trim() === "") || (Array.isArray(v) && v.length === 0)) {
+          empties.push(key);
+        }
+      }
+      if (empties.length === 0) return null;
+      return fail(
+        paramValidationError({
+          tool,
+          problem: `必要参数到达为空/缺失：${empties.join("、")}`,
+          received: params,
+          emptyArrivals: empties,
+          expectedShape,
+        }),
+      );
+    };
+
     const openTool: Tool<any, any> = {
       name: "traffic_open",
       description:
@@ -192,7 +219,18 @@ export class AstArm implements Arm {
       }),
       executor: async (params: { path?: string }): Promise<ToolResult> => {
         const p = validCapturePath(params?.path);
-        if (!p) return fail("ERROR: path must be an absolute path ending in .pcap or .pcapng");
+        if (!p) {
+          const pathEmpty = params?.path === undefined || params.path.trim() === "";
+          return fail(
+            paramValidationError({
+              tool: "traffic_open",
+              problem: "path 须为绝对路径且以 .pcap/.pcapng 结尾",
+              received: params,
+              emptyArrivals: pathEmpty ? ["path"] : [],
+              expectedShape: "path(字符串: .pcap/.pcapng 绝对路径)",
+            }),
+          );
+        }
         try {
           const session = await TrafficSession.open(p, {
             cacheDir: path.join(os.tmpdir(), "bench-ast-arm-cache"),
@@ -217,8 +255,11 @@ export class AstArm implements Arm {
       parameters: z.object({
         capture_id: z.string().describe("capture_id from traffic_open"),
       }),
-      executor: async (params: { capture_id?: string }): Promise<ToolResult> =>
-        errText(async () => renderOverview(await getSession(params?.capture_id ?? "").overview())),
+      executor: async (params: { capture_id?: string }): Promise<ToolResult> => {
+        const guard = requireParams("traffic_overview", params, ["capture_id"], "capture_id(字符串: 来自 traffic_open)");
+        if (guard) return guard;
+        return errText(async () => renderOverview(await getSession(params?.capture_id ?? "").overview()));
+      },
     };
 
     const QUERY_SCOPES = new Set(["conversation", "event", "frame", "stream"]);
@@ -252,9 +293,31 @@ export class AstArm implements Arm {
           ),
       }),
       executor: async (params: { capture_id?: string; query?: unknown }): Promise<ToolResult> => {
+        if (params?.capture_id === undefined || params.capture_id.trim() === "") {
+          return fail(
+            paramValidationError({
+              tool: "traffic_query",
+              problem: "capture_id 缺失，无法定位会话",
+              received: params,
+              emptyArrivals: ["capture_id"],
+              expectedShape: "capture_id(字符串), query(对象: scope/where/select/order_by/limit)",
+            }),
+          );
+        }
         const ast = asTrafficQuery(params?.query);
         if (!ast) {
-          return fail('ERROR: query must be an AST object like {"scope":"conversation","where":[...],"order_by":[...],"limit":20}');
+          const q = params?.query;
+          const queryEmpty =
+            q === undefined || q === null || (typeof q === "object" && !Array.isArray(q) && Object.keys(q as object).length === 0);
+          return fail(
+            paramValidationError({
+              tool: "traffic_query",
+              problem: 'query 必须为非空 AST 对象（如 {"scope":"conversation","where":[...],"limit":20}）',
+              received: params,
+              emptyArrivals: queryEmpty ? ["query"] : [],
+              expectedShape: "query(对象: scope/conversation|event, where(数组: {field,op,value}), order_by, limit), capture_id(字符串)",
+            }),
+          );
         }
         try {
           const runTrafficQuery = getSession(params?.capture_id ?? "").query.bind(getSession(params?.capture_id ?? ""));
@@ -278,10 +341,13 @@ export class AstArm implements Arm {
         conversation_id: z.string().describe('e.g. "conv:tcp:0" (from traffic_query)'),
         timeline_limit: z.number().optional().describe("max timeline events returned (default 200, cap 500)"),
       }),
-      executor: async (params: { capture_id?: string; conversation_id?: string; timeline_limit?: number }): Promise<ToolResult> =>
-        errText(async () =>
+      executor: async (params: { capture_id?: string; conversation_id?: string; timeline_limit?: number }): Promise<ToolResult> => {
+        const guard = requireParams("traffic_inspect", params, ["capture_id", "conversation_id"], "capture_id(字符串), conversation_id(字符串: 如 conv:tcp:0), timeline_limit(数字, 可选)");
+        if (guard) return guard;
+        return errText(async () =>
           renderInspect(await getSession(params?.capture_id ?? "").inspect(params?.conversation_id ?? "", { limit: params?.timeline_limit })),
-        ),
+        );
+      },
     };
 
     const evidenceTool: Tool<any, any> = {
@@ -294,12 +360,15 @@ export class AstArm implements Arm {
         frames: z.array(z.number()).optional().describe("frame numbers, e.g. [8,11,14]"),
         event_ids: z.array(z.string()).optional().describe('event ids, e.g. ["evt:000007"]'),
       }),
-      executor: async (params: { capture_id?: string; frames?: number[]; event_ids?: string[] }): Promise<ToolResult> =>
-        errText(async () =>
+      executor: async (params: { capture_id?: string; frames?: number[]; event_ids?: string[] }): Promise<ToolResult> => {
+        const guard = requireParams("traffic_evidence", params, ["capture_id"], "capture_id(字符串), frames(数字数组) 或 event_ids(字符串数组)——二选一");
+        if (guard) return guard;
+        return errText(async () =>
           renderEvidence(
             await getSession(params?.capture_id ?? "").evidence({ frames: params?.frames, event_ids: params?.event_ids }),
           ),
-        ),
+        );
+      },
     };
 
     const timeseriesTool: Tool<any, any> = {
@@ -313,8 +382,10 @@ export class AstArm implements Arm {
         metric: z.string().describe("bytes | packets | window | rtt | tls_bytes"),
         bin_ms: z.number().optional().describe("bin width in milliseconds [10,5000], default 100"),
       }),
-      executor: async (params: { capture_id?: string; conversation_id?: string; metric?: string; bin_ms?: number }): Promise<ToolResult> =>
-        errText(async () =>
+      executor: async (params: { capture_id?: string; conversation_id?: string; metric?: string; bin_ms?: number }): Promise<ToolResult> => {
+        const guard = requireParams("traffic_timeseries", params, ["capture_id", "conversation_id", "metric"], "capture_id(字符串), conversation_id(字符串), metric(bytes|packets|window|rtt), bin_ms(数字, 可选)");
+        if (guard) return guard;
+        return errText(async () =>
           renderTimeseries(
             await getSession(params?.capture_id ?? "").timeseries(
               params?.conversation_id ?? "",
@@ -322,7 +393,8 @@ export class AstArm implements Arm {
               params?.bin_ms ?? 100,
             ),
           ),
-        ),
+        );
+      },
     };
 
     const httpTimelineTool: Tool<any, any> = {
@@ -333,8 +405,11 @@ export class AstArm implements Arm {
         capture_id: z.string().describe("capture_id from traffic_open"),
         conversation_id: z.string().optional().describe("optional: restrict to one conversation"),
       }),
-      executor: async (params: { capture_id?: string; conversation_id?: string }): Promise<ToolResult> =>
-        errText(async () => renderHttpTimeline(await getSession(params?.capture_id ?? "").httpTimeline(params?.conversation_id))),
+      executor: async (params: { capture_id?: string; conversation_id?: string }): Promise<ToolResult> => {
+        const guard = requireParams("traffic_http_timeline", params, ["capture_id"], "capture_id(字符串), conversation_id(字符串, 可选)");
+        if (guard) return guard;
+        return errText(async () => renderHttpTimeline(await getSession(params?.capture_id ?? "").httpTimeline(params?.conversation_id)));
+      },
     };
 
     const rawQueryTool: Tool<any, any> = {
@@ -348,8 +423,10 @@ export class AstArm implements Arm {
         display_filter: z.string().optional().describe('tshark display filter, e.g. "dns.flags.response==1"'),
         limit: z.number().optional().describe("max rows [1,500], default 100"),
       }),
-      executor: async (params: { capture_id?: string; fields?: string[]; display_filter?: string; limit?: number }): Promise<ToolResult> =>
-        errText(async () =>
+      executor: async (params: { capture_id?: string; fields?: string[]; display_filter?: string; limit?: number }): Promise<ToolResult> => {
+        const guard = requireParams("traffic_raw_query", params, ["capture_id", "fields"], "capture_id(字符串), fields(字符串数组: tshark 字段名), display_filter(字符串, 可选), limit(数字, 可选)");
+        if (guard) return guard;
+        return errText(async () =>
           renderRaw(
             await getSession(params?.capture_id ?? "").rawQuery({
               fields: params?.fields ?? [],
@@ -357,7 +434,8 @@ export class AstArm implements Arm {
               limit: params?.limit,
             }),
           ),
-        ),
+        );
+      },
     };
 
     return [openTool, overviewTool, queryTool, inspectTool, evidenceTool, timeseriesTool, httpTimelineTool, rawQueryTool].map((t) =>

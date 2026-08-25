@@ -90,6 +90,42 @@ export function interfaceCharsOf(runCaptures: InterfaceCapture[]): { systemChars
   };
 }
 
+/** v0.2 诊断：provider 响应体里的原始 tool_calls 参数串（H-harness vs H-model 的判别证据） */
+export interface ProviderToolCall {
+  name: string;
+  arguments: string;
+  truncated: boolean;
+}
+
+const PROVIDER_ARGS_CAP = 2_000;
+const providerToolCalls: ProviderToolCall[] = [];
+
+export function providerToolCallCount(): number {
+  return providerToolCalls.length;
+}
+
+export function providerToolCallsFrom(index: number): ProviderToolCall[] {
+  return providerToolCalls.slice(index);
+}
+
+function recordProviderToolCalls(respBuf: Buffer): void {
+  try {
+    const json = JSON.parse(respBuf.toString("utf8")) as {
+      choices?: Array<{ message?: { tool_calls?: Array<{ function?: { name?: string; arguments?: string } }> } }>;
+    };
+    for (const tc of json.choices?.[0]?.message?.tool_calls ?? []) {
+      const args = tc.function?.arguments ?? "";
+      providerToolCalls.push({
+        name: tc.function?.name ?? "(unknown)",
+        arguments: args.length > PROVIDER_ARGS_CAP ? args.slice(0, PROVIDER_ARGS_CAP) : args,
+        truncated: args.length > PROVIDER_ARGS_CAP,
+      });
+    }
+  } catch {
+    /* 响应体非 JSON（流式/错误页），跳过 */
+  }
+}
+
 export function startRecordingProxy(upstream: string): Promise<{ baseURL: string; close: () => void }> {
   const server = http.createServer(async (req, res) => {
     if (req.method !== "POST" || req.url !== "/v1/chat/completions") {
@@ -125,6 +161,7 @@ export function startRecordingProxy(upstream: string): Promise<{ baseURL: string
       body,
     });
     const respBuf = Buffer.from(await up.arrayBuffer());
+    recordProviderToolCalls(respBuf);
     res.writeHead(up.status, { "content-type": up.headers.get("content-type") ?? "application/json" });
     res.end(respBuf);
   });
