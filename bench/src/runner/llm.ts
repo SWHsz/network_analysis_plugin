@@ -175,19 +175,35 @@ export function startRecordingProxy(upstream: string): Promise<{ baseURL: string
     } catch {
       /* 非 JSON 请求体，跳过记录 */
     }
-    const up = await fetch(`${upstream}/v1/chat/completions`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        accept: req.headers.accept ?? "application/json",
-        authorization: req.headers.authorization ?? "",
-      },
-      body,
-    });
-    const respBuf = Buffer.from(await up.arrayBuffer());
-    recordProviderToolCalls(respBuf);
-    res.writeHead(up.status, { "content-type": up.headers.get("content-type") ?? "application/json" });
-    res.end(respBuf);
+    // 上游转发全程兜底：网关抖动/挂起时返回 502 给客户端（agent loop 可感知），
+    // 绝不让 fetch 异常变成进程级未捕获异常（2026-08-27 实证烧掉整批）。
+    // 超时 200s > agent 预算 180s，只拦真挂起，不杀慢而健康的调用。
+    try {
+      const up = await fetch(`${upstream}/v1/chat/completions`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          accept: req.headers.accept ?? "application/json",
+          authorization: req.headers.authorization ?? "",
+        },
+        body,
+        signal: AbortSignal.timeout(200_000),
+      });
+      const respBuf = Buffer.from(await up.arrayBuffer());
+      recordProviderToolCalls(respBuf);
+      res.writeHead(up.status, { "content-type": up.headers.get("content-type") ?? "application/json" });
+      res.end(respBuf);
+    } catch (e) {
+      res.writeHead(502, { "content-type": "application/json" });
+      res.end(
+        JSON.stringify({
+          error: {
+            message: `recording-proxy upstream failure: ${(e as Error).message}`,
+            type: "proxy_upstream_error",
+          },
+        }),
+      );
+    }
   });
   return new Promise((resolve) => {
     server.listen(0, "127.0.0.1", () => {

@@ -125,8 +125,12 @@ function containedPath(segments: string[]): string {
 function questionAlreadyOnDisk(qid: string, armName: string, runsPerQuestion: number): boolean {
   try {
     const p = containedPath([qid, armName, "runs.json"]);
-    const runs = JSON.parse(readFileSync(p, "utf8")) as unknown[];
-    return Array.isArray(runs) && runs.length >= runsPerQuestion;
+    const runs = JSON.parse(readFileSync(p, "utf8")) as Array<{ query_schema?: string }>;
+    return (
+      Array.isArray(runs) &&
+      runs.length >= runsPerQuestion &&
+      runs.every((r) => r?.query_schema === "explicit-v1")
+    );
   } catch {
     return false;
   }
@@ -362,6 +366,8 @@ function runsJson(outs: ArmOutput[]): string {
   return JSON.stringify(
     outs.map((o, i) => ({
       run_index: i + 1,
+      // 本文件产自哪个接口版本（--resume 的防陈旧标记：旧文件无此字段即判不可续）
+      query_schema: "explicit-v1",
       classification: o.classification,
       f6: o.f6,
       f7: o.f7,
