@@ -21,6 +21,7 @@
  * 写盘边界：字面量基目录 + 逐段白名单 + 解析后包含检查（deriver 同构）。
  */
 import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { readFileSync } from "node:fs";
 import readline from "node:readline/promises";
 import path from "node:path";
 import { ChatCompletionsClient } from "@stirrup/stirrup/clients/openai";
@@ -34,6 +35,7 @@ import { AstArm } from "./ast-tools.js";
 import {
   DEFAULT_MODEL,
   captureCount,
+  pingProvider,
   capturesFrom,
   interfaceCharsOf,
   interfaceTokensOf,
@@ -119,6 +121,17 @@ function containedPath(segments: string[]): string {
   return full;
 }
 
+/** --resume 判定：该题该臂的 runs.json 已存在且 run 数足量（中途崩溃只补缺题） */
+function questionAlreadyOnDisk(qid: string, armName: string, runsPerQuestion: number): boolean {
+  try {
+    const p = containedPath([qid, armName, "runs.json"]);
+    const runs = JSON.parse(readFileSync(p, "utf8")) as unknown[];
+    return Array.isArray(runs) && runs.length >= runsPerQuestion;
+  } catch {
+    return false;
+  }
+}
+
 function majorityVote(classifications: RunClassification[]): { correct: boolean; detail: string } {
   const correctCount = classifications.filter((c) => c === "correct").length;
   return { correct: correctCount > classifications.length / 2, detail: `${correctCount}/${classifications.length}` };
@@ -147,6 +160,7 @@ async function main(): Promise<number> {
   const providerOverride = providerIdx >= 0 ? argv[providerIdx + 1] : undefined;
   const armIdx = argv.indexOf("--arm");
   const armFilter = armIdx >= 0 ? (argv[armIdx + 1] ?? "") : "";
+  const resume = argv.includes("--resume");
   const activeArms = armFilter === "" ? (ARMS as readonly string[]) : ARMS.filter((a) => a.startsWith(armFilter));
   if (activeArms.length === 0) {
     console.error(`[run-slice] --arm ${armFilter} 无匹配臂（可用：${ARMS.join("/")}）`);
@@ -182,6 +196,7 @@ async function main(): Promise<number> {
   const UPSTREAMS: Record<string, string> = {
     deepseek: "https://api.deepseek.com",
     opengo: "https://opencode.ai/zen/go",
+    opengo2: "https://opencode.ai/zen/go",
   };
   if (provider.upstream !== UPSTREAMS[provider.name]) {
     throw new Error(`provider ${provider.name} 的 upstream 与调用点字面量不一致`);
@@ -191,6 +206,12 @@ async function main(): Promise<number> {
       ? await startRecordingProxy("https://api.deepseek.com")
       : await startRecordingProxy("https://opencode.ai/zen/go");
   const client = new ChatCompletionsClient({ model, apiKey: key, baseURL: proxy.baseURL });
+  const ping = await pingProvider(provider, key, model);
+  if (ping) {
+    console.error(`[run-slice] 预检失败，批次未启动（防中途作废）：${ping}`);
+    proxy.close();
+    return 3;
+  }
   console.log(
     `[run-slice] model=${model} provider=${provider.name} budget=${JSON.stringify(BUDGET)} runs=${runsPerQuestion} questions=${targets.map((t) => t.question_id).join(",")}`,
   );
@@ -211,6 +232,13 @@ async function main(): Promise<number> {
       ].join("\n");
 
       console.log(`\n########## ${q.question_id} ##########`);
+
+      // --resume：全部目标臂的 runs.json 已有足量 run 时跳过执行（断点续跑，省配额）
+      if (resume && activeArms.every((a) => questionAlreadyOnDisk(q.question_id, a, runsPerQuestion))) {
+        console.log(`  [resume] ${q.question_id} 已有落盘数据，跳过`);
+        continue;
+      }
+
       const outputs = new Map<string, ArmOutput[]>();
       for (const armName of activeArms) {
         const arm = armName.startsWith("bash-") ? new BashArm(captureAbsPath) : new AstArm(captureAbsPath);
@@ -285,6 +313,10 @@ async function main(): Promise<number> {
         }
         outputs.set(armName, outs);
       }
+      // 逐题即时落盘：任何中途崩溃只损失在途的一题，已完成题目已在盘上（--resume 可续）
+      await writeQuestionOutputs(q.question_id, outputs, activeArms);
+      await writeQuestionSummary(q, outputs, activeArms);
+      console.log(`  [persisted] ${q.question_id} → runs/slice-summary 已落盘`);
       batch.push({ q, outputs });
     }
   } finally {
@@ -293,10 +325,10 @@ async function main(): Promise<number> {
 
   if (!assumeYes) {
     const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-    const answer = await rl.question("\n以上为全部运行的提取结果。确认无误并落盘判分？(y/n) ");
+    const answer = await rl.question("\n以上为全部运行的提取结果。确认汇总落盘？(y/n) ");
     rl.close();
     if (answer.trim().toLowerCase() !== "y") {
-      console.log("已暂停：未落盘未汇总。");
+      console.log("已暂停：题目级数据已落盘，未聚合。");
       return 0;
     }
   }

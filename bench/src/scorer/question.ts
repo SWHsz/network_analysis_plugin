@@ -13,6 +13,30 @@ import path from "node:path";
 import { REPO_ROOT, assertSafeBasename } from "../paths.js";
 import type { JsonSchema } from "./schema.js";
 
+/**
+ * 带重试的 JSON 读取（环境硬化）：本机文件系统出现间歇性读空/读半
+ * （2026-08-27 两次实证：gt 读出空串、tsx 模块导出丢失），盘上文件本身完好。
+ * 3 次重试 + 200ms 退避，内容为空或解析失败均重试；仍失败才抛。
+ */
+function readJsonWithRetry(full: string, label: string): unknown {
+  let lastErr: unknown = null;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const raw = fs.readFileSync(full, "utf8");
+      if (raw.trim() === "") throw new Error(`${label}: 读出空内容（${full}，疑似瞬时读故障）`);
+      return JSON.parse(raw);
+    } catch (e) {
+      lastErr = e;
+      if (attempt < 3) {
+        const ms = 200 * attempt;
+        const waitUntil = Date.now() + ms;
+        while (Date.now() < waitUntil) { /* 同步退避 */ }
+      }
+    }
+  }
+  throw lastErr;
+}
+
 export const ANSWER_FORMS = ["scalar_number", "scalar_enum", "scalar_string", "set", "record"] as const;
 export type AnswerForm = (typeof ANSWER_FORMS)[number];
 
@@ -101,7 +125,7 @@ function containedIn(dir: string, fileName: string): string {
 
 /** 按文件名加载单题 */
 export function loadQuestionByName(fileName: string): Question {
-  return JSON.parse(fs.readFileSync(containedIn(QUESTIONS_DIR, fileName), "utf8")) as Question;
+  return readJsonWithRetry(containedIn(QUESTIONS_DIR, fileName), "题目文件") as Question;
 }
 
 /** 加载 bench/questions/ 下全部题目（文件名序） */
@@ -113,5 +137,5 @@ export function loadQuestionsDir(): Question[] {
 
 /** 按 capture.fixture 加载对应 gt.json */
 export function loadGroundTruth(q: Question): GroundTruth {
-  return JSON.parse(fs.readFileSync(containedIn(GT_DIR, `${q.capture.fixture}.gt.json`), "utf8")) as GroundTruth;
+  return readJsonWithRetry(containedIn(GT_DIR, `${q.capture.fixture}.gt.json`), "ground truth") as GroundTruth;
 }

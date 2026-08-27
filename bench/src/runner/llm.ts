@@ -26,6 +26,8 @@ export interface ProviderConfig {
 export const PROVIDERS: Record<string, ProviderConfig> = {
   deepseek: { name: "deepseek", upstream: "https://api.deepseek.com", keyEnvName: "DEEPSEEK_API_KEY" },
   opengo: { name: "opengo", upstream: "https://opencode.ai/zen/go", keyEnvName: "OPENCODE_GO_MYSELF_API_KEY" },
+  // opengo2：同网关的独立账户（E1-followup 期 opengo 余额耗尽时切换）
+  opengo2: { name: "opengo2", upstream: "https://opencode.ai/zen/go", keyEnvName: "OPENGO2_API_KEY" },
 };
 
 /** 模型 → provider 解析（可用 --provider 显式覆盖） */
@@ -123,6 +125,28 @@ function recordProviderToolCalls(respBuf: Buffer): void {
     }
   } catch {
     /* 响应体非 JSON（流式/错误页），跳过 */
+  }
+}
+
+/**
+ * 发射前余额/连通预检（1 token 级开销）：避免批次中途 401/429 把已花的 run 全部作废。
+ * 返回 null=通过；否则返回错误摘要（余额不足/限流/超时等）。
+ */
+export async function pingProvider(provider: ProviderConfig, key: string, model: string): Promise<string | null> {
+  const allowed = Object.values(PROVIDERS).some((p) => p.upstream === provider.upstream);
+  if (!allowed) return `upstream 不在白名单：${provider.upstream}`;
+  try {
+    const res = await fetch(`${provider.upstream}/v1/chat/completions`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${key}` },
+      body: JSON.stringify({ model, messages: [{ role: "user", content: "ping" }], max_tokens: 1 }),
+      signal: AbortSignal.timeout(30_000),
+    });
+    if (res.ok) return null;
+    const text = (await res.text()).slice(0, 160);
+    return `HTTP ${res.status}: ${text}`;
+  } catch (e) {
+    return `请求失败：${(e as Error).message}`;
   }
 }
 
