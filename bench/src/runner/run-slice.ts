@@ -145,7 +145,16 @@ async function main(): Promise<number> {
   const model = modelIdx >= 0 ? (argv[modelIdx + 1] ?? DEFAULT_MODEL) : DEFAULT_MODEL;
   const providerIdx = argv.indexOf("--provider");
   const providerOverride = providerIdx >= 0 ? argv[providerIdx + 1] : undefined;
-  const idArgs = argv.filter((a) => !a.startsWith("--") && a !== String(runsPerQuestion) && a !== model && a !== providerOverride);
+  const armIdx = argv.indexOf("--arm");
+  const armFilter = armIdx >= 0 ? (argv[armIdx + 1] ?? "") : "";
+  const activeArms = armFilter === "" ? (ARMS as readonly string[]) : ARMS.filter((a) => a.startsWith(armFilter));
+  if (activeArms.length === 0) {
+    console.error(`[run-slice] --arm ${armFilter} 无匹配臂（可用：${ARMS.join("/")}）`);
+    return 2;
+  }
+  const idArgs = argv.filter(
+    (a) => !a.startsWith("--") && a !== String(runsPerQuestion) && a !== model && a !== providerOverride && a !== armFilter,
+  );
   const wantedIds = idArgs.length > 0 ? idArgs : SLICE_QUESTION_IDS;
 
   // 输出目录按模型分开（基线模型保持 E1 兼容路径）
@@ -203,7 +212,7 @@ async function main(): Promise<number> {
 
       console.log(`\n########## ${q.question_id} ##########`);
       const outputs = new Map<string, ArmOutput[]>();
-      for (const armName of ARMS) {
+      for (const armName of activeArms) {
         const arm = armName.startsWith("bash-") ? new BashArm(captureAbsPath) : new AstArm(captureAbsPath);
         const outs: ArmOutput[] = [];
         for (let i = 1; i <= runsPerQuestion; i++) {
@@ -293,10 +302,15 @@ async function main(): Promise<number> {
   }
 
   for (const { q, outputs } of batch) {
-    await writeQuestionOutputs(q.question_id, outputs);
-    await writeQuestionSummary(q, outputs);
+    await writeQuestionOutputs(q.question_id, outputs, activeArms);
+    await writeQuestionSummary(q, outputs, activeArms);
   }
-  await writeAllSummary(model, batch);
+  if (armFilter !== "") {
+    // 单臂模式不写全量汇总（另一臂数据缺位会覆盖既有 all-summary-v02 的双臂口径）
+    console.log("[run-slice] 单臂模式：跳过 all-summary 聚合（对照分析用各臂 runs.json）");
+  } else {
+    await writeAllSummary(model, batch);
+  }
 
   console.log(`\n[run-slice] 完成：${batch.length} 题 × ${ARMS.length} 臂 × ${runsPerQuestion} 次；汇总见 ${allSummaryPath}`);
   return 0;
@@ -359,8 +373,8 @@ async function writeArmOutputs(qid: string, armName: string, outs: ArmOutput[]):
   await writeFile(path.join(dir, "runs.json"), runsJson(outs));
 }
 
-async function writeQuestionOutputs(qid: string, outputs: Map<string, ArmOutput[]>): Promise<void> {
-  for (const armName of ARMS) {
+async function writeQuestionOutputs(qid: string, outputs: Map<string, ArmOutput[]>, activeArms: readonly string[]): Promise<void> {
+  for (const armName of activeArms) {
     await writeArmOutputs(qid, armName, outputs.get(armName) ?? []);
   }
 }
@@ -470,17 +484,19 @@ function interfaceTaxOf(armSummaries: Array<Record<string, unknown>>): Record<st
   return { per_request_ratio: per, total_ratio: total, note: "total_ratio 随两臂轮次差变化（接口税×轮次的复合）" };
 }
 
-async function writeQuestionSummary(q: Question, outputs: Map<string, ArmOutput[]>): Promise<void> {
-  const armSummaries = ARMS.map((name) => armSummary(name, outputs.get(name) ?? []));
+async function writeQuestionSummary(q: Question, outputs: Map<string, ArmOutput[]>, activeArms: readonly string[]): Promise<void> {
+  const armSummaries = activeArms.map((name) => armSummary(name, outputs.get(name) ?? []));
+  const tax = activeArms.length === ARMS.length ? interfaceTaxOf(armSummaries) : null;
   const summary = {
     date: new Date().toISOString(),
     protocol_version: PROTOCOL_VERSION,
     model: currentModel,
     question_id: q.question_id,
     budget: BUDGET,
-    runs_per_question: (outputs.get(ARM_NAMES[0]) ?? []).length,
+    runs_per_question: (outputs.get(activeArms[0] ?? "") ?? []).length,
     arms: armSummaries,
-    interface_tax: interfaceTaxOf(armSummaries),
+    interface_tax: tax,
+    note: activeArms.length < ARMS.length ? `单臂模式（--arm）：仅含 ${activeArms.join("/")}，interface_tax 需双臂` : undefined,
   };
   const dir = containedPath([q.question_id]);
   await mkdir(dir, { recursive: true });

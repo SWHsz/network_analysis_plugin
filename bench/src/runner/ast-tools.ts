@@ -285,8 +285,40 @@ export class AstArm implements Arm {
         "select/order_by/limit/offset supported; default projection is compact.",
       parameters: z.object({
         capture_id: z.string().describe("capture_id from traffic_open"),
+        // v0.2.1：显式 query schema（B 假设修复）——原 z.object({}).passthrough() 序列化为
+        // {"type":"object","properties":{}}，等于告诉模型"该对象无已知字段"；kimi 严格按
+        // schema 走故生成 {}。字段清单与 asTrafficQuery 运行时校验一致（schema 只前置
+        // 引导，不替代校验）；.passthrough() 保留前向兼容（未来 not/or/having 等扩展）。
         query: z
-          .object({})
+          .object({
+            scope: z
+              .enum(["conversation", "event", "frame", "stream"])
+              .describe("conversation | event | frame | stream"),
+            where: z
+              .array(
+                z.object({
+                  field: z.string().describe("e.g. retransmission_count, type, attr.qname"),
+                  op: z
+                    .enum(["eq", "ne", "gt", "gte", "lt", "lte", "in", "contains"])
+                    .describe("comparison operator (AND-only)"),
+                  value: z.unknown().describe("string | number | array — depends on field+op"),
+                }).passthrough(),
+              )
+              .optional()
+              .describe("AND-only conditions, e.g. [{field:'retransmission_count',op:'gt',value:0}]"),
+            select: z.array(z.string()).optional().describe("projection fields; default is compact"),
+            order_by: z
+              .array(
+                z.object({
+                  field: z.string().describe("e.g. retransmission_count"),
+                  direction: z.enum(["asc", "desc"]).optional().describe("default asc"),
+                }).passthrough(),
+              )
+              .optional()
+              .describe("e.g. [{field:'retransmission_count',direction:'desc'}]"),
+            limit: z.number().optional().describe("max results, e.g. 20"),
+            offset: z.number().optional().describe("pagination offset"),
+          })
           .passthrough()
           .describe(
             'Query AST, e.g. {"scope":"conversation","where":[{"field":"retransmission_count","op":"gt","value":0}],"order_by":[{"field":"retransmission_count","direction":"desc"}],"limit":20}',
