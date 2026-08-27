@@ -44,10 +44,13 @@ function runShell(command: string): Promise<{ text: string; ok: boolean }> {
 export class BashArm implements Arm {
   readonly name = "bash-v0.2";
 
-  constructor(private readonly captureAbsPath: string) {}
+  constructor(
+    private readonly captureAbsPath: string,
+    private readonly opts: { budgetHintMaxTurns?: number } = {},
+  ) {}
 
   get systemPrompt(): string {
-    return buildSystemPrompt("bash", this.captureAbsPath);
+    return buildSystemPrompt("bash", this.captureAbsPath, this.opts.budgetHintMaxTurns);
   }
 
   buildTools(records: ToolCallRecord[]): Array<Tool<any, any>> {

@@ -3,10 +3,12 @@
  * - 两臂系统提示由同一模板生成、同等质量标准：都告知 pcap 路径、任务契约、终答格式；
  *   差异只在工具面描述（bash 工作流 vs traffic-* 工具流）。
  * - 任务题面模板两臂完全一致（控制变量）。
+ * - budgetHint（disclosure 变体，备忘录 §7 注册）：追加预算告知行——量化
+ *   "预算视野"成分的单变量对照实验用；主协议（budget-blind）不传此参数。
  */
 import type { Question } from "../scorer/question.js";
 
-export function buildSystemPrompt(armKind: "bash" | "ast", captureAbsPath: string): string {
+export function buildSystemPrompt(armKind: "bash" | "ast", captureAbsPath: string, budgetHintMaxTurns?: number): string {
   const toolFace =
     armKind === "bash"
       ? [
@@ -24,6 +26,13 @@ export function buildSystemPrompt(armKind: "bash" | "ast", captureAbsPath: strin
           "traffic_timeseries gives per-bin series; traffic_http_timeline pairs HTTP transactions;",
           "traffic_raw_query is a bounded tshark escape hatch for fields the IR whitelists do not cover.",
         ];
+  const budgetLine =
+    budgetHintMaxTurns !== undefined
+      ? [
+          "",
+          `Budget notice: you have at most ${budgetHintMaxTurns} tool-use turns in total. Plan your verification accordingly and call finish with your final answer before exhausting them.`,
+        ]
+      : [];
   return [
     "You are a network traffic analyst answering a question about a packet capture.",
     `The capture file is at: ${captureAbsPath}`,
@@ -32,6 +41,7 @@ export function buildSystemPrompt(armKind: "bash" | "ast", captureAbsPath: strin
     "",
     "Investigate with the tools before answering; verify every number against packet-level evidence (frame numbers).",
     "Do not guess. If you cannot determine a fact from the capture, say so inside the JSON value rather than inventing frames.",
+    ...budgetLine,
     "",
     "Final answer contract: call the finish tool exactly once. Its reason MUST contain exactly one ```json fenced block",
     "conforming to the answer schema given in the task. Every factual node is {\"value\": ..., \"evidence\": [frame numbers]};",

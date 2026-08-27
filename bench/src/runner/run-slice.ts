@@ -165,6 +165,7 @@ async function main(): Promise<number> {
   const armIdx = argv.indexOf("--arm");
   const armFilter = armIdx >= 0 ? (argv[armIdx + 1] ?? "") : "";
   const resume = argv.includes("--resume");
+  const budgetHint = argv.includes("--budget-hint");
   const activeArms = armFilter === "" ? (ARMS as readonly string[]) : ARMS.filter((a) => a.startsWith(armFilter));
   if (activeArms.length === 0) {
     console.error(`[run-slice] --arm ${armFilter} 无匹配臂（可用：${ARMS.join("/")}）`);
@@ -179,7 +180,9 @@ async function main(): Promise<number> {
   currentModel = model;
   if (model !== DEFAULT_MODEL) {
     assertSafeBasename(model, "模型名");
-    runsBaseDir = path.join(OUT_RUNS_DIR, `model-${model}`);
+    // disclosure 变体分目录（防混批）；主协议（budget-blind）路径不变
+    const suffix = budgetHint ? "-hint" : "";
+    runsBaseDir = path.join(OUT_RUNS_DIR, `model-${model}${suffix}`);
     allSummaryPath = path.join(runsBaseDir, "all-summary-v02.json");
   }
 
@@ -245,7 +248,8 @@ async function main(): Promise<number> {
 
       const outputs = new Map<string, ArmOutput[]>();
       for (const armName of activeArms) {
-        const arm = armName.startsWith("bash-") ? new BashArm(captureAbsPath) : new AstArm(captureAbsPath);
+        const armOpts = budgetHint ? { budgetHintMaxTurns: BUDGET.maxTurns } : {};
+        const arm = armName.startsWith("bash-") ? new BashArm(captureAbsPath, armOpts) : new AstArm(captureAbsPath, armOpts);
         const outs: ArmOutput[] = [];
         for (let i = 1; i <= runsPerQuestion; i++) {
           console.log(`\n===== ${arm.name} run ${i}/${runsPerQuestion} =====`);
@@ -318,7 +322,7 @@ async function main(): Promise<number> {
         outputs.set(armName, outs);
       }
       // 逐题即时落盘：任何中途崩溃只损失在途的一题，已完成题目已在盘上（--resume 可续）
-      await writeQuestionOutputs(q.question_id, outputs, activeArms);
+      await writeQuestionOutputs(q.question_id, outputs, activeArms, budgetHint);
       await writeQuestionSummary(q, outputs, activeArms);
       console.log(`  [persisted] ${q.question_id} → runs/slice-summary 已落盘`);
       batch.push({ q, outputs });
@@ -338,7 +342,7 @@ async function main(): Promise<number> {
   }
 
   for (const { q, outputs } of batch) {
-    await writeQuestionOutputs(q.question_id, outputs, activeArms);
+    await writeQuestionOutputs(q.question_id, outputs, activeArms, budgetHint);
     await writeQuestionSummary(q, outputs, activeArms);
   }
   if (armFilter !== "") {
@@ -362,12 +366,13 @@ function transcriptJson(o: ArmOutput): string {
   return JSON.stringify({ records: o.result.transcript }, null, 2);
 }
 
-function runsJson(outs: ArmOutput[]): string {
+function runsJson(outs: ArmOutput[], budgetHint: boolean): string {
   return JSON.stringify(
     outs.map((o, i) => ({
       run_index: i + 1,
       // 本文件产自哪个接口版本（--resume 的防陈旧标记：旧文件无此字段即判不可续）
       query_schema: "explicit-v1",
+      budget_hint: budgetHint,
       classification: o.classification,
       f6: o.f6,
       f7: o.f7,
@@ -399,7 +404,7 @@ function runsJson(outs: ArmOutput[]): string {
   );
 }
 
-async function writeArmOutputs(qid: string, armName: string, outs: ArmOutput[]): Promise<void> {
+async function writeArmOutputs(qid: string, armName: string, outs: ArmOutput[], budgetHint: boolean): Promise<void> {
   const last = outs[outs.length - 1];
   if (!last) throw new Error(`writeArmOutputs: ${qid}/${armName} 无运行结果`);
   const dir = containedPath([qid, armName]);
@@ -408,14 +413,15 @@ async function writeArmOutputs(qid: string, armName: string, outs: ArmOutput[]):
   await writeFile(path.join(dir, "transcript.json"), transcriptJson(last));
   await writeFile(path.join(dir, "messages.json"), JSON.stringify(last.messageHistory, null, 2));
   await writeFile(path.join(dir, "answerRaw.txt"), last.result.answerRaw);
-  await writeFile(path.join(dir, "runs.json"), runsJson(outs));
+  await writeFile(path.join(dir, "runs.json"), runsJson(outs, budgetHint));
 }
 
-async function writeQuestionOutputs(qid: string, outputs: Map<string, ArmOutput[]>, activeArms: readonly string[]): Promise<void> {
+async function writeQuestionOutputs(qid: string, outputs: Map<string, ArmOutput[]>, activeArms: readonly string[], budgetHint: boolean): Promise<void> {
   for (const armName of activeArms) {
-    await writeArmOutputs(qid, armName, outputs.get(armName) ?? []);
+    await writeArmOutputs(qid, armName, outputs.get(armName) ?? [], budgetHint);
   }
 }
+
 
 /** ρ 分账（口径：chars 原始事实 / tokens=chars÷4 估计，与 E1 estTokens 同源） */
 function rhoOf(outs: ArmOutput[]): Record<string, unknown> {

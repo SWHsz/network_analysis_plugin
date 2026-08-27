@@ -176,10 +176,13 @@ function renderTimeseries(t: TimeseriesResult): string {
 export class AstArm implements Arm {
   readonly name = "ast-v0.5";
 
-  constructor(private readonly captureAbsPath: string) {}
+  constructor(
+    private readonly captureAbsPath: string,
+    private readonly opts: { budgetHintMaxTurns?: number } = {},
+  ) {}
 
   get systemPrompt(): string {
-    return buildSystemPrompt("ast", this.captureAbsPath);
+    return buildSystemPrompt("ast", this.captureAbsPath, this.opts.budgetHintMaxTurns);
   }
 
   buildTools(records: ToolCallRecord[]): Array<Tool<any, any>> {
