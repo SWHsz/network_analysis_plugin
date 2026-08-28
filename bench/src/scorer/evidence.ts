@@ -179,6 +179,35 @@ export function scoreEvidence(q: Question, gt: GroundTruth, answer: Record<strin
     }
   } else {
     for (const [fieldName, gold] of Object.entries(q.gold_evidence)) {
+      // 元素粒度 gold_evidence 表（S3 桥接扩展，卡面 attack_chain 的每阶段帧集）：
+      // 值为 {元素键: 帧集} 映射时按 gold 元素逐行判分，语义与 set 题逐行同构
+      // （键 = canonicalElementKey(元素值)；答案混入的非 gold 元素单独成行必不 pass）。
+      // 数组值（全部既有题）走原路径，行为逐字节不变。
+      if (gold !== null && typeof gold === "object" && !Array.isArray(gold)) {
+        const evMap = gold as Record<string, number[]>;
+        const goldKeys = Object.keys(evMap);
+        const ansList = Array.isArray(answer[fieldName]) ? (answer[fieldName] as unknown[]) : [];
+        const ansByKey = new Map<string, number[]>();
+        for (const el of ansList) {
+          const node = el as { value?: unknown; evidence?: unknown } | null;
+          const key = canonicalElementKey(node?.value);
+          if (!ansByKey.has(key)) ansByKey.set(key, citedFramesOf(node));
+        }
+        for (const key of goldKeys) {
+          const score = emptyScore(fieldName, key);
+          const cited = ansByKey.get(key) ?? [];
+          if ((evMap[key] ?? []).length > 0) finalize(score, cited, evMap[key]!, n, index);
+          fields.push(score);
+        }
+        for (const [key, cited] of ansByKey) {
+          if (goldKeys.includes(key)) continue;
+          const score = emptyScore(fieldName, key);
+          finalize(score, cited, [], n, index); // 对空 gold 集：precision 即判死
+          score.notInGold = true;
+          fields.push(score);
+        }
+        continue;
+      }
       const score = emptyScore(fieldName, null);
       if (Array.isArray(gold)) finalize(score, citedFramesOf(answer[fieldName]), gold, n, index);
       fields.push(score);

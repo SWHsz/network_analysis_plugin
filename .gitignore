@@ -11,6 +11,11 @@ spikes/stirrup/out/
 # 确定性判分产物 bench/out/scorer-demo/ 仍入库）
 bench/out/runs/
 
+# S3 大包实例（真实 MAWI 派生：pcap + 三层 GT + gold + bench 桥接产物）。
+# gt/gold 不入公开仓库（私有归档裁决）；实例与标定报告整体走 gitignore 覆盖路径。
+bench/fixtures/instances/
+bench/out/calibration-report.json
+
 # 本机私有数据：真实抓包 / 对话记录 / 大数据集（不入库）
 .DS_Store
 .zcode/

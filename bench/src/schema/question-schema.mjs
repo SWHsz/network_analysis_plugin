@@ -285,6 +285,23 @@ export function scoreAnswer(question, answer) {
 }
 
 /** 把 gold + gold_evidence 合成为形如终答的对象，用于 schema 校验 gold 结构 */
+/** 键序稳定的 JSON 序列化（与 bench/src/scorer/elements.ts 的 stableStringify 同构） */
+function stableStringify(v) {
+  if (v === null || typeof v !== "object") return JSON.stringify(v) ?? String(v);
+  if (Array.isArray(v)) return `[${v.map(stableStringify).join(",")}]`;
+  const keys = Object.keys(v).sort();
+  return `{${keys.map(k => `${JSON.stringify(k)}:${stableStringify(v[k])}`).join(",")}}`;
+}
+
+export function canonicalElementKey(v) {
+  if (typeof v === "object" && v !== null && !Array.isArray(v) &&
+      typeof v.proto === "string" && typeof v.src === "string" && typeof v.sport === "number" &&
+      typeof v.dst === "string" && typeof v.dport === "number") {
+    return canonicalTupleKey(v);
+  }
+  return stableStringify(v);
+}
+
 export function buildGoldAsAnswer(question) {
   if (question.type === "set") {
     const f = setFieldOf(question);
@@ -293,7 +310,13 @@ export function buildGoldAsAnswer(question) {
   }
   const out = {};
   for (const [field, node] of Object.entries(question.gold)) {
-    out[field] = { value: node.value, evidence: question.gold_evidence[field] };
+    const ev = question.gold_evidence[field];
+    // 实例题扩展（S3 桥接）：元素粒度证据表 → 按元素键组配 {value, evidence} 元组链
+    if (ev !== null && typeof ev === "object" && !Array.isArray(ev) && Array.isArray(node.value)) {
+      out[field] = node.value.map(v => ({ value: v, evidence: ev[canonicalElementKey(v)] ?? [] }));
+    } else {
+      out[field] = { value: node.value, evidence: ev };
+    }
   }
   return out;
 }
@@ -322,7 +345,10 @@ export function validateEnvelope(q, gt) {
   }
   if (errs.length > 0) return errs; // 连 question_id 都可能没有，后续检查无意义
 
-  if (typeof q.question_id !== "string" || !/^q-[a-z0-9]+-\d+$/.test(q.question_id)) push("question_id 命名应为 q-<fixture>-<序号>");
+  if (typeof q.question_id !== "string" ||
+      !(/^q-[a-z0-9]+-\d+$/.test(q.question_id) || /^q-[a-z0-9]+-i\d+-r\d+$/.test(q.question_id))) {
+    push("question_id 命名应为 q-<fixture>-<序号> 或实例命名 q-<card>-i<seed>-r<tier>");
+  }
   if (!Number.isInteger(q.version) || q.version < 1) push("version 应为 >=1 的整数");
   if (typeof q.question !== "string" || q.question.length < 10) push("question 题面过短");
 
@@ -394,6 +420,10 @@ export function validateEnvelope(q, gt) {
     };
     for (const [f, val] of Object.entries(q.gold_evidence ?? {})) {
       if (q.type === "set") {
+        for (const [k, frames] of Object.entries(val)) checkFrames(frames, `gold_evidence.${f}[${k}]`);
+      } else if (val !== null && typeof val === "object" && !Array.isArray(val)) {
+        // 实例题扩展（S3 桥接）：record 题的元素粒度证据表（如 attack_chain 每阶段帧集），
+        // 键 = canonicalElementKey(元素值)，逐键检查帧号范围（语义与 set 题同构）
         for (const [k, frames] of Object.entries(val)) checkFrames(frames, `gold_evidence.${f}[${k}]`);
       } else {
         checkFrames(val, `gold_evidence.${f}`, assertsNothing(f));

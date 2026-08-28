@@ -14,6 +14,7 @@
     "slice-q4": "tsx src/runner/run-slice.ts q-web-003",
     "slice-q5": "tsx src/runner/run-slice.ts q-web-004",
     "slice-all": "tsx src/runner/run-slice.ts --all",
+    "calibrate": "tsx src/runner/calibration-report.ts",
     "reclassify-e1": "tsx src/runner/reclassify-e1.ts",
     "model-matrix": "tsx src/runner/model-matrix.ts",
     "reclassify-v01-f7": "tsx src/runner/reclassify-v01-f7.ts",

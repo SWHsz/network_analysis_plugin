@@ -32,6 +32,8 @@ import { scoreRun, type RunClassification } from "../scorer/pipeline.js";
 import { classifyF6, completionRates, emptyBreakdown, outcomeBucket, type F6Subtypes, type OutcomeBucket } from "../scorer/f6.js";
 import { BashArm } from "./bash-arm.js";
 import { AstArm } from "./ast-tools.js";
+import { isInstanceFixture, instancePcapPath } from "../bridge/instances.js";
+import { loadInstanceQuestion } from "../scorer/question.js";
 import {
   DEFAULT_MODEL,
   captureCount,
@@ -58,10 +60,49 @@ const ARMS = ARM_NAMES;
  * 预算裁定（终局实验参数，不做敏感性实验）：32 包量级的 fixture 下该预算已属宽裕，
  * 打满轮次/超时本身即 agent 侧低效的有效信号而非 harness 伪影。
  * 适用边界：此论证只在切片量级成立——更大 capture 的下钻深度天然更大，预算须按
- * 规模重新推导，不得沿用本值。数值溯源：Stirrup spike demo 默认值，经跨批次锁死
- * 冻结为设计选择。
+ * 规模重新推导（--budget-sweep 标定批即此推导的实测入口），不得沿用本值。
+ * 数值溯源：Stirrup spike demo 默认值，经跨批次锁死冻结为设计选择。
  */
 const BUDGET: Budget = { maxTurns: 8, maxTokens: 4000, timeoutMs: 180_000 };
+/** sweep 角点的 timeout 基准：与 BUDGET 同源，按 maxTurns 等比放大（8→180s） */
+const BUDGET_TIMEOUT_PER_TURN_MS = BUDGET.timeoutMs / BUDGET.maxTurns;
+
+/**
+ * 预算梯度扫描角点（S3 标定批）：--budget-sweep "8x4000,16x8000,32x16000"，
+ * maxTurns×maxTokens 角点，逗号分隔；timeout 按角点等比放大（报告标注）。
+ * 角点先粗后细：本批只扫 3 角点，不许顺手扩大矩阵。
+ */
+interface SweepCorner {
+  /** 角点目录标签（assertSafeBasename 兼容），如 t08-tok4000；非 sweep 批为 null */
+  label: string | null;
+  budget: Budget;
+}
+
+function parseBudgetSweep(spec: string, runsIdxHint: never = undefined as never): SweepCorner[] {
+  void runsIdxHint;
+  const corners: SweepCorner[] = [];
+  for (const seg of spec.split(",")) {
+    const m = /^(\d+)x(\d+)$/.exec(seg.trim());
+    if (!m) {
+      throw new Error(`--budget-sweep 角点格式非法："${seg}"（应为 <maxTurns>x<maxTokens>，如 8x4000）`);
+    }
+    const maxTurns = Number(m[1]);
+    const maxTokens = Number(m[2]);
+    if (maxTurns < 1 || maxTokens < 256) {
+      throw new Error(`--budget-sweep 角点数值非法：${seg}`);
+    }
+    corners.push({
+      label: `t${String(maxTurns).padStart(2, "0")}-tok${maxTokens}`,
+      budget: {
+        maxTurns,
+        maxTokens,
+        timeoutMs: Math.round(BUDGET_TIMEOUT_PER_TURN_MS * maxTurns),
+      },
+    });
+  }
+  if (corners.length === 0) throw new Error("--budget-sweep 为空");
+  return corners;
+}
 
 const OUT_RUNS_DIR = path.join(REPO_ROOT, "bench", "out", "runs");
 /**
@@ -71,6 +112,8 @@ const OUT_RUNS_DIR = path.join(REPO_ROOT, "bench", "out", "runs");
 let runsBaseDir = OUT_RUNS_DIR;
 let allSummaryPath = path.join(REPO_ROOT, "bench", "out", "all-summary-v02.json");
 let currentModel = DEFAULT_MODEL;
+/** 当前生效预算：非 sweep 批恒为 BUDGET（冻结值）；sweep 批逐角点重绑 */
+let activeBudget: Budget = BUDGET;
 
 type FiveBuckets = Record<FinalBucket, number>;
 
@@ -166,32 +209,41 @@ async function main(): Promise<number> {
   const armFilter = armIdx >= 0 ? (argv[armIdx + 1] ?? "") : "";
   const resume = argv.includes("--resume");
   const budgetHint = argv.includes("--budget-hint");
+  const sweepIdx = argv.indexOf("--budget-sweep");
+  const sweepSpec = sweepIdx >= 0 ? argv[sweepIdx + 1] : undefined;
+  const corners: SweepCorner[] = sweepSpec ? parseBudgetSweep(sweepSpec) : [{ label: null, budget: BUDGET }];
   const activeArms = armFilter === "" ? (ARMS as readonly string[]) : ARMS.filter((a) => a.startsWith(armFilter));
   if (activeArms.length === 0) {
     console.error(`[run-slice] --arm ${armFilter} 无匹配臂（可用：${ARMS.join("/")}）`);
     return 2;
   }
-  const idArgs = argv.filter(
-    (a) => !a.startsWith("--") && a !== String(runsPerQuestion) && a !== model && a !== providerOverride && a !== armFilter,
-  );
-  const wantedIds = idArgs.length > 0 ? idArgs : SLICE_QUESTION_IDS;
-
-  // 输出目录按模型分开（基线模型保持 E1 兼容路径）
-  currentModel = model;
-  if (model !== DEFAULT_MODEL) {
-    assertSafeBasename(model, "模型名");
-    // disclosure 变体分目录（防混批）；主协议（budget-blind）路径不变
-    const suffix = budgetHint ? "-hint" : "";
-    runsBaseDir = path.join(OUT_RUNS_DIR, `model-${model}${suffix}`);
-    allSummaryPath = path.join(runsBaseDir, "all-summary-v02.json");
+  // 位置参数 = 题 id（排除一切值型 flag 的取值与裸 flag，替代旧的按值反查过滤）
+  const VALUE_FLAGS = new Set(["--runs", "--model", "--provider", "--arm", "--budget-sweep"]);
+  const wantedIds: string[] = [];
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i]!;
+    if (VALUE_FLAGS.has(a)) {
+      i++;
+      continue;
+    }
+    if (a.startsWith("--")) continue;
+    wantedIds.push(a);
   }
+  if (wantedIds.length === 0) wantedIds.push(...SLICE_QUESTION_IDS);
 
+  // 输出目录按模型分开（基线模型保持 E1 兼容路径）；sweep 批再叠一层角点目录
+  currentModel = model;
+  const modelDirSuffix = model !== DEFAULT_MODEL ? `model-${model}${budgetHint ? "-hint" : ""}` : "";
+  if (modelDirSuffix !== "") assertSafeBasename(model, "模型名");
+
+  // 题目解析：题库（bench/questions，冻结）优先；未命中且 fixture 是实例命名
+  // （<card>-i<seed>-r<tier>）时从实例注册表加载（bench-question.json）
   const all = loadQuestionsDir();
   const targets: Question[] = [];
   for (const id of wantedIds) {
-    const q = all.find((x) => x.question_id === id);
+    const q = all.find((x) => x.question_id === id) ?? loadInstanceQuestion(id);
     if (!q) {
-      console.error(`[run-slice] 题库中不存在 ${id}`);
+      console.error(`[run-slice] 题库与实例注册表中均不存在 ${id}`);
       return 2;
     }
     targets.push(q);
@@ -220,42 +272,60 @@ async function main(): Promise<number> {
     return 3;
   }
   console.log(
-    `[run-slice] model=${model} provider=${provider.name} budget=${JSON.stringify(BUDGET)} runs=${runsPerQuestion} questions=${targets.map((t) => t.question_id).join(",")}`,
+    `[run-slice] model=${model} provider=${provider.name} runs=${runsPerQuestion} ` +
+      (sweepSpec
+        ? `sweep=${sweepSpec}（timeout 按 maxTurns 等比放大：${corners.map((c) => `${c.label}=${Math.round(c.budget.timeoutMs / 1000)}s`).join(" ")}）`
+        : `budget=${JSON.stringify(BUDGET)}`) +
+      ` questions=${targets.map((t) => t.question_id).join(",")}`,
   );
 
-  const batch: Array<{ q: Question; outputs: Map<string, ArmOutput[]> }> = [];
+  const cornerBatches: Array<{ corner: SweepCorner; batch: Array<{ q: Question; outputs: Map<string, ArmOutput[]> }> }> = [];
 
   try {
-    for (const q of targets) {
-      const gt = loadGroundTruth(q);
-      const captureAbsPath = path.join(REPO_ROOT, "fixtures", `${q.capture.fixture}.pcap`);
-      const task = [
-        `Question (${q.question_id}): ${q.question}`,
-        "",
-        "Answer schema (the fenced block must conform to it):",
-        JSON.stringify(q.answer_schema, null, 2),
-        "",
-        'Reminder: finish reason contains exactly one ```json block; every factual node carries {"value", "evidence":[frames]}.',
-      ].join("\n");
+    for (const corner of corners) {
+      activeBudget = corner.budget;
+      // 输出根：sweep 批 = runs/budget-sweep/<角点>[/<模型目录>]；非 sweep 保持 E1 兼容路径
+      runsBaseDir =
+        corner.label !== null
+          ? path.join(OUT_RUNS_DIR, "budget-sweep", corner.label, modelDirSuffix)
+          : modelDirSuffix !== ""
+            ? path.join(OUT_RUNS_DIR, modelDirSuffix)
+            : OUT_RUNS_DIR;
+      allSummaryPath = path.join(runsBaseDir, "all-summary-v02.json");
 
-      console.log(`\n########## ${q.question_id} ##########`);
+      const batch: Array<{ q: Question; outputs: Map<string, ArmOutput[]> }> = [];
+      for (const q of targets) {
+        const gt = loadGroundTruth(q);
+        const captureAbsPath = isInstanceFixture(q.capture.fixture)
+          ? instancePcapPath(q.capture.fixture)
+          : path.join(REPO_ROOT, "fixtures", `${q.capture.fixture}.pcap`);
+        const task = [
+          `Question (${q.question_id}): ${q.question}`,
+          "",
+          "Answer schema (the fenced block must conform to it):",
+          JSON.stringify(q.answer_schema, null, 2),
+          "",
+          'Reminder: finish reason contains exactly one ```json block; every factual node carries {"value", "evidence":[frames]}.',
+        ].join("\n");
 
-      // --resume：全部目标臂的 runs.json 已有足量 run 时跳过执行（断点续跑，省配额）
-      if (resume && activeArms.every((a) => questionAlreadyOnDisk(q.question_id, a, runsPerQuestion))) {
-        console.log(`  [resume] ${q.question_id} 已有落盘数据，跳过`);
-        continue;
-      }
+        console.log(`\n########## [${corner.label ?? "base"}] ${q.question_id} ##########`);
 
-      const outputs = new Map<string, ArmOutput[]>();
-      for (const armName of activeArms) {
-        const armOpts = budgetHint ? { budgetHintMaxTurns: BUDGET.maxTurns } : {};
-        const arm = armName.startsWith("bash-") ? new BashArm(captureAbsPath, armOpts) : new AstArm(captureAbsPath, armOpts);
-        const outs: ArmOutput[] = [];
-        for (let i = 1; i <= runsPerQuestion; i++) {
-          console.log(`\n===== ${arm.name} run ${i}/${runsPerQuestion} =====`);
-          const capStart = captureCount();
-          const providerArgsStart = providerToolCallCount();
-          const outcome = await runArmOnce({ arm, task, budget: BUDGET, client });
+        // --resume：全部目标臂的 runs.json 已有足量 run 时跳过执行（断点续跑，省配额）
+        if (resume && activeArms.every((a) => questionAlreadyOnDisk(q.question_id, a, runsPerQuestion))) {
+          console.log(`  [resume] ${q.question_id} 已有落盘数据，跳过`);
+          continue;
+        }
+
+        const outputs = new Map<string, ArmOutput[]>();
+        for (const armName of activeArms) {
+          const armOpts = budgetHint ? { budgetHintMaxTurns: activeBudget.maxTurns } : {};
+          const arm = armName.startsWith("bash-") ? new BashArm(captureAbsPath, armOpts) : new AstArm(captureAbsPath, armOpts);
+          const outs: ArmOutput[] = [];
+          for (let i = 1; i <= runsPerQuestion; i++) {
+            console.log(`\n===== ${arm.name} run ${i}/${runsPerQuestion} =====`);
+            const capStart = captureCount();
+            const providerArgsStart = providerToolCallCount();
+            const outcome = await runArmOnce({ arm, task, budget: activeBudget, client });
           const runCaptures = capturesFrom(capStart);
           const providerToolCalls = providerToolCallsFrom(providerArgsStart);
 
@@ -285,7 +355,7 @@ async function main(): Promise<number> {
             answerRaw: outcome.answerRaw,
             toolCallCount: outcome.records.length,
             llmCalls: outcome.llmCalls,
-            maxTurns: BUDGET.maxTurns,
+            maxTurns: activeBudget.maxTurns,
           });
           // v0.2：F7 工具绑定失败（arrival-side 遥测）；失败 run 优先级 F7 > budget
           const f7 = detectF7(callLitesOf(outcome.records));
@@ -324,8 +394,10 @@ async function main(): Promise<number> {
       // 逐题即时落盘：任何中途崩溃只损失在途的一题，已完成题目已在盘上（--resume 可续）
       await writeQuestionOutputs(q.question_id, outputs, activeArms, budgetHint);
       await writeQuestionSummary(q, outputs, activeArms);
-      console.log(`  [persisted] ${q.question_id} → runs/slice-summary 已落盘`);
+      console.log(`  [persisted] ${q.question_id} → ${path.relative(OUT_RUNS_DIR, path.join(runsBaseDir, q.question_id))}/ 已落盘`);
       batch.push({ q, outputs });
+      }
+      cornerBatches.push({ corner, batch });
     }
   } finally {
     proxy.close();
@@ -341,18 +413,32 @@ async function main(): Promise<number> {
     }
   }
 
-  for (const { q, outputs } of batch) {
-    await writeQuestionOutputs(q.question_id, outputs, activeArms, budgetHint);
-    await writeQuestionSummary(q, outputs, activeArms);
-  }
-  if (armFilter !== "") {
-    // 单臂模式不写全量汇总（另一臂数据缺位会覆盖既有 all-summary-v02 的双臂口径）
-    console.log("[run-slice] 单臂模式：跳过 all-summary 聚合（对照分析用各臂 runs.json）");
-  } else {
-    await writeAllSummary(model, batch);
+  for (const { corner, batch } of cornerBatches) {
+    // 汇总落盘前恢复该角点的写盘根（containedPath/allSummaryPath 绑定模块级变量）
+    activeBudget = corner.budget;
+    runsBaseDir =
+      corner.label !== null
+        ? path.join(OUT_RUNS_DIR, "budget-sweep", corner.label, modelDirSuffix)
+        : modelDirSuffix !== ""
+          ? path.join(OUT_RUNS_DIR, modelDirSuffix)
+          : OUT_RUNS_DIR;
+    allSummaryPath = path.join(runsBaseDir, "all-summary-v02.json");
+    for (const { q, outputs } of batch) {
+      await writeQuestionOutputs(q.question_id, outputs, activeArms, budgetHint);
+      await writeQuestionSummary(q, outputs, activeArms);
+    }
+    if (armFilter !== "") {
+      // 单臂模式不写全量汇总（另一臂数据缺位会覆盖既有 all-summary-v02 的双臂口径）
+      console.log(`[run-slice] [${corner.label ?? "base"}] 单臂模式：跳过 all-summary 聚合`);
+    } else {
+      await writeAllSummary(model, batch, runsPerQuestion);
+    }
   }
 
-  console.log(`\n[run-slice] 完成：${batch.length} 题 × ${ARMS.length} 臂 × ${runsPerQuestion} 次；汇总见 ${allSummaryPath}`);
+  console.log(
+    `\n[run-slice] 完成：${cornerBatches.length} 角点 × ${targets.length} 题 × ${activeArms.length} 臂 × ${runsPerQuestion} 次` +
+      ` = ${cornerBatches.length * targets.length * activeArms.length * runsPerQuestion} run；汇总见 ${allSummaryPath}`,
+  );
   return 0;
 }
 
@@ -518,8 +604,9 @@ function armSummary(name: string, outs: ArmOutput[]): Record<string, unknown> {
 }
 
 function interfaceTaxOf(armSummaries: Array<Record<string, unknown>>): Record<string, unknown> {
-  const bash = armSummaries.find((a) => a.arm === "bash-v0.1");
-  const ast = armSummaries.find((a) => a.arm === "ast-v0.4");
+  // 臂名按前缀匹配（bash-*/ast-*）：v0.1 与 v0.2 臂名通吃（E1 遗留：曾硬编码 v0.1 名）
+  const bash = armSummaries.find((a) => String(a.arm).startsWith("bash-"));
+  const ast = armSummaries.find((a) => String(a.arm).startsWith("ast-"));
   const iface = (a?: Record<string, unknown>) => (a?.rho_decomposition as { interface?: { per_request_tokens_est?: number; total_avg_tokens_est?: number } })?.interface;
   const b = iface(bash);
   const s = iface(ast);
@@ -536,7 +623,7 @@ async function writeQuestionSummary(q: Question, outputs: Map<string, ArmOutput[
     protocol_version: PROTOCOL_VERSION,
     model: currentModel,
     question_id: q.question_id,
-    budget: BUDGET,
+    budget: activeBudget,
     runs_per_question: (outputs.get(activeArms[0] ?? "") ?? []).length,
     arms: armSummaries,
     interface_tax: tax,
@@ -547,7 +634,11 @@ async function writeQuestionSummary(q: Question, outputs: Map<string, ArmOutput[
   await writeFile(path.join(dir, "slice-summary.json"), JSON.stringify(summary, null, 2));
 }
 
-async function writeAllSummary(model: string, batch: Array<{ q: Question; outputs: Map<string, ArmOutput[]> }>): Promise<void> {
+async function writeAllSummary(
+  model: string,
+  batch: Array<{ q: Question; outputs: Map<string, ArmOutput[]> }>,
+  runsPerQuestion = 3,
+): Promise<void> {
   const byId = new Map<string, { question_id: string; arms: Array<Record<string, unknown>> }>();
   for (const { q, outputs } of batch) {
     byId.set(q.question_id, {
@@ -555,19 +646,24 @@ async function writeAllSummary(model: string, batch: Array<{ q: Question; output
       arms: ARMS.map((name) => armSummary(name, outputs.get(name) ?? [])),
     });
   }
-  for (const id of SLICE_QUESTION_IDS) {
-    if (byId.has(id)) continue;
-    try {
-      const p = containedPath([id, "slice-summary.json"]);
-      const prev = JSON.parse(await readFile(p, "utf8")) as { question_id: string; arms: Array<Record<string, unknown>> };
-      byId.set(id, prev);
-    } catch {
-      /* 该题尚无历史数据，跳过 */
+  // 历史回填仅限默认切片题集批次；实例题/sweep 批只含本次目标，不做 SLICE 全集回填
+  const isDefaultSet = batch.every((b) => (SLICE_QUESTION_IDS as readonly string[]).includes(b.q.question_id));
+  if (isDefaultSet) {
+    for (const id of SLICE_QUESTION_IDS) {
+      if (byId.has(id)) continue;
+      try {
+        const p = containedPath([id, "slice-summary.json"]);
+        const prev = JSON.parse(await readFile(p, "utf8")) as { question_id: string; arms: Array<Record<string, unknown>> };
+        byId.set(id, prev);
+      } catch {
+        /* 该题尚无历史数据，跳过 */
+      }
     }
   }
 
-  const pick = (arms: Array<Record<string, unknown>>, arm: string): Record<string, unknown> => {
-    const a = arms.find((x) => x.arm === arm) ?? {};
+  // 臂名按前缀匹配（bash-*/ast-*）：v0.1 与 v0.2 臂名通吃
+  const pick = (arms: Array<Record<string, unknown>>, armPrefix: string): Record<string, unknown> => {
+    const a = arms.find((x) => String(x.arm).startsWith(armPrefix)) ?? {};
     const means = (a.means ?? {}) as Record<string, unknown>;
     return {
       majority_correct: a.majority_correct ?? null,
@@ -581,9 +677,8 @@ async function writeAllSummary(model: string, batch: Array<{ q: Question; output
     };
   };
 
-  const questions = SLICE_QUESTION_IDS.filter((id) => byId.has(id)).map((id) => {
-    const entry = byId.get(id)!;
-    return { question_id: id, bash: pick(entry.arms, "bash-v0.1"), ast: pick(entry.arms, "ast-v0.4") };
+  const questions = [...byId.values()].map((entry) => {
+    return { question_id: entry.question_id, bash: pick(entry.arms, "bash-"), ast: pick(entry.arms, "ast-") };
   });
 
   const completed = questions.filter((x) => x.bash.majority_correct !== null && x.ast.majority_correct !== null);
@@ -603,8 +698,8 @@ async function writeAllSummary(model: string, batch: Array<{ q: Question; output
   const summary = {
     protocol_version: PROTOCOL_VERSION,
     model,
-    budget: BUDGET,
-    runs_per_question: 3,
+    budget: activeBudget,
+    runs_per_question: runsPerQuestion,
     generated_at: new Date().toISOString(),
     questions,
     summary: {

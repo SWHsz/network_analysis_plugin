@@ -11,6 +11,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { REPO_ROOT, assertSafeBasename } from "../paths.js";
+import { instanceGtPath, instanceQuestionPath } from "../bridge/instances.js";
 import type { JsonSchema } from "./schema.js";
 
 /**
@@ -135,7 +136,20 @@ export function loadQuestionsDir(): Question[] {
   return names.map((f) => loadQuestionByName(f));
 }
 
-/** 按 capture.fixture 加载对应 gt.json */
+/** 按 capture.fixture 加载对应 gt.json。
+ * 大包实例（<card>-i<seed>-r<tier>）的 gt 随实例走：bench/fixtures/instances/
+ * <card>/i<seed>/<tier>/bench-gt.json（gitignore 覆盖路径，私有归档裁决）；
+ * 其余 fixture 仍固定读 ground_truth/<fixture>.gt.json。 */
 export function loadGroundTruth(q: Question): GroundTruth {
+  const instanceGt = instanceGtPath(q.capture.fixture);
+  if (instanceGt) return readJsonWithRetry(instanceGt, "ground truth") as GroundTruth;
   return readJsonWithRetry(containedIn(GT_DIR, `${q.capture.fixture}.gt.json`), "ground truth") as GroundTruth;
+}
+
+/** 大包实例题加载（bench-question.json，from-card.ts 桥接产物）；
+ * 非实例 fixture 返回 null（调用方回退题库） */
+export function loadInstanceQuestion(fixture: string): Question | null {
+  const p = instanceQuestionPath(fixture);
+  if (!p) return null;
+  return readJsonWithRetry(p, "实例题目") as Question;
 }
