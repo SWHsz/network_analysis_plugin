@@ -121,17 +121,25 @@ async function main(): Promise<number> {
     const cornerDir = path.join(SWEEP_ROOT, corner);
     if (!(await stat(cornerDir)).isDirectory()) continue;
     assertSafeBasename(corner, "角点目录");
-    for (const modelDir of (await readdir(cornerDir)).sort()) {
-      const mDir = path.join(cornerDir, modelDir);
-      if (!(await stat(mDir)).isDirectory()) continue;
-      const model = modelDir.startsWith("model-") ? modelDir.slice("model-".length) : "deepseek-v4-flash";
-      for (const qid of (await readdir(mDir)).sort()) {
-        const qDir = path.join(mDir, qid);
-        if (!(await stat(qDir)).isDirectory()) continue;
-        for (const arm of (await readdir(qDir)).sort()) {
-          const p = path.join(qDir, arm, "runs.json");
-          if (!(await stat(path.join(qDir, arm)).then((s) => s.isDirectory()).catch(() => false))) continue;
-          cells.push({ corner, budget: await budgetOf(corner), model, questionId: qid, arm, dir: path.join(qDir, arm) });
+    for (const entry of (await readdir(cornerDir)).sort()) {
+      const eDir = path.join(cornerDir, entry);
+      if (!(await stat(eDir)).isDirectory()) continue;
+      // 布局判别：sweep 批两种落盘形态并存——
+      //   4 段 corner/<model-dir>/<qid>/<arm>/runs.json（非基线模型）
+      //   3 段 corner/<qid>/<arm>/runs.json（基线模型保持 E1 兼容路径，无 model 层）
+      const isQidEntry = entry.startsWith("q-");
+      const layouts: Array<{ model: string; qRoot: string; qidOverride?: string }> = isQidEntry
+        ? [{ model: "deepseek-v4-flash", qRoot: eDir, qidOverride: entry }]
+        : [{ model: entry.startsWith("model-") ? entry.slice("model-".length) : entry, qRoot: eDir }];
+      for (const { model, qRoot, qidOverride } of layouts) {
+        const qids = qidOverride ? [qidOverride] : (await readdir(qRoot)).sort();
+        for (const qid of qids) {
+          const qDir = qidOverride ? qRoot : path.join(qRoot, qid);
+          if (!(await stat(qDir)).isDirectory()) continue;
+          for (const arm of (await readdir(qDir)).sort()) {
+            if (!(await stat(path.join(qDir, arm)).then((s) => s.isDirectory()).catch(() => false))) continue;
+            cells.push({ corner, budget: await budgetOf(corner), model, questionId: qid, arm, dir: path.join(qDir, arm) });
+          }
         }
       }
     }
