@@ -62,17 +62,47 @@ function percentile(xs: number[], p: number): number {
 const r1f = (x: number): number => Number(x.toFixed(1));
 const r2f = (x: number): number => Number(x.toFixed(2));
 
-/** completion 口径：raw = correct/全部；excluding_F6F7 = correct/(forensic_* + budget_exhausted)（ρ 测量主口径） */
-function completionOf(runs: RunRecord[]): { raw: string; excluding: string; majority: boolean; n: number } {
+/** completion 口径（三个，逐行落盘）：
+ *  raw            = correct/全部（E1 口径）
+ *  excluding_F6F7 = correct/(全部 - protocol_noncompliance - tool_binding_failure)（E1 ρ 主口径，
+ *                   语义：五分桶冻结，output-token/timeout abort 在该口径下随 F6 排除）
+ *  excluding_adj  = correct/(全部 - 真协议失败(aborted==null 的 protocol 桶) - tool_binding_failure)
+ *                   ——标定批主判读口径：预算 abort（output token / timeout，aborted!=null 或
+ *                   budgetExhausted）是预算不足的实测信号，必须计入分母判败而非排除；
+ *                   E1 冻结的 outcomeBucket 只认 maxTurns 打满，故在聚合侧修正，不动判分器。 */
+function completionOf(runs: RunRecord[]): {
+  raw: string;
+  excluding: string;
+  excludingAdj: string;
+  majority: boolean;
+  n: number;
+  correct: number;
+  protocolTrue: number;
+  budgetAborts: number;
+  binding: number;
+} {
   const buckets = runs.map((r) => r.outcome_bucket);
   const correct = buckets.filter((b) => b === "forensic_correct").length;
   const forensic = buckets.filter((b) => b.startsWith("forensic_")).length;
-  const usable = buckets.filter((b) => b !== "protocol_noncompliance" && b !== "tool_binding_failure").length;
+  const binding = buckets.filter((b) => b === "tool_binding_failure").length;
+  const protocol = buckets.filter((b) => b === "protocol_noncompliance").length;
+  // 预算 abort（output token / timeout）可能落在 protocol 桶（E1 冻结语义只认 maxTurns 打满）；
+  // aborted!=null 或 budgetExhausted 的 run 一律视为预算不足信号
+  const protocolTrue = runs.filter((r) => r.outcome_bucket === "protocol_noncompliance" && r.aborted == null && !r.metrics.budgetExhausted).length;
+  const budgetAborts = runs.filter((r) => r.aborted != null || r.metrics.budgetExhausted).length;
+  const usable = runs.length - protocol - binding; // E1 excluding 口径分母
+  const usableAdj = runs.length - protocolTrue - binding; // 标定批 adj 口径分母
+  const fmt = (c: number, t: number): string => `${c}/${t}`;
   return {
-    raw: `${correct}/${runs.length}`,
-    excluding: `${correct}/${usable}`,
+    raw: fmt(correct, runs.length),
+    excluding: fmt(correct, usable),
+    excludingAdj: fmt(correct, usableAdj),
     majority: correct > runs.length / 2,
     n: runs.length,
+    correct,
+    protocolTrue,
+    budgetAborts,
+    binding,
   };
 }
 
@@ -138,6 +168,10 @@ async function main(): Promise<number> {
       majority_detail: `${runs.filter((r) => r.classification === "correct").length}/${runs.length}`,
       completion_raw: completed.raw,
       completion_excluding_F6F7: completed.excluding,
+      completion_excluding_adj: completed.excludingAdj,
+      aborts: { budget_or_timeout: completed.budgetAborts },
+      protocol_true_runs: completed.protocolTrue,
+      tool_binding_runs: completed.binding,
       outcome_mix: Object.fromEntries(
         [...new Set(runs.map((r) => r.outcome_bucket))].map((b) => [b, runs.filter((r) => r.outcome_bucket === b).length]),
       ),
@@ -180,7 +214,7 @@ async function main(): Promise<number> {
         .sort((a, b) => cornerRank(a.corner) - cornerRank(b.corner));
       if (series.length === 0) continue;
       const rateOf = (r: Record<string, unknown>): number => {
-        const [c, t] = String(r.completion_excluding_F6F7).split("/").map(Number);
+        const [c, t] = String(r.completion_excluding_adj).split("/").map(Number);
         return t! > 0 ? c! / t! : 0;
       };
       const peak = Math.max(...series.map(rateOf));
@@ -190,7 +224,7 @@ async function main(): Promise<number> {
         model,
         arm,
         question_id: qid,
-        completion_series: series.map((r) => ({ corner: r.corner, budget: r.budget, completion_excluding_F6F7: r.completion_excluding_F6F7, completion_raw: r.completion_raw })),
+        completion_series: series.map((r) => ({ corner: r.corner, budget: r.budget, completion_excluding_adj: r.completion_excluding_adj, completion_excluding_F6F7_e1: r.completion_excluding_F6F7, completion_raw: r.completion_raw, aborts: r.aborts })),
         peak_rate: r2f(peak),
         saturated_at: sat ? { corner: sat.corner, budget: sat.budget, timeout_s: sat.timeout_s } : null,
         reading: peak === 0 ? "全角点零完成——预算不是首要瓶颈（失败形态见 outcome_mix）" : sat ? `自 ${sat.corner} 起完成率平台化 → 该 facet 的预算下限` : "无饱和（未平台化，最大角点仍为峰值）",
@@ -229,7 +263,7 @@ async function main(): Promise<number> {
   const d9: Array<Record<string, unknown>> = [];
   const rhoKeys = [...new Set(rows.map((r) => String(r.question_id)))].sort();
   const rateOfRow = (r: Record<string, unknown>): number => {
-    const [c, t] = String(r.completion_excluding_F6F7).split("/").map(Number);
+    const [c, t] = String(r.completion_excluding_adj).split("/").map(Number);
     return t! > 0 ? c! / t! : 0;
   };
   for (const qid of rhoKeys) {
@@ -281,7 +315,9 @@ async function main(): Promise<number> {
     generated_at: new Date().toISOString(),
     source_root: path.relative(REPO_ROOT, SWEEP_ROOT),
     timeout_rule: "timeoutMs = 180s × maxTurns/8（与 E1 冻结预算同源等比放大；报告口径）",
-    completion_metrics_note: "completion_raw = correct/全部 run；completion_excluding_F6F7 = correct/(forensic_*) + budget_exhausted（F6/F7 不污染 ρ 测量，主口径）",
+    completion_metrics_note:
+      "raw = correct/全部；excluding_F6F7 = E1 ρ 主口径（protocol+binding 桶整桶排除，含 output-token/timeout abort——五分桶冻结语义只认 maxTurns 打满）；" +
+      "excluding_adj = 标定批判读口径：预算 abort（aborted!=null 或 budgetExhausted）计入分母判败而非排除。饱和点/D9 建议一律用 excluding_adj。",
     matrix: {
       corners: [...new Set(rows.map((r) => r.corner))].sort(),
       models: [...new Set(rows.map((r) => r.model))].sort(),
