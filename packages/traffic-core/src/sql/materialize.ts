@@ -115,8 +115,9 @@ export async function buildSqlStore(deps: SqlStoreDeps): Promise<BoundedSql> {
   }
 
   // view（内部通道；用户侧 read_parquet 在黑名单内，只能经 view 访问）
+  // D5 裁决取 ①（2026-08-28）：conversations 默认视图过滤为双向——与 AST/IR 口径一致
   const setupSqls = [
-    `CREATE VIEW conversations AS SELECT * FROM read_parquet(${q(pq("conversations"))})`,
+    `CREATE VIEW conversations AS SELECT * FROM read_parquet(${q(pq("conversations"))}) WHERE packets_forward > 0 AND packets_reverse > 0`,
     `CREATE VIEW events AS SELECT * FROM read_parquet(${q(pq("events"))})`,
     `CREATE VIEW frames AS SELECT * FROM read_parquet(${q(pq("frames"))})`,
     `CREATE VIEW frame_refs AS SELECT * FROM read_parquet(${q(pq("frame_refs"))})`,

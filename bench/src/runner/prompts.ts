@@ -8,7 +8,7 @@
  */
 import type { Question } from "../scorer/question.js";
 
-export function buildSystemPrompt(armKind: "bash" | "ast", captureAbsPath: string, budgetHintMaxTurns?: number): string {
+export function buildSystemPrompt(armKind: "bash" | "ast" | "sql", captureAbsPath: string, budgetHintMaxTurns?: number): string {
   const toolFace =
     armKind === "bash"
       ? [
@@ -19,13 +19,21 @@ export function buildSystemPrompt(armKind: "bash" | "ast", captureAbsPath: strin
           "  tshark -r <pcap> -Y '<display filter>' -T fields -e frame.number -e ...   # filtered field extraction",
           "Chain commands with pipes as needed. Keep each command's output bounded (use -c or head) so it stays readable.",
         ]
-      : [
-          "Tool face: the traffic-* structured analysis toolkit over a Traffic Observation IR.",
-          "Typical flow: traffic_open(path) → traffic_overview(capture_id) → traffic_query(scope=conversation|event)",
-          "→ traffic_inspect(conversation_id) → traffic_evidence(frames) to verify claims against packet-level records.",
-          "traffic_timeseries gives per-bin series; traffic_http_timeline pairs HTTP transactions;",
-          "traffic_raw_query is a bounded tshark escape hatch for fields the IR whitelists do not cover.",
-        ];
+      : armKind === "sql"
+        ? [
+            "Tool face: three tools — traffic_open(path), traffic_schema(capture_id), traffic_sql(capture_id, sql).",
+            "The SQL engine is DuckDB over the capture's materialized tables (read-only SELECT only).",
+            "Start with traffic_schema to see available tables and columns, then write SQL queries.",
+            "Key tables: conversations (bidirectional only), events (with attr_* flattened columns), frames, frame_refs.",
+            "Evidence: events and frames carry frame_number; join frame_refs on owner_id for evidence chains.",
+          ]
+        : [
+            "Tool face: the traffic-* structured analysis toolkit over a Traffic Observation IR.",
+            "Typical flow: traffic_open(path) → traffic_overview(capture_id) → traffic_query(scope=conversation|event)",
+            "→ traffic_inspect(conversation_id) → traffic_evidence(frames) to verify claims against packet-level records.",
+            "traffic_timeseries gives per-bin series; traffic_http_timeline pairs HTTP transactions;",
+            "traffic_raw_query is a bounded tshark escape hatch for fields the IR whitelists do not cover.",
+          ];
   const budgetLine =
     budgetHintMaxTurns !== undefined
       ? [
