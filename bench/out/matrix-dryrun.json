@@ -1,0 +1,33 @@
+{
+  "generated_at": "2026-09-01T12:22:38.755Z",
+  "budget": {
+    "maxTurns": 32,
+    "maxTokens": 16000,
+    "timeoutMs": 720000
+  },
+  "matrix_size": {
+    "cells": 24,
+    "runs_per_cell": 3,
+    "total_runs": 72
+  },
+  "breakdown": {
+    "by_model": {
+      "deepseek-v4-flash": 18,
+      "deepseek-v4-pro": 18,
+      "glm-5.3": 18,
+      "kimi-k3": 18
+    },
+    "by_arm": {
+      "bash-v0.2": 24,
+      "ast-v0.5": 24,
+      "sql-v0.1": 24
+    },
+    "by_tier": {
+      "r1": 36,
+      "r2": 36
+    }
+  },
+  "cells_discovered": 2,
+  "cells_active": 2,
+  "path_errors": 0
+}
