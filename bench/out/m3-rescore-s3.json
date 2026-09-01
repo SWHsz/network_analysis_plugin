@@ -1,0 +1,1247 @@
+{
+  "generated_at": "2026-09-01T12:01:23.602Z",
+  "summary": {
+    "total_runs": 72,
+    "scored_runs": 19,
+    "no_answer_runs": 53,
+    "naive_precision_avg": 0.188,
+    "cluster_precision_avg": 1,
+    "sample_recall_avg": 1,
+    "note": "naive 把取证彻底误罚为不精确（cited 全攻击帧 vs gold 6 采样帧）；cluster 锚定修复 precision；sample recall 是独立维度"
+  },
+  "runs": [
+    {
+      "budget": "t08-tok4000",
+      "model": "deepseek-v4-pro",
+      "question": "q-s01-i1-r1",
+      "arm": "ast-v0.5",
+      "run": 1,
+      "classification": "format_error",
+      "m3": null,
+      "note": "no answer (format_error/budget/etc)"
+    },
+    {
+      "budget": "t08-tok4000",
+      "model": "deepseek-v4-pro",
+      "question": "q-s01-i1-r1",
+      "arm": "ast-v0.5",
+      "run": 2,
+      "classification": "format_error",
+      "m3": null,
+      "note": "no answer (format_error/budget/etc)"
+    },
+    {
+      "budget": "t08-tok4000",
+      "model": "deepseek-v4-pro",
+      "question": "q-s01-i1-r1",
+      "arm": "ast-v0.5",
+      "run": 3,
+      "classification": "format_error",
+      "m3": null,
+      "note": "no answer (format_error/budget/etc)"
+    },
+    {
+      "budget": "t08-tok4000",
+      "model": "deepseek-v4-pro",
+      "question": "q-s01-i1-r1",
+      "arm": "bash-v0.2",
+      "run": 1,
+      "classification": "format_error",
+      "m3": null,
+      "note": "no answer (format_error/budget/etc)"
+    },
+    {
+      "budget": "t08-tok4000",
+      "model": "deepseek-v4-pro",
+      "question": "q-s01-i1-r1",
+      "arm": "bash-v0.2",
+      "run": 2,
+      "classification": "format_error",
+      "m3": null,
+      "note": "no answer (format_error/budget/etc)"
+    },
+    {
+      "budget": "t08-tok4000",
+      "model": "deepseek-v4-pro",
+      "question": "q-s01-i1-r1",
+      "arm": "bash-v0.2",
+      "run": 3,
+      "classification": "format_error",
+      "m3": null,
+      "note": "no answer (format_error/budget/etc)"
+    },
+    {
+      "budget": "t08-tok4000",
+      "model": "deepseek-v4-pro",
+      "question": "q-s01-i1-r2",
+      "arm": "ast-v0.5",
+      "run": 1,
+      "classification": "format_error",
+      "m3": null,
+      "note": "no answer (format_error/budget/etc)"
+    },
+    {
+      "budget": "t08-tok4000",
+      "model": "deepseek-v4-pro",
+      "question": "q-s01-i1-r2",
+      "arm": "ast-v0.5",
+      "run": 2,
+      "classification": "format_error",
+      "m3": null,
+      "note": "no answer (format_error/budget/etc)"
+    },
+    {
+      "budget": "t08-tok4000",
+      "model": "deepseek-v4-pro",
+      "question": "q-s01-i1-r2",
+      "arm": "ast-v0.5",
+      "run": 3,
+      "classification": "format_error",
+      "m3": null,
+      "note": "no answer (format_error/budget/etc)"
+    },
+    {
+      "budget": "t08-tok4000",
+      "model": "deepseek-v4-pro",
+      "question": "q-s01-i1-r2",
+      "arm": "bash-v0.2",
+      "run": 1,
+      "classification": "format_error",
+      "m3": null,
+      "note": "no answer (format_error/budget/etc)"
+    },
+    {
+      "budget": "t08-tok4000",
+      "model": "deepseek-v4-pro",
+      "question": "q-s01-i1-r2",
+      "arm": "bash-v0.2",
+      "run": 2,
+      "classification": "format_error",
+      "m3": null,
+      "note": "no answer (format_error/budget/etc)"
+    },
+    {
+      "budget": "t08-tok4000",
+      "model": "deepseek-v4-pro",
+      "question": "q-s01-i1-r2",
+      "arm": "bash-v0.2",
+      "run": 3,
+      "classification": "format_error",
+      "m3": null,
+      "note": "no answer (format_error/budget/etc)"
+    },
+    {
+      "budget": "t08-tok4000",
+      "model": "flash",
+      "question": "q-s01-i1-r1",
+      "arm": "ast-v0.5",
+      "run": 1,
+      "classification": "format_error",
+      "m3": null,
+      "note": "no answer (format_error/budget/etc)"
+    },
+    {
+      "budget": "t08-tok4000",
+      "model": "flash",
+      "question": "q-s01-i1-r1",
+      "arm": "ast-v0.5",
+      "run": 2,
+      "classification": "format_error",
+      "m3": null,
+      "note": "no answer (format_error/budget/etc)"
+    },
+    {
+      "budget": "t08-tok4000",
+      "model": "flash",
+      "question": "q-s01-i1-r1",
+      "arm": "ast-v0.5",
+      "run": 3,
+      "classification": "format_error",
+      "m3": null,
+      "note": "no answer (format_error/budget/etc)"
+    },
+    {
+      "budget": "t08-tok4000",
+      "model": "flash",
+      "question": "q-s01-i1-r1",
+      "arm": "bash-v0.2",
+      "run": 1,
+      "classification": "format_error",
+      "m3": null,
+      "note": "no answer (format_error/budget/etc)"
+    },
+    {
+      "budget": "t08-tok4000",
+      "model": "flash",
+      "question": "q-s01-i1-r1",
+      "arm": "bash-v0.2",
+      "run": 2,
+      "classification": "format_error",
+      "m3": null,
+      "note": "no answer (format_error/budget/etc)"
+    },
+    {
+      "budget": "t08-tok4000",
+      "model": "flash",
+      "question": "q-s01-i1-r1",
+      "arm": "bash-v0.2",
+      "run": 3,
+      "classification": "format_error",
+      "m3": null,
+      "note": "no answer (format_error/budget/etc)"
+    },
+    {
+      "budget": "t08-tok4000",
+      "model": "flash",
+      "question": "q-s01-i1-r2",
+      "arm": "ast-v0.5",
+      "run": 1,
+      "classification": "format_error",
+      "m3": null,
+      "note": "no answer (format_error/budget/etc)"
+    },
+    {
+      "budget": "t08-tok4000",
+      "model": "flash",
+      "question": "q-s01-i1-r2",
+      "arm": "ast-v0.5",
+      "run": 2,
+      "classification": "format_error",
+      "m3": null,
+      "note": "no answer (format_error/budget/etc)"
+    },
+    {
+      "budget": "t08-tok4000",
+      "model": "flash",
+      "question": "q-s01-i1-r2",
+      "arm": "ast-v0.5",
+      "run": 3,
+      "classification": "format_error",
+      "m3": null,
+      "note": "no answer (format_error/budget/etc)"
+    },
+    {
+      "budget": "t08-tok4000",
+      "model": "flash",
+      "question": "q-s01-i1-r2",
+      "arm": "bash-v0.2",
+      "run": 1,
+      "classification": "format_error",
+      "m3": null,
+      "note": "no answer (format_error/budget/etc)"
+    },
+    {
+      "budget": "t08-tok4000",
+      "model": "flash",
+      "question": "q-s01-i1-r2",
+      "arm": "bash-v0.2",
+      "run": 2,
+      "classification": "format_error",
+      "m3": null,
+      "note": "no answer (format_error/budget/etc)"
+    },
+    {
+      "budget": "t08-tok4000",
+      "model": "flash",
+      "question": "q-s01-i1-r2",
+      "arm": "bash-v0.2",
+      "run": 3,
+      "classification": "format_error",
+      "m3": null,
+      "note": "no answer (format_error/budget/etc)"
+    },
+    {
+      "budget": "t16-tok8000",
+      "model": "deepseek-v4-pro",
+      "question": "q-s01-i1-r1",
+      "arm": "ast-v0.5",
+      "run": 1,
+      "classification": "format_error",
+      "m3": null,
+      "note": "no answer (format_error/budget/etc)"
+    },
+    {
+      "budget": "t16-tok8000",
+      "model": "deepseek-v4-pro",
+      "question": "q-s01-i1-r1",
+      "arm": "ast-v0.5",
+      "run": 2,
+      "classification": "format_error",
+      "m3": null,
+      "note": "no answer (format_error/budget/etc)"
+    },
+    {
+      "budget": "t16-tok8000",
+      "model": "deepseek-v4-pro",
+      "question": "q-s01-i1-r1",
+      "arm": "ast-v0.5",
+      "run": 3,
+      "classification": "format_error",
+      "m3": null,
+      "note": "no answer (format_error/budget/etc)"
+    },
+    {
+      "budget": "t16-tok8000",
+      "model": "deepseek-v4-pro",
+      "question": "q-s01-i1-r1",
+      "arm": "bash-v0.2",
+      "run": 1,
+      "classification": "format_error",
+      "m3": null,
+      "note": "no answer (format_error/budget/etc)"
+    },
+    {
+      "budget": "t16-tok8000",
+      "model": "deepseek-v4-pro",
+      "question": "q-s01-i1-r1",
+      "arm": "bash-v0.2",
+      "run": 2,
+      "classification": "format_error",
+      "m3": null,
+      "note": "no answer (format_error/budget/etc)"
+    },
+    {
+      "budget": "t16-tok8000",
+      "model": "deepseek-v4-pro",
+      "question": "q-s01-i1-r1",
+      "arm": "bash-v0.2",
+      "run": 3,
+      "classification": "format_error",
+      "m3": null,
+      "note": "no answer (format_error/budget/etc)"
+    },
+    {
+      "budget": "t16-tok8000",
+      "model": "deepseek-v4-pro",
+      "question": "q-s01-i1-r2",
+      "arm": "ast-v0.5",
+      "run": 1,
+      "classification": "format_error",
+      "m3": null,
+      "note": "no answer (format_error/budget/etc)"
+    },
+    {
+      "budget": "t16-tok8000",
+      "model": "deepseek-v4-pro",
+      "question": "q-s01-i1-r2",
+      "arm": "ast-v0.5",
+      "run": 2,
+      "classification": "format_error",
+      "m3": null,
+      "note": "no answer (format_error/budget/etc)"
+    },
+    {
+      "budget": "t16-tok8000",
+      "model": "deepseek-v4-pro",
+      "question": "q-s01-i1-r2",
+      "arm": "ast-v0.5",
+      "run": 3,
+      "classification": "format_error",
+      "m3": null,
+      "note": "no answer (format_error/budget/etc)"
+    },
+    {
+      "budget": "t16-tok8000",
+      "model": "deepseek-v4-pro",
+      "question": "q-s01-i1-r2",
+      "arm": "bash-v0.2",
+      "run": 1,
+      "classification": "format_error",
+      "m3": null,
+      "note": "no answer (format_error/budget/etc)"
+    },
+    {
+      "budget": "t16-tok8000",
+      "model": "deepseek-v4-pro",
+      "question": "q-s01-i1-r2",
+      "arm": "bash-v0.2",
+      "run": 2,
+      "classification": "format_error",
+      "m3": null,
+      "note": "no answer (format_error/budget/etc)"
+    },
+    {
+      "budget": "t16-tok8000",
+      "model": "deepseek-v4-pro",
+      "question": "q-s01-i1-r2",
+      "arm": "bash-v0.2",
+      "run": 3,
+      "classification": "format_error",
+      "m3": null,
+      "note": "no answer (format_error/budget/etc)"
+    },
+    {
+      "budget": "t16-tok8000",
+      "model": "flash",
+      "question": "q-s01-i1-r1",
+      "arm": "ast-v0.5",
+      "run": 1,
+      "classification": "format_error",
+      "m3": null,
+      "note": "no answer (format_error/budget/etc)"
+    },
+    {
+      "budget": "t16-tok8000",
+      "model": "flash",
+      "question": "q-s01-i1-r1",
+      "arm": "ast-v0.5",
+      "run": 2,
+      "classification": "format_error",
+      "m3": null,
+      "note": "no answer (format_error/budget/etc)"
+    },
+    {
+      "budget": "t16-tok8000",
+      "model": "flash",
+      "question": "q-s01-i1-r1",
+      "arm": "ast-v0.5",
+      "run": 3,
+      "classification": "format_error",
+      "m3": null,
+      "note": "no answer (format_error/budget/etc)"
+    },
+    {
+      "budget": "t16-tok8000",
+      "model": "flash",
+      "question": "q-s01-i1-r1",
+      "arm": "bash-v0.2",
+      "run": 1,
+      "classification": "format_error",
+      "m3": null,
+      "note": "no answer (format_error/budget/etc)"
+    },
+    {
+      "budget": "t16-tok8000",
+      "model": "flash",
+      "question": "q-s01-i1-r1",
+      "arm": "bash-v0.2",
+      "run": 2,
+      "classification": "correct",
+      "m3": {
+        "overall": {
+          "precision_naive": 0.188,
+          "precision_cluster": 1,
+          "recall_sample": 1
+        },
+        "stages": [
+          {
+            "stage": "recon",
+            "precision_cluster": 0.125,
+            "recall_sample": 1,
+            "cited_count": 24
+          },
+          {
+            "stage": "successful_read",
+            "precision_cluster": 0.375,
+            "recall_sample": 1,
+            "cited_count": 8
+          }
+        ],
+        "fields": {
+          "attack_type": {
+            "precision_naive": 0.188,
+            "precision_cluster": 1,
+            "recall_sample": 1,
+            "cited_count": 32
+          }
+        }
+      }
+    },
+    {
+      "budget": "t16-tok8000",
+      "model": "flash",
+      "question": "q-s01-i1-r1",
+      "arm": "bash-v0.2",
+      "run": 3,
+      "classification": "format_error",
+      "m3": null,
+      "note": "no answer (format_error/budget/etc)"
+    },
+    {
+      "budget": "t16-tok8000",
+      "model": "flash",
+      "question": "q-s01-i1-r2",
+      "arm": "ast-v0.5",
+      "run": 1,
+      "classification": "format_error",
+      "m3": null,
+      "note": "no answer (format_error/budget/etc)"
+    },
+    {
+      "budget": "t16-tok8000",
+      "model": "flash",
+      "question": "q-s01-i1-r2",
+      "arm": "ast-v0.5",
+      "run": 2,
+      "classification": "format_error",
+      "m3": null,
+      "note": "no answer (format_error/budget/etc)"
+    },
+    {
+      "budget": "t16-tok8000",
+      "model": "flash",
+      "question": "q-s01-i1-r2",
+      "arm": "ast-v0.5",
+      "run": 3,
+      "classification": "format_error",
+      "m3": null,
+      "note": "no answer (format_error/budget/etc)"
+    },
+    {
+      "budget": "t16-tok8000",
+      "model": "flash",
+      "question": "q-s01-i1-r2",
+      "arm": "bash-v0.2",
+      "run": 1,
+      "classification": "format_error",
+      "m3": null,
+      "note": "no answer (format_error/budget/etc)"
+    },
+    {
+      "budget": "t16-tok8000",
+      "model": "flash",
+      "question": "q-s01-i1-r2",
+      "arm": "bash-v0.2",
+      "run": 2,
+      "classification": "format_error",
+      "m3": null,
+      "note": "no answer (format_error/budget/etc)"
+    },
+    {
+      "budget": "t16-tok8000",
+      "model": "flash",
+      "question": "q-s01-i1-r2",
+      "arm": "bash-v0.2",
+      "run": 3,
+      "classification": "correct",
+      "m3": {
+        "overall": {
+          "precision_naive": 0.188,
+          "precision_cluster": 1,
+          "recall_sample": 1
+        },
+        "stages": [
+          {
+            "stage": "recon",
+            "precision_cluster": 0.125,
+            "recall_sample": 1,
+            "cited_count": 24
+          },
+          {
+            "stage": "successful_read",
+            "precision_cluster": 0.375,
+            "recall_sample": 1,
+            "cited_count": 8
+          }
+        ],
+        "fields": {
+          "attack_type": {
+            "precision_naive": 0.188,
+            "precision_cluster": 1,
+            "recall_sample": 1,
+            "cited_count": 32
+          }
+        }
+      }
+    },
+    {
+      "budget": "t32-tok16000",
+      "model": "deepseek-v4-pro",
+      "question": "q-s01-i1-r1",
+      "arm": "ast-v0.5",
+      "run": 1,
+      "classification": "correct",
+      "m3": {
+        "overall": {
+          "precision_naive": 0.188,
+          "precision_cluster": 1,
+          "recall_sample": 1
+        },
+        "stages": [
+          {
+            "stage": "recon",
+            "precision_cluster": 0.125,
+            "recall_sample": 1,
+            "cited_count": 24
+          },
+          {
+            "stage": "successful_read",
+            "precision_cluster": 0.375,
+            "recall_sample": 1,
+            "cited_count": 8
+          }
+        ],
+        "fields": {
+          "attack_type": {
+            "precision_naive": 0.188,
+            "precision_cluster": 1,
+            "recall_sample": 1,
+            "cited_count": 32
+          }
+        }
+      }
+    },
+    {
+      "budget": "t32-tok16000",
+      "model": "deepseek-v4-pro",
+      "question": "q-s01-i1-r1",
+      "arm": "ast-v0.5",
+      "run": 2,
+      "classification": "format_error",
+      "m3": null,
+      "note": "no answer (format_error/budget/etc)"
+    },
+    {
+      "budget": "t32-tok16000",
+      "model": "deepseek-v4-pro",
+      "question": "q-s01-i1-r1",
+      "arm": "ast-v0.5",
+      "run": 3,
+      "classification": "correct",
+      "m3": {
+        "overall": {
+          "precision_naive": 0.188,
+          "precision_cluster": 1,
+          "recall_sample": 1
+        },
+        "stages": [
+          {
+            "stage": "recon",
+            "precision_cluster": 0.125,
+            "recall_sample": 1,
+            "cited_count": 24
+          },
+          {
+            "stage": "successful_read",
+            "precision_cluster": 0.375,
+            "recall_sample": 1,
+            "cited_count": 8
+          }
+        ],
+        "fields": {
+          "attack_type": {
+            "precision_naive": 0.188,
+            "precision_cluster": 1,
+            "recall_sample": 1,
+            "cited_count": 32
+          }
+        }
+      }
+    },
+    {
+      "budget": "t32-tok16000",
+      "model": "deepseek-v4-pro",
+      "question": "q-s01-i1-r1",
+      "arm": "bash-v0.2",
+      "run": 1,
+      "classification": "correct",
+      "m3": {
+        "overall": {
+          "precision_naive": 0.188,
+          "precision_cluster": 1,
+          "recall_sample": 1
+        },
+        "stages": [
+          {
+            "stage": "recon",
+            "precision_cluster": 0.125,
+            "recall_sample": 1,
+            "cited_count": 24
+          },
+          {
+            "stage": "successful_read",
+            "precision_cluster": 0.375,
+            "recall_sample": 1,
+            "cited_count": 8
+          }
+        ],
+        "fields": {
+          "attack_type": {
+            "precision_naive": 0.188,
+            "precision_cluster": 1,
+            "recall_sample": 1,
+            "cited_count": 32
+          }
+        }
+      }
+    },
+    {
+      "budget": "t32-tok16000",
+      "model": "deepseek-v4-pro",
+      "question": "q-s01-i1-r1",
+      "arm": "bash-v0.2",
+      "run": 2,
+      "classification": "correct",
+      "m3": {
+        "overall": {
+          "precision_naive": 0.188,
+          "precision_cluster": 1,
+          "recall_sample": 1
+        },
+        "stages": [
+          {
+            "stage": "recon",
+            "precision_cluster": 0.125,
+            "recall_sample": 1,
+            "cited_count": 24
+          },
+          {
+            "stage": "successful_read",
+            "precision_cluster": 0.375,
+            "recall_sample": 1,
+            "cited_count": 8
+          }
+        ],
+        "fields": {
+          "attack_type": {
+            "precision_naive": 0.188,
+            "precision_cluster": 1,
+            "recall_sample": 1,
+            "cited_count": 32
+          }
+        }
+      }
+    },
+    {
+      "budget": "t32-tok16000",
+      "model": "deepseek-v4-pro",
+      "question": "q-s01-i1-r1",
+      "arm": "bash-v0.2",
+      "run": 3,
+      "classification": "correct",
+      "m3": {
+        "overall": {
+          "precision_naive": 0.188,
+          "precision_cluster": 1,
+          "recall_sample": 1
+        },
+        "stages": [
+          {
+            "stage": "recon",
+            "precision_cluster": 0.125,
+            "recall_sample": 1,
+            "cited_count": 24
+          },
+          {
+            "stage": "successful_read",
+            "precision_cluster": 0.375,
+            "recall_sample": 1,
+            "cited_count": 8
+          }
+        ],
+        "fields": {
+          "attack_type": {
+            "precision_naive": 0.188,
+            "precision_cluster": 1,
+            "recall_sample": 1,
+            "cited_count": 32
+          }
+        }
+      }
+    },
+    {
+      "budget": "t32-tok16000",
+      "model": "deepseek-v4-pro",
+      "question": "q-s01-i1-r2",
+      "arm": "ast-v0.5",
+      "run": 1,
+      "classification": "correct",
+      "m3": {
+        "overall": {
+          "precision_naive": 0.188,
+          "precision_cluster": 1,
+          "recall_sample": 1
+        },
+        "stages": [
+          {
+            "stage": "recon",
+            "precision_cluster": 0.125,
+            "recall_sample": 1,
+            "cited_count": 24
+          },
+          {
+            "stage": "successful_read",
+            "precision_cluster": 0.375,
+            "recall_sample": 1,
+            "cited_count": 8
+          }
+        ],
+        "fields": {
+          "attack_type": {
+            "precision_naive": 0.188,
+            "precision_cluster": 1,
+            "recall_sample": 1,
+            "cited_count": 32
+          }
+        }
+      }
+    },
+    {
+      "budget": "t32-tok16000",
+      "model": "deepseek-v4-pro",
+      "question": "q-s01-i1-r2",
+      "arm": "ast-v0.5",
+      "run": 2,
+      "classification": "format_error",
+      "m3": null,
+      "note": "no answer (format_error/budget/etc)"
+    },
+    {
+      "budget": "t32-tok16000",
+      "model": "deepseek-v4-pro",
+      "question": "q-s01-i1-r2",
+      "arm": "ast-v0.5",
+      "run": 3,
+      "classification": "format_error",
+      "m3": null,
+      "note": "no answer (format_error/budget/etc)"
+    },
+    {
+      "budget": "t32-tok16000",
+      "model": "deepseek-v4-pro",
+      "question": "q-s01-i1-r2",
+      "arm": "bash-v0.2",
+      "run": 1,
+      "classification": "correct",
+      "m3": {
+        "overall": {
+          "precision_naive": 0.188,
+          "precision_cluster": 1,
+          "recall_sample": 1
+        },
+        "stages": [
+          {
+            "stage": "recon",
+            "precision_cluster": 0.125,
+            "recall_sample": 1,
+            "cited_count": 24
+          },
+          {
+            "stage": "successful_read",
+            "precision_cluster": 0.375,
+            "recall_sample": 1,
+            "cited_count": 8
+          }
+        ],
+        "fields": {
+          "attack_type": {
+            "precision_naive": 0.188,
+            "precision_cluster": 1,
+            "recall_sample": 1,
+            "cited_count": 32
+          }
+        }
+      }
+    },
+    {
+      "budget": "t32-tok16000",
+      "model": "deepseek-v4-pro",
+      "question": "q-s01-i1-r2",
+      "arm": "bash-v0.2",
+      "run": 2,
+      "classification": "correct",
+      "m3": {
+        "overall": {
+          "precision_naive": 0.188,
+          "precision_cluster": 1,
+          "recall_sample": 1
+        },
+        "stages": [
+          {
+            "stage": "recon",
+            "precision_cluster": 0.125,
+            "recall_sample": 1,
+            "cited_count": 24
+          },
+          {
+            "stage": "successful_read",
+            "precision_cluster": 0.375,
+            "recall_sample": 1,
+            "cited_count": 8
+          }
+        ],
+        "fields": {
+          "attack_type": {
+            "precision_naive": 0.188,
+            "precision_cluster": 1,
+            "recall_sample": 1,
+            "cited_count": 32
+          }
+        }
+      }
+    },
+    {
+      "budget": "t32-tok16000",
+      "model": "deepseek-v4-pro",
+      "question": "q-s01-i1-r2",
+      "arm": "bash-v0.2",
+      "run": 3,
+      "classification": "correct",
+      "m3": {
+        "overall": {
+          "precision_naive": 0.188,
+          "precision_cluster": 1,
+          "recall_sample": 1
+        },
+        "stages": [
+          {
+            "stage": "recon",
+            "precision_cluster": 0.125,
+            "recall_sample": 1,
+            "cited_count": 24
+          },
+          {
+            "stage": "successful_read",
+            "precision_cluster": 0.375,
+            "recall_sample": 1,
+            "cited_count": 8
+          }
+        ],
+        "fields": {
+          "attack_type": {
+            "precision_naive": 0.188,
+            "precision_cluster": 1,
+            "recall_sample": 1,
+            "cited_count": 32
+          }
+        }
+      }
+    },
+    {
+      "budget": "t32-tok16000",
+      "model": "flash",
+      "question": "q-s01-i1-r1",
+      "arm": "ast-v0.5",
+      "run": 1,
+      "classification": "format_error",
+      "m3": null,
+      "note": "no answer (format_error/budget/etc)"
+    },
+    {
+      "budget": "t32-tok16000",
+      "model": "flash",
+      "question": "q-s01-i1-r1",
+      "arm": "ast-v0.5",
+      "run": 2,
+      "classification": "format_error",
+      "m3": null,
+      "note": "no answer (format_error/budget/etc)"
+    },
+    {
+      "budget": "t32-tok16000",
+      "model": "flash",
+      "question": "q-s01-i1-r1",
+      "arm": "ast-v0.5",
+      "run": 3,
+      "classification": "format_error",
+      "m3": null,
+      "note": "no answer (format_error/budget/etc)"
+    },
+    {
+      "budget": "t32-tok16000",
+      "model": "flash",
+      "question": "q-s01-i1-r1",
+      "arm": "bash-v0.2",
+      "run": 1,
+      "classification": "correct",
+      "m3": {
+        "overall": {
+          "precision_naive": 0.188,
+          "precision_cluster": 1,
+          "recall_sample": 1
+        },
+        "stages": [
+          {
+            "stage": "recon",
+            "precision_cluster": 0.125,
+            "recall_sample": 1,
+            "cited_count": 24
+          },
+          {
+            "stage": "successful_read",
+            "precision_cluster": 0.375,
+            "recall_sample": 1,
+            "cited_count": 8
+          }
+        ],
+        "fields": {
+          "attack_type": {
+            "precision_naive": 0.188,
+            "precision_cluster": 1,
+            "recall_sample": 1,
+            "cited_count": 32
+          }
+        }
+      }
+    },
+    {
+      "budget": "t32-tok16000",
+      "model": "flash",
+      "question": "q-s01-i1-r1",
+      "arm": "bash-v0.2",
+      "run": 2,
+      "classification": "correct",
+      "m3": {
+        "overall": {
+          "precision_naive": 0.188,
+          "precision_cluster": 1,
+          "recall_sample": 1
+        },
+        "stages": [
+          {
+            "stage": "recon",
+            "precision_cluster": 0.125,
+            "recall_sample": 1,
+            "cited_count": 24
+          },
+          {
+            "stage": "successful_read",
+            "precision_cluster": 0.375,
+            "recall_sample": 1,
+            "cited_count": 8
+          }
+        ],
+        "fields": {
+          "attack_type": {
+            "precision_naive": 0.188,
+            "precision_cluster": 1,
+            "recall_sample": 1,
+            "cited_count": 32
+          }
+        }
+      }
+    },
+    {
+      "budget": "t32-tok16000",
+      "model": "flash",
+      "question": "q-s01-i1-r1",
+      "arm": "bash-v0.2",
+      "run": 3,
+      "classification": "correct",
+      "m3": {
+        "overall": {
+          "precision_naive": 0.188,
+          "precision_cluster": 1,
+          "recall_sample": 1
+        },
+        "stages": [
+          {
+            "stage": "recon",
+            "precision_cluster": 0.125,
+            "recall_sample": 1,
+            "cited_count": 24
+          },
+          {
+            "stage": "successful_read",
+            "precision_cluster": 0.375,
+            "recall_sample": 1,
+            "cited_count": 8
+          }
+        ],
+        "fields": {
+          "attack_type": {
+            "precision_naive": 0.188,
+            "precision_cluster": 1,
+            "recall_sample": 1,
+            "cited_count": 32
+          }
+        }
+      }
+    },
+    {
+      "budget": "t32-tok16000",
+      "model": "flash",
+      "question": "q-s01-i1-r2",
+      "arm": "ast-v0.5",
+      "run": 1,
+      "classification": "correct",
+      "m3": {
+        "overall": {
+          "precision_naive": 0.188,
+          "precision_cluster": 1,
+          "recall_sample": 1
+        },
+        "stages": [
+          {
+            "stage": "recon",
+            "precision_cluster": 0.125,
+            "recall_sample": 1,
+            "cited_count": 24
+          },
+          {
+            "stage": "successful_read",
+            "precision_cluster": 0.375,
+            "recall_sample": 1,
+            "cited_count": 8
+          }
+        ],
+        "fields": {
+          "attack_type": {
+            "precision_naive": 0.188,
+            "precision_cluster": 1,
+            "recall_sample": 1,
+            "cited_count": 32
+          }
+        }
+      }
+    },
+    {
+      "budget": "t32-tok16000",
+      "model": "flash",
+      "question": "q-s01-i1-r2",
+      "arm": "ast-v0.5",
+      "run": 2,
+      "classification": "format_error",
+      "m3": null,
+      "note": "no answer (format_error/budget/etc)"
+    },
+    {
+      "budget": "t32-tok16000",
+      "model": "flash",
+      "question": "q-s01-i1-r2",
+      "arm": "ast-v0.5",
+      "run": 3,
+      "classification": "correct",
+      "m3": {
+        "overall": {
+          "precision_naive": 0.188,
+          "precision_cluster": 1,
+          "recall_sample": 1
+        },
+        "stages": [
+          {
+            "stage": "recon",
+            "precision_cluster": 0.125,
+            "recall_sample": 1,
+            "cited_count": 24
+          },
+          {
+            "stage": "successful_read",
+            "precision_cluster": 0.375,
+            "recall_sample": 1,
+            "cited_count": 8
+          }
+        ],
+        "fields": {
+          "attack_type": {
+            "precision_naive": 0.188,
+            "precision_cluster": 1,
+            "recall_sample": 1,
+            "cited_count": 32
+          }
+        }
+      }
+    },
+    {
+      "budget": "t32-tok16000",
+      "model": "flash",
+      "question": "q-s01-i1-r2",
+      "arm": "bash-v0.2",
+      "run": 1,
+      "classification": "correct",
+      "m3": {
+        "overall": {
+          "precision_naive": 0.188,
+          "precision_cluster": 1,
+          "recall_sample": 1
+        },
+        "stages": [
+          {
+            "stage": "recon",
+            "precision_cluster": 0.125,
+            "recall_sample": 1,
+            "cited_count": 24
+          },
+          {
+            "stage": "successful_read",
+            "precision_cluster": 0.375,
+            "recall_sample": 1,
+            "cited_count": 8
+          }
+        ],
+        "fields": {
+          "attack_type": {
+            "precision_naive": 0.188,
+            "precision_cluster": 1,
+            "recall_sample": 1,
+            "cited_count": 32
+          }
+        }
+      }
+    },
+    {
+      "budget": "t32-tok16000",
+      "model": "flash",
+      "question": "q-s01-i1-r2",
+      "arm": "bash-v0.2",
+      "run": 2,
+      "classification": "correct",
+      "m3": {
+        "overall": {
+          "precision_naive": 0.188,
+          "precision_cluster": 1,
+          "recall_sample": 1
+        },
+        "stages": [
+          {
+            "stage": "recon",
+            "precision_cluster": 0.125,
+            "recall_sample": 1,
+            "cited_count": 24
+          },
+          {
+            "stage": "successful_read",
+            "precision_cluster": 0.375,
+            "recall_sample": 1,
+            "cited_count": 8
+          }
+        ],
+        "fields": {
+          "attack_type": {
+            "precision_naive": 0.188,
+            "precision_cluster": 1,
+            "recall_sample": 1,
+            "cited_count": 32
+          }
+        }
+      }
+    },
+    {
+      "budget": "t32-tok16000",
+      "model": "flash",
+      "question": "q-s01-i1-r2",
+      "arm": "bash-v0.2",
+      "run": 3,
+      "classification": "correct",
+      "m3": {
+        "overall": {
+          "precision_naive": 0.188,
+          "precision_cluster": 1,
+          "recall_sample": 1
+        },
+        "stages": [
+          {
+            "stage": "recon",
+            "precision_cluster": 0.125,
+            "recall_sample": 1,
+            "cited_count": 24
+          },
+          {
+            "stage": "successful_read",
+            "precision_cluster": 0.375,
+            "recall_sample": 1,
+            "cited_count": 8
+          }
+        ],
+        "fields": {
+          "attack_type": {
+            "precision_naive": 0.188,
+            "precision_cluster": 1,
+            "recall_sample": 1,
+            "cited_count": 32
+          }
+        }
+      }
+    }
+  ]
+}
