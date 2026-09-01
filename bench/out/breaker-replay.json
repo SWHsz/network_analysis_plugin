@@ -1,0 +1,592 @@
+{
+  "generated_at": "2026-09-01T12:32:35.685Z",
+  "telemetry_inventory": {
+    "total_runs_all_batches": 210,
+    "runs_with_calls": 192,
+    "runs_without_calls_note": "E1 flash v0.1 (30) + v0.1 multi-model (90) 无 calls 字段——不可回放（诚实标注，不插值补编）",
+    "r2_limitation": "轮级边界缺失：calls 数组无 turn 标签，零调用轮按 llmCalls-calls.length 差值近似（追加在序列末尾，实际中间穿插不可知）。R2 结论为保守下界。"
+  },
+  "health_baseline": {
+    "max_same_args_retry_in_correct_runs": 2,
+    "max_consecutive_idle_turns_in_correct_runs": 2,
+    "r1_k_must_exceed": 2,
+    "r2_n_must_exceed": 2
+  },
+  "parameter_grid": [
+    {
+      "K": 2,
+      "N": 3,
+      "hits_total": 10,
+      "hits_correct": 1,
+      "hits_failed": 9,
+      "hard_gate": "FAIL",
+      "compatibility": "不成立（误杀 1 个成功 run）",
+      "hit_rate_on_failed": 0.106,
+      "details": [
+        {
+          "run": "model-deepseek-v4-pro/q-web-004/flash/model-deepseek-v4-pro/q-web-004#3",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 2,
+          "detail": "同工具同参数语义失败 2 次（≥K=2）：traffic_open"
+        },
+        {
+          "run": "model-deepseek-v4-pro-hint/q-web-003/flash/model-deepseek-v4-pro-hint/q-web-003#2",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 2,
+          "detail": "同工具同参数语义失败 2 次（≥K=2）：traffic_open"
+        },
+        {
+          "run": "model-kimi-k3-hint/q-web-001/flash/model-kimi-k3-hint/q-web-001#2",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 6,
+          "detail": "同工具同参数语义失败 2 次（≥K=2）：traffic_query"
+        },
+        {
+          "run": "model-kimi-k3-hint/q-web-001/flash/model-kimi-k3-hint/q-web-001#3",
+          "outcome": "correct",
+          "rule": "R1_call_loop",
+          "turn": 4,
+          "detail": "同工具同参数语义失败 2 次（≥K=2）：traffic_query"
+        },
+        {
+          "run": "model-kimi-k3-v02bak/q-web-002/flash/model-kimi-k3-v02bak/q-web-002#1",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 4,
+          "detail": "同工具同参数语义失败 2 次（≥K=2）：traffic_query"
+        },
+        {
+          "run": "model-kimi-k3-v02bak/q-web-002/flash/model-kimi-k3-v02bak/q-web-002#2",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 4,
+          "detail": "同工具同参数语义失败 2 次（≥K=2）：traffic_query"
+        },
+        {
+          "run": "model-kimi-k3-v02bak/q-web-002/flash/model-kimi-k3-v02bak/q-web-002#3",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 6,
+          "detail": "同工具同参数语义失败 2 次（≥K=2）：traffic_query"
+        },
+        {
+          "run": "model-kimi-k3-v02bak/q-web-003/flash/model-kimi-k3-v02bak/q-web-003#2",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 4,
+          "detail": "同工具同参数语义失败 2 次（≥K=2）：traffic_query"
+        },
+        {
+          "run": "model-kimi-k3-v02bak/q-web-004/flash/model-kimi-k3-v02bak/q-web-004#1",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 3,
+          "detail": "同工具同参数语义失败 2 次（≥K=2）：traffic_query"
+        },
+        {
+          "run": "model-kimi-k3-v02bak/q-web-004/flash/model-kimi-k3-v02bak/q-web-004#3",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 3,
+          "detail": "同工具同参数语义失败 2 次（≥K=2）：traffic_query"
+        }
+      ]
+    },
+    {
+      "K": 2,
+      "N": 5,
+      "hits_total": 10,
+      "hits_correct": 1,
+      "hits_failed": 9,
+      "hard_gate": "FAIL",
+      "compatibility": "不成立（误杀 1 个成功 run）",
+      "hit_rate_on_failed": 0.106,
+      "details": [
+        {
+          "run": "model-deepseek-v4-pro/q-web-004/flash/model-deepseek-v4-pro/q-web-004#3",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 2,
+          "detail": "同工具同参数语义失败 2 次（≥K=2）：traffic_open"
+        },
+        {
+          "run": "model-deepseek-v4-pro-hint/q-web-003/flash/model-deepseek-v4-pro-hint/q-web-003#2",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 2,
+          "detail": "同工具同参数语义失败 2 次（≥K=2）：traffic_open"
+        },
+        {
+          "run": "model-kimi-k3-hint/q-web-001/flash/model-kimi-k3-hint/q-web-001#2",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 6,
+          "detail": "同工具同参数语义失败 2 次（≥K=2）：traffic_query"
+        },
+        {
+          "run": "model-kimi-k3-hint/q-web-001/flash/model-kimi-k3-hint/q-web-001#3",
+          "outcome": "correct",
+          "rule": "R1_call_loop",
+          "turn": 4,
+          "detail": "同工具同参数语义失败 2 次（≥K=2）：traffic_query"
+        },
+        {
+          "run": "model-kimi-k3-v02bak/q-web-002/flash/model-kimi-k3-v02bak/q-web-002#1",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 4,
+          "detail": "同工具同参数语义失败 2 次（≥K=2）：traffic_query"
+        },
+        {
+          "run": "model-kimi-k3-v02bak/q-web-002/flash/model-kimi-k3-v02bak/q-web-002#2",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 4,
+          "detail": "同工具同参数语义失败 2 次（≥K=2）：traffic_query"
+        },
+        {
+          "run": "model-kimi-k3-v02bak/q-web-002/flash/model-kimi-k3-v02bak/q-web-002#3",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 6,
+          "detail": "同工具同参数语义失败 2 次（≥K=2）：traffic_query"
+        },
+        {
+          "run": "model-kimi-k3-v02bak/q-web-003/flash/model-kimi-k3-v02bak/q-web-003#2",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 4,
+          "detail": "同工具同参数语义失败 2 次（≥K=2）：traffic_query"
+        },
+        {
+          "run": "model-kimi-k3-v02bak/q-web-004/flash/model-kimi-k3-v02bak/q-web-004#1",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 3,
+          "detail": "同工具同参数语义失败 2 次（≥K=2）：traffic_query"
+        },
+        {
+          "run": "model-kimi-k3-v02bak/q-web-004/flash/model-kimi-k3-v02bak/q-web-004#3",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 3,
+          "detail": "同工具同参数语义失败 2 次（≥K=2）：traffic_query"
+        }
+      ]
+    },
+    {
+      "K": 2,
+      "N": 8,
+      "hits_total": 10,
+      "hits_correct": 1,
+      "hits_failed": 9,
+      "hard_gate": "FAIL",
+      "compatibility": "不成立（误杀 1 个成功 run）",
+      "hit_rate_on_failed": 0.106,
+      "details": [
+        {
+          "run": "model-deepseek-v4-pro/q-web-004/flash/model-deepseek-v4-pro/q-web-004#3",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 2,
+          "detail": "同工具同参数语义失败 2 次（≥K=2）：traffic_open"
+        },
+        {
+          "run": "model-deepseek-v4-pro-hint/q-web-003/flash/model-deepseek-v4-pro-hint/q-web-003#2",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 2,
+          "detail": "同工具同参数语义失败 2 次（≥K=2）：traffic_open"
+        },
+        {
+          "run": "model-kimi-k3-hint/q-web-001/flash/model-kimi-k3-hint/q-web-001#2",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 6,
+          "detail": "同工具同参数语义失败 2 次（≥K=2）：traffic_query"
+        },
+        {
+          "run": "model-kimi-k3-hint/q-web-001/flash/model-kimi-k3-hint/q-web-001#3",
+          "outcome": "correct",
+          "rule": "R1_call_loop",
+          "turn": 4,
+          "detail": "同工具同参数语义失败 2 次（≥K=2）：traffic_query"
+        },
+        {
+          "run": "model-kimi-k3-v02bak/q-web-002/flash/model-kimi-k3-v02bak/q-web-002#1",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 4,
+          "detail": "同工具同参数语义失败 2 次（≥K=2）：traffic_query"
+        },
+        {
+          "run": "model-kimi-k3-v02bak/q-web-002/flash/model-kimi-k3-v02bak/q-web-002#2",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 4,
+          "detail": "同工具同参数语义失败 2 次（≥K=2）：traffic_query"
+        },
+        {
+          "run": "model-kimi-k3-v02bak/q-web-002/flash/model-kimi-k3-v02bak/q-web-002#3",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 6,
+          "detail": "同工具同参数语义失败 2 次（≥K=2）：traffic_query"
+        },
+        {
+          "run": "model-kimi-k3-v02bak/q-web-003/flash/model-kimi-k3-v02bak/q-web-003#2",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 4,
+          "detail": "同工具同参数语义失败 2 次（≥K=2）：traffic_query"
+        },
+        {
+          "run": "model-kimi-k3-v02bak/q-web-004/flash/model-kimi-k3-v02bak/q-web-004#1",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 3,
+          "detail": "同工具同参数语义失败 2 次（≥K=2）：traffic_query"
+        },
+        {
+          "run": "model-kimi-k3-v02bak/q-web-004/flash/model-kimi-k3-v02bak/q-web-004#3",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 3,
+          "detail": "同工具同参数语义失败 2 次（≥K=2）：traffic_query"
+        }
+      ]
+    },
+    {
+      "K": 3,
+      "N": 3,
+      "hits_total": 6,
+      "hits_correct": 0,
+      "hits_failed": 6,
+      "hard_gate": "PASS",
+      "compatibility": "成立",
+      "hit_rate_on_failed": 0.071,
+      "details": [
+        {
+          "run": "model-kimi-k3-hint/q-web-001/flash/model-kimi-k3-hint/q-web-001#2",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 7,
+          "detail": "同工具同参数语义失败 3 次（≥K=3）：traffic_query"
+        },
+        {
+          "run": "model-kimi-k3-v02bak/q-web-002/flash/model-kimi-k3-v02bak/q-web-002#1",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 5,
+          "detail": "同工具同参数语义失败 3 次（≥K=3）：traffic_query"
+        },
+        {
+          "run": "model-kimi-k3-v02bak/q-web-002/flash/model-kimi-k3-v02bak/q-web-002#2",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 5,
+          "detail": "同工具同参数语义失败 3 次（≥K=3）：traffic_query"
+        },
+        {
+          "run": "model-kimi-k3-v02bak/q-web-003/flash/model-kimi-k3-v02bak/q-web-003#2",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 5,
+          "detail": "同工具同参数语义失败 3 次（≥K=3）：traffic_query"
+        },
+        {
+          "run": "model-kimi-k3-v02bak/q-web-004/flash/model-kimi-k3-v02bak/q-web-004#1",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 4,
+          "detail": "同工具同参数语义失败 3 次（≥K=3）：traffic_query"
+        },
+        {
+          "run": "model-kimi-k3-v02bak/q-web-004/flash/model-kimi-k3-v02bak/q-web-004#3",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 4,
+          "detail": "同工具同参数语义失败 3 次（≥K=3）：traffic_query"
+        }
+      ]
+    },
+    {
+      "K": 3,
+      "N": 5,
+      "hits_total": 6,
+      "hits_correct": 0,
+      "hits_failed": 6,
+      "hard_gate": "PASS",
+      "compatibility": "成立",
+      "hit_rate_on_failed": 0.071,
+      "details": [
+        {
+          "run": "model-kimi-k3-hint/q-web-001/flash/model-kimi-k3-hint/q-web-001#2",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 7,
+          "detail": "同工具同参数语义失败 3 次（≥K=3）：traffic_query"
+        },
+        {
+          "run": "model-kimi-k3-v02bak/q-web-002/flash/model-kimi-k3-v02bak/q-web-002#1",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 5,
+          "detail": "同工具同参数语义失败 3 次（≥K=3）：traffic_query"
+        },
+        {
+          "run": "model-kimi-k3-v02bak/q-web-002/flash/model-kimi-k3-v02bak/q-web-002#2",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 5,
+          "detail": "同工具同参数语义失败 3 次（≥K=3）：traffic_query"
+        },
+        {
+          "run": "model-kimi-k3-v02bak/q-web-003/flash/model-kimi-k3-v02bak/q-web-003#2",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 5,
+          "detail": "同工具同参数语义失败 3 次（≥K=3）：traffic_query"
+        },
+        {
+          "run": "model-kimi-k3-v02bak/q-web-004/flash/model-kimi-k3-v02bak/q-web-004#1",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 4,
+          "detail": "同工具同参数语义失败 3 次（≥K=3）：traffic_query"
+        },
+        {
+          "run": "model-kimi-k3-v02bak/q-web-004/flash/model-kimi-k3-v02bak/q-web-004#3",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 4,
+          "detail": "同工具同参数语义失败 3 次（≥K=3）：traffic_query"
+        }
+      ]
+    },
+    {
+      "K": 3,
+      "N": 8,
+      "hits_total": 6,
+      "hits_correct": 0,
+      "hits_failed": 6,
+      "hard_gate": "PASS",
+      "compatibility": "成立",
+      "hit_rate_on_failed": 0.071,
+      "details": [
+        {
+          "run": "model-kimi-k3-hint/q-web-001/flash/model-kimi-k3-hint/q-web-001#2",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 7,
+          "detail": "同工具同参数语义失败 3 次（≥K=3）：traffic_query"
+        },
+        {
+          "run": "model-kimi-k3-v02bak/q-web-002/flash/model-kimi-k3-v02bak/q-web-002#1",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 5,
+          "detail": "同工具同参数语义失败 3 次（≥K=3）：traffic_query"
+        },
+        {
+          "run": "model-kimi-k3-v02bak/q-web-002/flash/model-kimi-k3-v02bak/q-web-002#2",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 5,
+          "detail": "同工具同参数语义失败 3 次（≥K=3）：traffic_query"
+        },
+        {
+          "run": "model-kimi-k3-v02bak/q-web-003/flash/model-kimi-k3-v02bak/q-web-003#2",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 5,
+          "detail": "同工具同参数语义失败 3 次（≥K=3）：traffic_query"
+        },
+        {
+          "run": "model-kimi-k3-v02bak/q-web-004/flash/model-kimi-k3-v02bak/q-web-004#1",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 4,
+          "detail": "同工具同参数语义失败 3 次（≥K=3）：traffic_query"
+        },
+        {
+          "run": "model-kimi-k3-v02bak/q-web-004/flash/model-kimi-k3-v02bak/q-web-004#3",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 4,
+          "detail": "同工具同参数语义失败 3 次（≥K=3）：traffic_query"
+        }
+      ]
+    },
+    {
+      "K": 4,
+      "N": 3,
+      "hits_total": 6,
+      "hits_correct": 0,
+      "hits_failed": 6,
+      "hard_gate": "PASS",
+      "compatibility": "成立",
+      "hit_rate_on_failed": 0.071,
+      "details": [
+        {
+          "run": "model-kimi-k3-hint/q-web-001/flash/model-kimi-k3-hint/q-web-001#2",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 8,
+          "detail": "同工具同参数语义失败 4 次（≥K=4）：traffic_query"
+        },
+        {
+          "run": "model-kimi-k3-v02bak/q-web-002/flash/model-kimi-k3-v02bak/q-web-002#1",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 6,
+          "detail": "同工具同参数语义失败 4 次（≥K=4）：traffic_query"
+        },
+        {
+          "run": "model-kimi-k3-v02bak/q-web-002/flash/model-kimi-k3-v02bak/q-web-002#2",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 6,
+          "detail": "同工具同参数语义失败 4 次（≥K=4）：traffic_query"
+        },
+        {
+          "run": "model-kimi-k3-v02bak/q-web-003/flash/model-kimi-k3-v02bak/q-web-003#2",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 6,
+          "detail": "同工具同参数语义失败 4 次（≥K=4）：traffic_query"
+        },
+        {
+          "run": "model-kimi-k3-v02bak/q-web-004/flash/model-kimi-k3-v02bak/q-web-004#1",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 5,
+          "detail": "同工具同参数语义失败 4 次（≥K=4）：traffic_query"
+        },
+        {
+          "run": "model-kimi-k3-v02bak/q-web-004/flash/model-kimi-k3-v02bak/q-web-004#3",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 5,
+          "detail": "同工具同参数语义失败 4 次（≥K=4）：traffic_query"
+        }
+      ]
+    },
+    {
+      "K": 4,
+      "N": 5,
+      "hits_total": 6,
+      "hits_correct": 0,
+      "hits_failed": 6,
+      "hard_gate": "PASS",
+      "compatibility": "成立",
+      "hit_rate_on_failed": 0.071,
+      "details": [
+        {
+          "run": "model-kimi-k3-hint/q-web-001/flash/model-kimi-k3-hint/q-web-001#2",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 8,
+          "detail": "同工具同参数语义失败 4 次（≥K=4）：traffic_query"
+        },
+        {
+          "run": "model-kimi-k3-v02bak/q-web-002/flash/model-kimi-k3-v02bak/q-web-002#1",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 6,
+          "detail": "同工具同参数语义失败 4 次（≥K=4）：traffic_query"
+        },
+        {
+          "run": "model-kimi-k3-v02bak/q-web-002/flash/model-kimi-k3-v02bak/q-web-002#2",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 6,
+          "detail": "同工具同参数语义失败 4 次（≥K=4）：traffic_query"
+        },
+        {
+          "run": "model-kimi-k3-v02bak/q-web-003/flash/model-kimi-k3-v02bak/q-web-003#2",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 6,
+          "detail": "同工具同参数语义失败 4 次（≥K=4）：traffic_query"
+        },
+        {
+          "run": "model-kimi-k3-v02bak/q-web-004/flash/model-kimi-k3-v02bak/q-web-004#1",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 5,
+          "detail": "同工具同参数语义失败 4 次（≥K=4）：traffic_query"
+        },
+        {
+          "run": "model-kimi-k3-v02bak/q-web-004/flash/model-kimi-k3-v02bak/q-web-004#3",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 5,
+          "detail": "同工具同参数语义失败 4 次（≥K=4）：traffic_query"
+        }
+      ]
+    },
+    {
+      "K": 4,
+      "N": 8,
+      "hits_total": 6,
+      "hits_correct": 0,
+      "hits_failed": 6,
+      "hard_gate": "PASS",
+      "compatibility": "成立",
+      "hit_rate_on_failed": 0.071,
+      "details": [
+        {
+          "run": "model-kimi-k3-hint/q-web-001/flash/model-kimi-k3-hint/q-web-001#2",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 8,
+          "detail": "同工具同参数语义失败 4 次（≥K=4）：traffic_query"
+        },
+        {
+          "run": "model-kimi-k3-v02bak/q-web-002/flash/model-kimi-k3-v02bak/q-web-002#1",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 6,
+          "detail": "同工具同参数语义失败 4 次（≥K=4）：traffic_query"
+        },
+        {
+          "run": "model-kimi-k3-v02bak/q-web-002/flash/model-kimi-k3-v02bak/q-web-002#2",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 6,
+          "detail": "同工具同参数语义失败 4 次（≥K=4）：traffic_query"
+        },
+        {
+          "run": "model-kimi-k3-v02bak/q-web-003/flash/model-kimi-k3-v02bak/q-web-003#2",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 6,
+          "detail": "同工具同参数语义失败 4 次（≥K=4）：traffic_query"
+        },
+        {
+          "run": "model-kimi-k3-v02bak/q-web-004/flash/model-kimi-k3-v02bak/q-web-004#1",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 5,
+          "detail": "同工具同参数语义失败 4 次（≥K=4）：traffic_query"
+        },
+        {
+          "run": "model-kimi-k3-v02bak/q-web-004/flash/model-kimi-k3-v02bak/q-web-004#3",
+          "outcome": "format_error",
+          "rule": "R1_call_loop",
+          "turn": 5,
+          "detail": "同工具同参数语义失败 4 次（≥K=4）：traffic_query"
+        }
+      ]
+    }
+  ],
+  "compatibility_failures": [
+    "K=2,N=3: 不成立（误杀 1 个成功 run）",
+    "K=2,N=5: 不成立（误杀 1 个成功 run）",
+    "K=2,N=8: 不成立（误杀 1 个成功 run）"
+  ]
+}
