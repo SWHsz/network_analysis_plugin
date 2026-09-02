@@ -100,7 +100,8 @@ export function startVllmRecordingProxy(config: VllmProviderConfig): Promise<{
           authorization: `Bearer ${config.apiKey}`,
         },
         body,
-        signal: AbortSignal.timeout(200_000),
+        // 超时与 envelope 对齐（1440s）——27B 推理模型处理 8 工具 prompt 可超 200s
+        signal: AbortSignal.timeout(1_440_000),
       });
       const respBuf = Buffer.from(await up.arrayBuffer());
       // 记录 provider 侧 tool_calls
